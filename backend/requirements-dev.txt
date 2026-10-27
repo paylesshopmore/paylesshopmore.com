@@ -12,4 +12,4 @@
 # nobody touched -- because the runner happened to resolve a newer ruff than
 # the machine the change was written on -- teaches people to distrust CI.
 # Dependabot proposes the bumps; see .github/dependabot.yml.
-ruff==0.14.5
+ruff==0.17.2

@@ -1,6 +1,6 @@
 # Runs everywhere: development, CI and production. Pure-Python only, so a
 # fresh clone installs with no compiler and no platform surprises.
-asgiref==3.12.1
+asgiref==3.13.0
 celery==5.6.3
 # Encrypts the two-factor (authenticator app) secrets stored in the database
 # (accounts/twofactor_crypto.py). Not pure Python, but it ships ready-built
@@ -10,15 +10,15 @@ cryptography==50.0.2
 # wheels for every platform, so still no compiler needed.
 argon2-cffi==25.1.0
 django-cors-headers==4.9.0
-Django==5.2.17
-djangorestframework==3.18.0
-reportlab==5.0.1
+Django==5.2.18
+djangorestframework==3.18.3
+reportlab==5.1.0
 sqlparse==0.6.0
-tzdata==2026.3
+tzdata==2026.5
 # Serves Django's own static files (the admin's CSS, chiefly) from the web
 # process, so a deployment does not need a separate web server in front just
 # to make /admin look like itself. The React bundle is not served from here.
-whitenoise==6.11.0
+whitenoise==6.12.0
 # AI document reading (docreview/ai.py): the official OpenAI SDK. Imported only
 # when a document is read, and inert without OPENAI_API_KEY.
 openai==3.37.0
