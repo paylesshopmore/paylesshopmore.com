@@ -22,16 +22,16 @@
 
 # The name of the App that already exists in the dashboard. Pasting this spec
 # into an App with a different name renames that App.
-name: plsmdev
+name: plsm
 # Amsterdam: the customers are in the Netherlands and the Caribbean, and the
 # data stays in the EU. Put the database in the same region.
 region: ams
 
-# The dev database that was created together with the App. It MUST be listed
+# The App's dev database. It MUST be listed
 # here: an App Spec describes the whole App, so a database left out of it is
 # removed from the App when the spec is saved.
 databases:
-  - name: dev-db-434950
+  - name: db
     engine: PG
     version: "17"
     production: false
@@ -105,7 +105,7 @@ services:
       # Filled in by DigitalOcean with the connection string of the database
       # above. It is a reference, not the password itself, so it is safe here.
       - key: DATABASE_URL
-        value: ${dev-db-434950.DATABASE_URL}
+        value: ${db.DATABASE_URL}
         scope: RUN_TIME
       # ${APP_DOMAIN} and ${APP_URL} are filled in by DigitalOcean with the
       # app's address (xxxx.ondigitalocean.app, or your own domain once one is
