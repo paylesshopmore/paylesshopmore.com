@@ -21,7 +21,7 @@
   "dependencies": {
     "@tesseract.js-data/eng": "1.0.0",
     "@tesseract.js-data/nld": "1.0.0",
-    "@zxing/browser": "^0.1.5",
+    "@zxing/browser": "^0.2.1",
     "@zxing/library": "^0.21.3",
     "bootstrap": "5.3.8",
     "react": "^19.2.8",
