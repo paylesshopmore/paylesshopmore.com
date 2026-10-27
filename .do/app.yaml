@@ -20,10 +20,21 @@
 # Secrets are deliberately NOT in this file. It is committed to git, and a
 # database password or secret key in git is a leaked one.
 
-name: paylesshopmore
+# The name of the App that already exists in the dashboard. Pasting this spec
+# into an App with a different name renames that App.
+name: plsmdev
 # Amsterdam: the customers are in the Netherlands and the Caribbean, and the
 # data stays in the EU. Put the database in the same region.
 region: ams
+
+# The dev database that was created together with the App. It MUST be listed
+# here: an App Spec describes the whole App, so a database left out of it is
+# removed from the App when the spec is saved.
+databases:
+  - name: dev-db-434950
+    engine: PG
+    version: "17"
+    production: false
 
 static_sites:
   - name: frontend
@@ -91,6 +102,11 @@ services:
       - key: DJANGO_DEBUG
         value: "0"
         scope: RUN_AND_BUILD_TIME
+      # Filled in by DigitalOcean with the connection string of the database
+      # above. It is a reference, not the password itself, so it is safe here.
+      - key: DATABASE_URL
+        value: ${dev-db-434950.DATABASE_URL}
+        scope: RUN_TIME
       # ${APP_DOMAIN} and ${APP_URL} are filled in by DigitalOcean with the
       # app's address (xxxx.ondigitalocean.app, or your own domain once one is
       # attached). Without the right host Django answers every request with
@@ -126,8 +142,7 @@ services:
       # ---- Add these in the dashboard as ENCRYPTED variables ----------------
       # (App > api > Settings > Environment Variables). Never in this file.
       #
-      #   DATABASE_URL                      Your Postgres connection string.
-      #   DJANGO_SECRET_KEY                 A long random string.
+      #   DJANGO_SECRET_KEY                A long random string.
       #   DJANGO_TWO_FACTOR_ENCRYPTION_KEYS Keep it forever: losing it locks
       #                                     out everyone using two-factor.
       #   EMAIL_HOST, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, DJANGO_FROM_EMAIL
