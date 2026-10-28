@@ -70,6 +70,8 @@ if not SECRET_KEY:
             "Generate one with: python -c \"from django.core.management.utils "
             'import get_random_secret_key; print(get_random_secret_key())"'
         )
+        
+        
 
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1" if DEBUG else "")
 
