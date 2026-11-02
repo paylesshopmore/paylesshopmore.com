@@ -1,7 +1,8 @@
 // src/pages/Services/Services.jsx
 //
-// The services page, in six bands: the split banner, the yellow strip of
-// selling points, the three islands as photographs, what the company does,
+// The services page, in six bands: the photo banner (shared with the
+// destination pages, here in the brand colours), the yellow strip of selling
+// points, the three islands as flag maps, what the company does,
 // the companies whose services are offered, and a closing call to action.
 //
 // The island cards carry the island drawn in its own flag, and nothing else -
@@ -24,6 +25,7 @@
 //   Backend:      -
 
 import { Link } from 'react-router-dom';
+import DestinationHero from '../../components/DestinationHero/DestinationHero';
 import { containerShip } from '../../images/optimized/photos';
 import { DESTINATIONS } from '../../data/destinations';
 import { useLanguage } from '../../i18n/useLanguage';
@@ -207,36 +209,19 @@ export default function Services() {
 
   return (
     <main>
-      {/* 1. The split banner --------------------------------------------- */}
-      {/* data-tour="..." on this page: what the robot's page tour
-          highlights (src/components/Tutorial/tutorialSteps.js). */}
-      <section className={styles.banner} data-tour="services-intro">
-        <div className={styles.titlePanel}>
-          <p className={styles.eyebrow}>{t('services.eyebrow')}</p>
-          <h1 className={styles.title}>{t('services.title')}</h1>
-          <hr className={styles.rule} />
-          <p className={styles.breadcrumb}>
-            <Link to="/" className={styles.crumbLink}>
-              {t('nav.home')}
-            </Link>{' '}
-            &raquo; {t('services.breadcrumb')}
-          </p>
-        </div>
-
-        <img
-          src={containerShip.src}
-          srcSet={containerShip.srcSet}
-          // Full-bleed banner, so the slot really is the window's width.
-          sizes="100vw"
-          width={containerShip.width}
-          height={containerShip.height}
-          alt="Container ship at sea loaded with freight"
-          className={styles.bannerImage}
-          // Top of the page: the visitor is looking at it before it loads.
-          fetchPriority="high"
-          decoding="async"
+      {/* 1. The photo banner ------------------------------------------- */}
+      {/* The same banner as /destinations and the island pages, so the
+          pages a visitor moves between look like one site. The wrapper only
+          carries the hook the robot's page tour highlights
+          (src/components/Tutorial/tutorialSteps.js). */}
+      <div data-tour="services-intro">
+        <DestinationHero
+          eyebrow={t('services.eyebrow')}
+          title={t('services.title')}
+          image={containerShip.src}
+          brand
         />
-      </section>
+      </div>
 
       {/* 2. The yellow strip of selling points --------------------------- */}
       <ul className={styles.highlights}>
@@ -248,7 +233,8 @@ export default function Services() {
         ))}
       </ul>
 
-      {/* Everything below runs on the navy, as one band. */}
+
+      {/* Everything below runs on white, as one band. */}
       <div className={styles.page}>
         {/* 3. The islands, as photographs and nothing else --------------- */}
         <section className={styles.islands} data-tour="services-islands">

@@ -103,7 +103,11 @@ export default function Destination() {
 
   return (
     <main>
-      <DestinationHero title={name} image={destination.hero.src} />
+      {/* No photo on the island pages: the banner falls back to its plain
+          ocean gradient. The photos are still used for the island cards on
+          /destinations (destination.hero.small). An island with a
+          titleFlag has its name drawn in its own flag. */}
+      <DestinationHero title={name} flag={destination.titleFlag} />
 
       {/* The three things people ask before anything else. */}
       {/* data-tour="..." on this page: what the robot's page tour

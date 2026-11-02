@@ -12,7 +12,7 @@ from warehouse import records as warehouse_records
 from warehouse import shipments as warehouse_shipments
 from warehouse import views as warehouse_views
 
-from . import floor, invoice_config, reports, security, views
+from . import floor, invoice_config, reports, security, site_settings, views
 
 router = DefaultRouter()
 router.register("quotes", views.QuoteRequestViewSet, basename="staff-quote")
@@ -114,6 +114,8 @@ urlpatterns = [
         security.TwoFactorPolicyView.as_view(),
         name="staff-two-factor-policy",
     ),
+    # Which pages of the public site are on (admins): the Website page.
+    path("site-settings/", site_settings.SiteSettingsView.as_view(), name="staff-site-settings"),
     # The Integrations page: API keys and webhooks. Admins only.
     path("integrations/", include("integrations.staff_urls")),
     path("", include(router.urls)),

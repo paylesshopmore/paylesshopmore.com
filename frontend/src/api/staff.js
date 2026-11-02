@@ -1108,3 +1108,13 @@ export async function retryDocumentJob(id) {
 export async function resolveDocumentJob(id, reason) {
   return request(`/staff/document-jobs/${id}/resolve/`, { method: 'POST', body: { reason } });
 }
+
+/** The Website page's switches (admins): `{ show_calculator: boolean }`. */
+export async function getSiteSettings() {
+  return request('/staff/site-settings/');
+}
+
+/** Change one or more of them; answers with all of them as they are now. */
+export async function saveSiteSettings(switches) {
+  return request('/staff/site-settings/', { method: 'PUT', body: switches });
+}

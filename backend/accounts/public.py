@@ -264,6 +264,20 @@ def _own_courier_shipment(user, typed):
     return shipments.filter(tracking_number=number).first()
 
 
+class SiteSwitchesView(APIView):
+    """GET /api/site/ — which pages of the public site are switched on.
+
+    The admin sets these in the Django admin (Site settings). The site asks
+    once per visit and hides the links (and the page) of anything that is off.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        site = SiteSettings.load()
+        return Response({"show_calculator": site.show_calculator})
+
+
 class SiteStatsView(APIView):
     """GET /api/stats/ — the numbers behind the homepage statistics band.
 

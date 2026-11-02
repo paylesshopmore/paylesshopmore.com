@@ -6,6 +6,7 @@ import NavDropdown from '../NavDropdown/NavDropdown';
 import { DESTINATIONS } from '../../data/destinations';
 import { useAuth } from '../../auth/useAuth';
 import { useLanguage } from '../../i18n/useLanguage';
+import { useSiteSwitches } from '../../hooks/useSiteSwitches';
 // A small copy of "Pay Less, Shop More.png" (13 KB instead of 1.6 MB), made
 // for the header so the bar does not wait on the full-size picture.
 import logoMark from '../../images/logo-mark.webp';
@@ -48,6 +49,11 @@ export default function Header() {
   const { t } = useLanguage();
   const { isAuthenticated, user, signOut } = useAuth();
   const navigate = useNavigate();
+  // An admin can hide the Calculator page (Site settings in the Django admin).
+  const { showCalculator } = useSiteSwitches();
+  const navLinks = NAV_LINKS.filter(
+    (link) => showCalculator || link.href !== '/calculator',
+  );
 
   // Every link closes the menu: navigating with it open would leave the sheet
   // covering the page it just moved to.
@@ -171,7 +177,7 @@ export default function Header() {
         >
           <nav className={styles.nav} aria-label={t('nav.label')}>
             <ul className={styles.navList}>
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <Fragment key={link.href}>
                   <li>
                     <NavLink

@@ -41,14 +41,14 @@ PASSWORD = "a-long-enough-password"
 # anonymous caller.
 PUBLIC = re.compile(
     r"^api/(health|ready|stats|auth/(csrf|signup|login|code-login|floor|pin-login|"
-    r"password-reset(/confirm)?)|blog|shops|bookings/$|contact|quote|client-errors|assistant)"
+    r"password-reset(/confirm)?)|blog|shops|bookings/$|contact|quote|client-errors|assistant|site/$)"
 )
 
 # What a signed-in customer may call at all. Their own records only; the
 # victim's ids in the URL must still be refused (see test_customer_idor).
 CUSTOMER_ROUTES = re.compile(
     r"^api/(auth/|profile|addresses|documents|invoices|notifications|packages|prealerts|"
-    r"bookings|track|stats|blog|shops|contact|quote|health|ready|client-errors|assistant)|^api/staff/warehouse/access/$"
+    r"bookings|track|stats|blog|shops|contact|quote|health|ready|client-errors|assistant|site/$)|^api/staff/warehouse/access/$"
 )
 
 # Routes a customer may call with somebody else's id in them without that

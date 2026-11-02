@@ -28,6 +28,8 @@ urlpatterns = [
         name="track",
     ),
     path("stats/", public.SiteStatsView.as_view(), name="site-stats"),
+    # Which parts of the public site an admin has switched on (SiteSettings).
+    path("site/", public.SiteSwitchesView.as_view(), name="site-switches"),
 
     path("auth/csrf/", views.CsrfView.as_view(), name="csrf"),
     path("auth/signup/", views.SignupView.as_view(), name="signup"),

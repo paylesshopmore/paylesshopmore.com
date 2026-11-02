@@ -1,6 +1,7 @@
 /* src/components/DestinationHero/DestinationHero.module.css */
 
-/* Full-bleed photo banner with the title centred over it */
+/* Full-bleed photo banner with the title centred over it. The photo comes in
+   as --hero-image so the brand variant can stack its colours on top of it. */
 .hero {
   display: flex;
   align-items: center;
@@ -8,6 +9,7 @@
   min-height: clamp(220px, 26vw, 360px);
   padding: 2rem 1rem;
   background-color: #0b3f63;
+  background-image: var(--hero-image, none);
   background-position: center 55%;
   background-size: cover;
   background-repeat: no-repeat;
@@ -19,6 +21,33 @@
   background-image: linear-gradient(160deg, #5fb6e8 0%, #1f7fb8 55%, #0b3f63 100%);
 }
 
+/* The brand colours over the photo. Layers are listed top first: the three
+   blue streaks (the same ones as the FAQ, blog and calculator banners), then
+   a navy tint that fades out to the right so the ship still shows, then the
+   photo itself. */
+.heroBrand {
+  background-image:
+    linear-gradient(115deg, rgba(56, 160, 220, 0.55) 0 6%, transparent 6%),
+    linear-gradient(115deg, rgba(56, 160, 220, 0.3) 0 11%, transparent 11%),
+    linear-gradient(115deg, rgba(56, 160, 220, 0.16) 0 18%, transparent 18%),
+    linear-gradient(90deg, rgba(11, 37, 69, 0.85) 0%, rgba(11, 37, 69, 0.45) 100%),
+    var(--hero-image, none);
+}
+
+.inner {
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--brand-yellow);
+  font-size: clamp(1.2rem, 2.6vw, 2rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.55);
+}
+
 .title {
   margin: 0;
   color: #ffffff;
@@ -28,5 +57,77 @@
   text-transform: uppercase;
   /* These photos are bright behind the text in places */
   text-shadow: 0 2px 16px rgba(0, 0, 0, 0.55);
-  text-align: center;
+}
+
+/* Yellow rule under the title, only in the brand colours */
+.heroBrand .title::after {
+  content: '';
+  display: block;
+  width: 72px;
+  height: 4px;
+  margin: 1rem auto 0;
+  border-radius: 2px;
+  background: var(--brand-yellow);
+}
+
+/* ------------------------------------------------ titles drawn in a flag
+
+   Each island's flag is painted as the title's background and then clipped to the
+   letters (background-clip: text), so it only shows inside them. Sizes are
+   in em so the pattern scales with the title on every screen width.       */
+
+/* Aruba: light blue, two thin yellow stripes in the lower part, and the red
+   four-pointed star with its white edge. The stripes are placed so they run
+   across the lower half of the capitals, as on the flag; the star sits on
+   the upright of the R, the widest solid stroke near the top-left. */
+.aruba {
+  background:
+    url('../../images/flags/aruba-star.svg') no-repeat 0.775em 0.2em / 0.32em 0.32em,
+    linear-gradient(
+      to bottom,
+      #418fde 0 0.62em,
+      #fbe122 0.62em 0.68em,
+      #418fde 0.68em 0.74em,
+      #fbe122 0.74em 0.8em,
+      #418fde 0.8em
+    );
+}
+
+/* Bonaire: a yellow corner top-left, a white diagonal band, and dark blue
+   for the rest. The black compass with the red six-pointed star sits in the
+   white band on the B, as it sits in the white band near the flagpole. */
+.bonaire {
+  background:
+    url('../../images/flags/bonaire-compass.svg') no-repeat 0.05em 0.5em / 0.4em 0.4em,
+    linear-gradient(162deg, #fcd116 0 18%, #ffffff 18% 46%, #012a87 46%);
+}
+
+/* Curacao: dark blue with one yellow stripe just below the middle, and the
+   two white five-pointed stars, the bigger above the smaller, in the left
+   side of the C. */
+.curacao {
+  background:
+    url('../../images/flags/curacao-star.svg') no-repeat 0.12em 0.3em / 0.2em 0.2em,
+    url('../../images/flags/curacao-star.svg') no-repeat 0.06em 0.5em / 0.15em 0.15em,
+    linear-gradient(to bottom, #002b7f 0 0.6em, #f9e814 0.6em 0.72em, #002b7f 0.72em);
+}
+
+/* What every flag title shares. This comes after the flags on purpose: the
+   `background` shorthand above resets background-clip, so the clip has to
+   be set later in the file to win. */
+.aruba,
+.bonaire,
+.curacao {
+  /* Much bigger than a plain title, so the flag inside the letters can be
+     seen: at the normal size the stripes and stars are only a few pixels. */
+  font-size: clamp(3.2rem, 11vw, 8rem);
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  /* The white edge keeps the letters readable on the blue banner */
+  -webkit-text-stroke: 0.025em #ffffff;
+  /* text-shadow would show through the clear letters; a filter shadows the
+     painted shape instead. */
+  text-shadow: none;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45));
 }

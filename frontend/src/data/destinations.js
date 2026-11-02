@@ -44,6 +44,9 @@ export const DESTINATIONS = [
     nameKey: 'destinations.aruba',
     hero: arubaCentraal,
     flagMap: arubaFlagMap,
+    // The banner title is filled with this island's flag
+    // (DestinationHero.module.css, a class of the same name).
+    titleFlag: 'aruba',
     port: 'Oranjestad',
     transitDays: 16,
     flights: ['thursdayWeekend'],
@@ -55,6 +58,7 @@ export const DESTINATIONS = [
     nameKey: 'destinations.bonaire',
     hero: bonaireCentraal,
     flagMap: bonaireFlagMap,
+    titleFlag: 'bonaire',
     port: 'Kralendijk',
     transitDays: 18,
     flights: ['thursdayWeekend'],
@@ -66,6 +70,7 @@ export const DESTINATIONS = [
     nameKey: 'destinations.curacao',
     hero: curacaoCentraal,
     flagMap: curacaoFlagMap,
+    titleFlag: 'curacao',
     port: 'Willemstad',
     transitDays: 17,
     flights: ['mondayThursday'],

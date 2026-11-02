@@ -18,6 +18,7 @@ import { Suspense, lazy } from 'react';
 import { Navigate, Routes, Route, useLocation, useParams } from 'react-router-dom';
 import Header from './components/Header/Header';
 import Loading from './components/Loading/Loading';
+import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import RequireAuth from './components/RequireAuth/RequireAuth';
 import RequireStaff from './components/RequireStaff/RequireStaff';
@@ -25,6 +26,7 @@ import RequireWarehouse from './components/RequireWarehouse/RequireWarehouse';
 import RequireDriver from './components/RequireDriver/RequireDriver';
 import LanguageSwitcher from './components/LanguageSwitcher/LanguageSwitcher';
 import PageGuide from './components/PageGuide/PageGuide';
+import { useSiteSwitches } from './hooks/useSiteSwitches';
 import ChatProvider from './components/ChatAssistant/ChatProvider';
 import NotificationsProvider from './components/Notifications/NotificationsProvider';
 import TutorialProvider from './components/Tutorial/TutorialProvider';
@@ -95,6 +97,8 @@ const MeasurementsList = lazy(() => import('./pages/Dashboard/MeasurementsList')
 // API keys and webhooks for other software. Admins only.
 // The admin's two-factor policy. Admins only.
 const Security = lazy(() => import('./pages/Dashboard/Security'));
+// Which pages of the public site are on, e.g. the Calculator (admins).
+const WebsiteSettings = lazy(() => import('./pages/Dashboard/WebsiteSettings'));
 // The carriers' own tracking APIs (backend/tracking/adapters/). Admins only.
 const Reports = lazy(() => import('./pages/Dashboard/Reports'));
 const SystemStatus = lazy(() => import('./pages/Dashboard/SystemStatus'));
@@ -149,6 +153,20 @@ function CustomerProfile() {
   return <Profile />;
 }
 
+// The Calculator page, unless an admin has hidden it (Site settings in the
+// Django admin). Staff can still open it, to check it before switching it
+// back on; everyone else is sent to the home page.
+function CalculatorPage() {
+  const { user } = useAuth();
+  const { showCalculator } = useSiteSwitches();
+
+  if (!showCalculator && !user?.isStaff) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Calculator />;
+}
+
 export default function App() {
   const { pathname } = useLocation();
 
@@ -184,6 +202,8 @@ export default function App() {
           survives moving between pages. It is shown inside the robot guide
           below ("Ask our assistant"). */}
       <ChatProvider>
+      {/* A new page opens at its top, not where the last one was left. */}
+      <ScrollToTop />
       {!isDashboard && <Header />}
       {/* Boundary outside Suspense: a chunk that fails to download throws
           rather than suspending, so only the boundary can catch it. */}
@@ -211,7 +231,7 @@ export default function App() {
             {/* Linked from the footer of every page. */}
             <Route path="/faq" element={<Faq />} />
             {/* Linked from the header and footer; until now it led nowhere. */}
-            <Route path="/calculator" element={<Calculator />} />
+            <Route path="/calculator" element={<CalculatorPage />} />
             {/* Also linked from the footer of every page. */}
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
@@ -282,6 +302,8 @@ export default function App() {
               <Route path="prealerts" element={<PreAlertsPage />} />
               <Route path="blog" element={<DashboardBlog />} />
               <Route path="security" element={<Security />} />
+              {/* Which pages of the public site are on (admins). */}
+              <Route path="website" element={<WebsiteSettings />} />
               {/* How one month went (Reports.jsx); backups and error monitoring (admins). */}
               <Route path="reports" element={<Reports />} />
               <Route path="system" element={<SystemStatus />} />

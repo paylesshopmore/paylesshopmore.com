@@ -1,6 +1,5 @@
-// The services page is six bands: the split banner, the yellow strip, the
-// three islands as photographs, what we do, the companies, and the closing
-// call to action.
+// The services page is six bands: the photo banner, the yellow strip, the
+// three islands as flag maps, what we do, the companies, and the closing call to action.
 //
 // These check the shape rather than the styling. The thing most worth pinning
 // down is what the island cards must *not* carry: the design brief asks for a
@@ -17,16 +16,13 @@ import { DESTINATIONS } from '../../data/destinations';
 import { SHOPS } from '../../data/shops';
 
 describe('the services page', () => {
-  it('opens with the banner and the breadcrumb', () => {
+  it('opens with the same photo banner as the destination pages', () => {
     renderWithProviders(<Services />, { route: '/services' });
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'SERVICES' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Home' })).toHaveAttribute(
-      'href',
-      '/',
-    );
+    expect(screen.getByText('OUR')).toBeInTheDocument();
   });
 
   it('shows the three selling points in the yellow strip', () => {

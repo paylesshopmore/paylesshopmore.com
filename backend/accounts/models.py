@@ -1739,6 +1739,12 @@ class SiteSettings(models.Model):
         help_text="The band with packages delivered, destinations and customers. "
         "Off: visitors do not see it.",
     )
+    show_calculator = models.BooleanField(
+        "show the shipping calculator page",
+        default=True,
+        help_text="The Calculator page and its links in the menu and footer. "
+        "Off: visitors do not see it; staff can still open /calculator.",
+    )
 
     # ---- the company, as printed on every invoice -----------------------
     #

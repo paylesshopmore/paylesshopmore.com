@@ -133,6 +133,9 @@ const GROUPS = [
       { to: '/dashboard/shops', labelKey: 'dashboard.office.nav.shops', icon: BoxIcon },
       // The blog's posts: written and published here - see Blog.jsx.
       { to: '/dashboard/blog', labelKey: 'dashboard.office.nav.blog', icon: FileIcon },
+      // Which pages of the public site are on (the Calculator). Admins only -
+      // see WebsiteSettings.jsx.
+      { to: '/dashboard/website', labelKey: 'dashboard.office.nav.website', icon: GearIcon, adminOnly: true },
       // Two-factor sign-in: off, optional or required. Admins only - see Security.jsx.
       { to: '/dashboard/security', labelKey: 'dashboard.office.nav.security', icon: GearIcon, adminOnly: true },
       // Backups, error monitoring and e-mail at a glance. Admins only - see

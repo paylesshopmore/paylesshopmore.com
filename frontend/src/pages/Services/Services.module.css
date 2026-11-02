@@ -1,8 +1,9 @@
 /* src/pages/Services/Services.module.css
  *
- * The services page. The banner and the yellow strip carry the brand at the
- * top; everything below them runs on white, so the flags and the shop logos
- * are the only colour on the page. That is deliberate - they are meant to be
+ * The services page. The photo banner at the top is the shared
+ * DestinationHero (its own styles live with it), with the yellow strip under
+ * it; everything below runs on
+ * white, so the flags and the shop logos are the only colour on the page. That is deliberate - they are meant to be
  * the thing you look at.
  *
  * On white, a white card is invisible, so the cards below are held apart from
@@ -11,99 +12,14 @@
  * white reads as dirt.
  */
 
-/* ------------------------------------------------------- 1. split banner
-
-   Dark title panel on the left, the ship on the right. Kept from the previous
-   design: it is the page's masthead, and the breadcrumb under it is how a
-   visitor knows where they are.                                            */
-
-.banner {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: stretch;
-  gap: 1rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1rem 1rem 0;
-}
-
-.titlePanel {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: center;
-  aspect-ratio: 16 / 6;
-  padding: 2rem;
-  box-sizing: border-box;
-  overflow: hidden;
-  background: #05070a;
-  /* Diagonal light streaks, echoing the brand banner */
-  background-image:
-    linear-gradient(115deg, rgba(56, 160, 220, 0.55) 0 6%, transparent 6%),
-    linear-gradient(115deg, rgba(56, 160, 220, 0.3) 0 11%, transparent 11%),
-    linear-gradient(115deg, rgba(56, 160, 220, 0.16) 0 18%, transparent 18%);
-}
-
-.eyebrow {
-  margin: 0;
-  color: var(--brand-yellow);
-  font-size: clamp(1.4rem, 3vw, 2.6rem);
-  font-weight: 400;
-  letter-spacing: 0.02em;
-  line-height: 1.05;
-}
-
-.title {
-  margin: 0;
-  color: #ffffff;
-  font-size: clamp(1.8rem, 4vw, 3.4rem);
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  line-height: 1.05;
-}
-
-.rule {
-  width: min(240px, 60%);
-  height: 1px;
-  margin: 1.25rem 0 0.9rem;
-  border: 0;
-  background: rgba(255, 255, 255, 0.45);
-}
-
-.breadcrumb {
-  margin: 0;
-  color: #ffffff;
-  font-size: 0.95rem;
-}
-
-.crumbLink {
-  color: var(--brand-yellow);
-  text-decoration: none;
-}
-
-.crumbLink:hover {
-  text-decoration: underline;
-}
-
-.bannerImage {
-  display: block;
-  width: 100%;
-  /* The <img> carries width/height attributes (to reserve space while it
-     loads), and the height attribute would otherwise win over aspect-ratio,
-     leaving the photo at its natural height beside a much shorter panel. */
-  height: auto;
-  aspect-ratio: 16 / 6;
-  object-fit: cover;
-}
-
 /* --------------------------------------------------- 2. the yellow strip */
 
 .highlights {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  max-width: 1400px;
-  margin: 1rem auto 0;
+  /* Full width, straight under the full-width banner, so the two read as
+     one masthead. */
+  margin: 0;
   padding: 0;
   list-style: none;
   background: var(--brand-yellow);
@@ -136,10 +52,6 @@
 }
 
 @media (max-width: 900px) {
-  .banner {
-    grid-template-columns: 1fr;
-  }
-
   .highlights {
     grid-template-columns: 1fr;
   }

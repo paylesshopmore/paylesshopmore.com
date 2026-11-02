@@ -137,7 +137,7 @@ export default function Home() {
         <div className={styles.heroInner}>
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>{t('home.hero.eyebrow')}</p>
-            <h1 className={styles.heroTitle}>{t('home.hero.title')}</h1>
+            <h1 className={styles.heroTitle} data-tour="hero">{t('home.hero.title')}</h1>
 
             {/* The ABC islands, each in the shape of its coast and painted in
                 its own flag. No card behind them: they glow white when

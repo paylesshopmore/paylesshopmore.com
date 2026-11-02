@@ -40,9 +40,19 @@
   bottom: 1rem;
   left: 1rem;
   z-index: 80;
+  /* The room the site header takes at the top. The header sits above the
+     panel (z-index 100), so a panel taller than the space below the header
+     had its top - the robot and "Ask our assistant" - hidden behind it. That
+     happened as soon as the browser was zoomed in, because zooming makes the
+     window "shorter" in CSS pixels. Same value as --bar-height in
+     Header.module.css. */
+  --guide-header: 84px;
   width: min(340px, calc(100vw - 2rem));
-  /* On a very short screen the panel scrolls inside itself. */
-  max-height: calc(100vh - 2rem);
+  /* Never taller than the space under the header; past that the panel
+     scrolls inside itself. dvh follows the phone's browser bars as they
+     slide in and out; the vh line is for browsers without it. */
+  max-height: calc(100vh - var(--guide-header) - 2rem);
+  max-height: calc(100dvh - var(--guide-header) - 2rem);
   overflow-y: auto;
   box-sizing: border-box;
   padding: 1rem;
@@ -229,7 +239,9 @@
   }
 
   .panel {
-    max-height: calc(100vh - 5.5rem);
+    --guide-header: 72px;
+    max-height: calc(100vh - var(--guide-header) - 5.5rem);
+    max-height: calc(100dvh - var(--guide-header) - 5.5rem);
   }
 
   .launcher {
@@ -469,8 +481,30 @@
   display: flex;
   flex-direction: column;
   width: min(380px, calc(100vw - 2rem));
-  height: min(580px, calc(100vh - 2rem));
+  height: min(580px, calc(100vh - var(--guide-header) - 2rem));
+  height: min(580px, calc(100dvh - var(--guide-header) - 2rem));
   overflow: hidden;
+}
+
+/* Short windows - a laptop screen, or any screen zoomed to 125% or more:
+   everything a little tighter, so more of the panel fits before it has to
+   scroll. The help tiles shrink too (Tutorial.module.css, same breakpoint). */
+@media (max-height: 760px) {
+  .panel {
+    padding: 0.75rem;
+  }
+
+  .head {
+    margin-bottom: 0.5rem;
+  }
+
+  .panelRobot {
+    width: 38px;
+  }
+
+  .askButton {
+    margin-bottom: 0.6rem;
+  }
 }
 
 .chatRobot {

@@ -47,6 +47,7 @@
 //             [data-tour="booking"]  Header: the "Booking" link
 //             [data-tour="account"]  Header: the customer's name (signed in)
 //             [data-tour="menu"]     Header: the ☰ button (phones/tablets)
+//             [data-tour="hero"]     Home page: the big headline
 //             [data-tour="shops"]    Home page: the strip of shops
 //             [data-tour="address"]  Tutorial page: the address card
 //             [data-tour="help"]     The robot in the corner (help + guide)
@@ -64,7 +65,10 @@ export const tutorialSteps = [
   {
     id: 'welcome',
     kind: 'welcome',
-    target: null,
+    // The home page's headline, so the card opens under it instead of in
+    // the middle of the screen on top of it. On any other page there is no
+    // headline hook and the card is centred as before.
+    target: '[data-tour="hero"]',
   },
   {
     id: 'account',

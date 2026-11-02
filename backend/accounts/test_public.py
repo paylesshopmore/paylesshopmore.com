@@ -345,3 +345,15 @@ class SiteStatsTests(ApiTestCase):
 
         self.assertEqual(data["packages_delivered"], 0)
         self.assertEqual(data["destinations"], 0)
+
+
+class SiteSwitchesTests(ApiTestCase):
+    def test_calculator_is_shown_by_default(self):
+        self.assertTrue(self.client.get(reverse("site-switches")).data["show_calculator"])
+
+    def test_an_admin_can_hide_the_calculator(self):
+        site = SiteSettings.load()
+        site.show_calculator = False
+        site.save()
+
+        self.assertFalse(self.client.get(reverse("site-switches")).data["show_calculator"])

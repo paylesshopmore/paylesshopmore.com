@@ -4110,9 +4110,9 @@ export const translations = {
     },
     home: {
       hero: {
-        eyebrow: 'BTW-free from the Netherlands to Aruba, Bonaire and Curaçao',
-        title: 'Shop in the Netherlands. We deliver it BTW-free to the island.',
-        lead: 'Buy from any Dutch webshop and have it sent to our warehouse in the Netherlands. Your orders, simply taken care of. We combine and ship them BTW-free (no Dutch VAT) by boat or plane, and then deliver them to your door in Aruba, Bonaire or Curaçao.',
+        eyebrow: 'VAT-free from the Netherlands to Aruba, Bonaire and Curaçao',
+        title: 'Shop in the Netherlands. We deliver it VAT-free to the island.',
+        lead: 'Buy from any Dutch webshop and have it sent to our warehouse in the Netherlands. Your orders, simply taken care of. We combine and ship them free of Dutch VAT by boat or plane, and then deliver them to your door in Aruba, Bonaire or Curaçao.',
         trackCta: 'Track a shipment',
         startCta: 'Get started',
         howCta: 'How it works',
@@ -4124,7 +4124,7 @@ export const translations = {
           },
           ship: {
             title: 'We ship',
-            body: 'We combine your parcels and send them BTW-free by sea freight or air freight.',
+            body: 'We combine your parcels and send them VAT-free by sea freight or air freight.',
           },
           deliver: {
             title: 'You receive',

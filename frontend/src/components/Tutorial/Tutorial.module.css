@@ -724,6 +724,30 @@
   background: var(--brand-yellow);
 }
 
+/* Short windows (or a zoomed-in browser): the tiles lose their tall,
+   icon-above-label shape and become one compact row each, so the robot's
+   panel still fits under the header. Same breakpoint as PageGuide.module.css. */
+@media (max-height: 760px) {
+  .helpMenu {
+    margin-top: 0.6rem;
+  }
+
+  .helpMenuItem,
+  .helpMenuList li:last-child:nth-child(odd) .helpMenuItem {
+    flex-direction: row;
+    justify-content: flex-start;
+    min-height: 44px;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.82rem;
+    text-align: left;
+  }
+
+  .helpMenuIcon {
+    width: 28px;
+    height: 28px;
+  }
+}
+
 /* ===== Phones =========================================================== */
 
 @media (max-width: 640px) {
