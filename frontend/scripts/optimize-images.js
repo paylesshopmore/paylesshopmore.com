@@ -33,13 +33,7 @@ const PHOTOGRAPHS = [
   'boxes.png',
   'container-ship.webp',
   'Curacao-centraal.webp',
-  // 738x369, where the other destination photographs are 1920 wide and up.
-  // The loop below never upscales, so this one's largest variant is 738 and a
-  // full-bleed banner will stretch it. Replace the original with a larger
-  // photograph and re-run; nothing else has to change.
-  'dominican-republic-centraal.jpeg',
   'port-haven-ship.jpeg',
-  'St.Maarten-centraal.avif',
   'Suriname-centraal.webp',
 ];
 

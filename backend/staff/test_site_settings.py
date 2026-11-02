@@ -17,10 +17,16 @@ class SiteSettingsTests(APITestCase):
     def setUp(self):
         self.url = reverse("staff-site-settings")
         self.admin = User.objects.create_user(
-            username="admin@example.com", email="admin@example.com", password="a-long-enough-password", role=User.Role.ADMIN
+            username="admin@example.com",
+            email="admin@example.com",
+            password="a-long-enough-password",
+            role=User.Role.ADMIN,
         )
         self.office = User.objects.create_user(
-            username="office@example.com", email="office@example.com", password="a-long-enough-password", role=User.Role.OFFICE
+            username="office@example.com",
+            email="office@example.com",
+            password="a-long-enough-password",
+            role=User.Role.OFFICE,
         )
 
     def test_an_admin_can_switch_the_calculator_off_and_on(self):

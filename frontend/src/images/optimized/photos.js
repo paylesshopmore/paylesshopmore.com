@@ -25,13 +25,8 @@ import containerShip1600 from './container-ship-1600.webp';
 import curacaoCentraal480 from './Curacao-centraal-480.webp';
 import curacaoCentraal960 from './Curacao-centraal-960.webp';
 import curacaoCentraal1500 from './Curacao-centraal-1500.webp';
-import dominicanRepublicCentraal480 from './dominican-republic-centraal-480.webp';
-import dominicanRepublicCentraal738 from './dominican-republic-centraal-738.webp';
 import portHavenShip480 from './port-haven-ship-480.webp';
 import portHavenShip554 from './port-haven-ship-554.webp';
-import stMaartenCentraal480 from './St-Maarten-centraal-480.webp';
-import stMaartenCentraal960 from './St-Maarten-centraal-960.webp';
-import stMaartenCentraal1600 from './St-Maarten-centraal-1600.webp';
 import surinameCentraal480 from './Suriname-centraal-480.webp';
 import surinameCentraal960 from './Suriname-centraal-960.webp';
 import surinameCentraal1600 from './Suriname-centraal-1600.webp';
@@ -102,17 +97,6 @@ export const curacaoCentraal = {
   height: 500,
 };
 
-/** dominican-republic-centraal.jpeg — 738×369 at full size. */
-export const dominicanRepublicCentraal = {
-  src: dominicanRepublicCentraal738,
-  srcSet: `${dominicanRepublicCentraal480} 480w, ${dominicanRepublicCentraal738} 738w`,
-  // For a CSS background, which cannot express a srcset. Use it
-  // where the image is painted small, such as a card thumbnail.
-  small: dominicanRepublicCentraal480,
-  width: 738,
-  height: 369,
-};
-
 /** port-haven-ship.jpeg — 554×361 at full size. */
 export const portHavenShip = {
   src: portHavenShip554,
@@ -122,17 +106,6 @@ export const portHavenShip = {
   small: portHavenShip480,
   width: 554,
   height: 361,
-};
-
-/** St.Maarten-centraal.avif — 1600×500 at full size. */
-export const stMaartenCentraal = {
-  src: stMaartenCentraal1600,
-  srcSet: `${stMaartenCentraal480} 480w, ${stMaartenCentraal960} 960w, ${stMaartenCentraal1600} 1600w`,
-  // For a CSS background, which cannot express a srcset. Use it
-  // where the image is painted small, such as a card thumbnail.
-  small: stMaartenCentraal480,
-  width: 1600,
-  height: 500,
 };
 
 /** Suriname-centraal.webp — 1600×533 at full size. */
