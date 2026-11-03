@@ -42,9 +42,10 @@ import styles from './ShopGrid.module.css';
 const MIN_CARDS = 9;
 
 // How fast the row travels, in pixels a second: a card and its gap about
-// every two and a half seconds, however many shops the office has added.
-// Raised from 48 so a long list of shops comes round in reasonable time.
-const PIXELS_PER_SECOND = 72;
+// every second and a half, however many shops the office has added.
+// Raised from 48, then 72, so a long list of shops comes round in reasonable
+// time.
+const PIXELS_PER_SECOND = 120;
 
 /**
  * One shop, as a card that is entirely a link to that shop's Dutch storefront.
