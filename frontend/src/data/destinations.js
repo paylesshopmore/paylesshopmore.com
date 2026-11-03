@@ -21,8 +21,11 @@
 // photographs in src/images, so the originals stay the masters and the sizes
 // actually served are WebP.
 import {
+  aruba,
   arubaCentraal,
+  bonaire,
   bonaireCentraal,
+  curacao,
   curacaoCentraal,
 } from '../images/optimized/photos';
 
@@ -47,6 +50,9 @@ export const DESTINATIONS = [
     // The banner title is filled with this island's flag
     // (DestinationHero.module.css, a class of the same name).
     titleFlag: 'aruba',
+    // The photo behind that title on the island's own page. Optional: an
+    // island without one gets the plain ocean gradient.
+    banner: aruba,
     port: 'Oranjestad',
     transitDays: 16,
     flights: ['thursdayWeekend'],
@@ -59,6 +65,7 @@ export const DESTINATIONS = [
     hero: bonaireCentraal,
     flagMap: bonaireFlagMap,
     titleFlag: 'bonaire',
+    banner: bonaire,
     port: 'Kralendijk',
     transitDays: 18,
     flights: ['thursdayWeekend'],
@@ -71,6 +78,7 @@ export const DESTINATIONS = [
     hero: curacaoCentraal,
     flagMap: curacaoFlagMap,
     titleFlag: 'curacao',
+    banner: curacao,
     port: 'Willemstad',
     transitDays: 17,
     flights: ['mondayThursday'],

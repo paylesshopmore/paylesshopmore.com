@@ -21,6 +21,7 @@ import Loading from './components/Loading/Loading';
 import ScrollToTop from './components/ScrollToTop/ScrollToTop';
 import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import RequireAuth from './components/RequireAuth/RequireAuth';
+import RedirectIfSignedIn from './components/RedirectIfSignedIn/RedirectIfSignedIn';
 import RequireStaff from './components/RequireStaff/RequireStaff';
 import RequireWarehouse from './components/RequireWarehouse/RequireWarehouse';
 import RequireDriver from './components/RequireDriver/RequireDriver';
@@ -235,9 +236,25 @@ export default function App() {
             {/* Also linked from the footer of every page. */}
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/login" element={<Login />} />
+            {/* Somebody already signed in is sent on to their own page:
+                there is nothing for them on either form. */}
+            <Route
+              path="/login"
+              element={
+                <RedirectIfSignedIn>
+                  <Login />
+                </RedirectIfSignedIn>
+              }
+            />
             <Route path="/two-factor" element={<TwoFactorPage />} />
-            <Route path="/signup" element={<Signup />} />
+            <Route
+              path="/signup"
+              element={
+                <RedirectIfSignedIn>
+                  <Signup />
+                </RedirectIfSignedIn>
+              }
+            />
             {/* The login page has linked here all along; until now it
                 landed on the 404 page. */}
             <Route path="/forgot-password" element={<ForgotPassword />} />

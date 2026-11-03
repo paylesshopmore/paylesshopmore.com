@@ -20,6 +20,9 @@ export default function DestinationHero({ title, image, eyebrow, brand = false, 
   const classes = [styles.hero];
   if (!image) classes.push(styles.heroPlain);
   if (brand) classes.push(styles.heroBrand);
+  // A flag-filled title over a busy photo needs the photo dimmed to stay
+  // readable. The brand variant already lays its own navy over the photo.
+  else if (image && flag) classes.push(styles.heroDimmed);
 
   return (
     <section

@@ -39,7 +39,6 @@ const FOOTER_LINKS = [
 const SOCIAL_LINKS = [
   { label: 'Facebook', href: 'https://facebook.com' },
   { label: 'Instagram', href: 'https://instagram.com' },
-  { label: 'LinkedIn', href: 'https://linkedin.com' },
 ];
 
 export default function Footer() {

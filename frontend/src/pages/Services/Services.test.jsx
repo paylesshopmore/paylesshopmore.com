@@ -115,7 +115,7 @@ describe('the services page', () => {
     renderWithProviders(<Services />, { route: '/services' });
 
     const companies = screen.getByRole('region', {
-      name: 'Companies and services',
+      name: 'Shops',
     });
 
     // The bundled list is what renders before - and instead of - an answer
@@ -131,7 +131,7 @@ describe('the services page', () => {
 
     const offer = screen.getByRole('region', { name: 'What we do for you' });
     const companies = screen.getByRole('region', {
-      name: 'Companies and services',
+      name: 'Shops',
     });
 
     expect(
@@ -147,7 +147,7 @@ describe('the services page', () => {
       const card = screen
         .getByRole('heading', { level: 3, name: shop.name })
         .closest('li');
-      const link = within(card).getByRole('link', { name: 'View service' });
+      const link = within(card).getByRole('link', { name: 'View shop' });
 
       expect(link).toHaveAttribute('href', shop.href);
       // Without noopener the shop's page can reach back through window.opener.

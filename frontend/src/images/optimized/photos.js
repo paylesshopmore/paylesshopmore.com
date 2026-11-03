@@ -7,6 +7,15 @@
 //
 // Regenerate with `npm run images` after changing a source photograph.
 
+import aruba480 from './Aruba-480.webp';
+import aruba960 from './Aruba-960.webp';
+import aruba1600 from './Aruba-1600.webp';
+import bonaire480 from './Bonaire-480.webp';
+import bonaire960 from './Bonaire-960.webp';
+import bonaire1600 from './Bonaire-1600.webp';
+import curacao480 from './Curacao-480.webp';
+import curacao960 from './Curacao-960.webp';
+import curacao1600 from './Curacao-1600.webp';
 import arubaCentraal480 from './Aruba-centraal-480.webp';
 import arubaCentraal960 from './Aruba-centraal-960.webp';
 import arubaCentraal1600 from './Aruba-centraal-1600.webp';
@@ -30,6 +39,39 @@ import portHavenShip554 from './port-haven-ship-554.webp';
 import surinameCentraal480 from './Suriname-centraal-480.webp';
 import surinameCentraal960 from './Suriname-centraal-960.webp';
 import surinameCentraal1600 from './Suriname-centraal-1600.webp';
+
+/** Aruba.jpg — 1600×1067 at full size. */
+export const aruba = {
+  src: aruba1600,
+  srcSet: `${aruba480} 480w, ${aruba960} 960w, ${aruba1600} 1600w`,
+  // For a CSS background, which cannot express a srcset. Use it
+  // where the image is painted small, such as a card thumbnail.
+  small: aruba480,
+  width: 1600,
+  height: 1067,
+};
+
+/** Bonaire.jpg — 1600×1067 at full size. */
+export const bonaire = {
+  src: bonaire1600,
+  srcSet: `${bonaire480} 480w, ${bonaire960} 960w, ${bonaire1600} 1600w`,
+  // For a CSS background, which cannot express a srcset. Use it
+  // where the image is painted small, such as a card thumbnail.
+  small: bonaire480,
+  width: 1600,
+  height: 1067,
+};
+
+/** Curacao.jpg — 1600×1067 at full size. */
+export const curacao = {
+  src: curacao1600,
+  srcSet: `${curacao480} 480w, ${curacao960} 960w, ${curacao1600} 1600w`,
+  // For a CSS background, which cannot express a srcset. Use it
+  // where the image is painted small, such as a card thumbnail.
+  small: curacao480,
+  width: 1600,
+  height: 1067,
+};
 
 /** Aruba-centraal.avif — 1600×475 at full size. */
 export const arubaCentraal = {

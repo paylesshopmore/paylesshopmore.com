@@ -3,7 +3,9 @@
 // CONNECTED PAGES  (the whole map: docs/WEBSITE-MAP.md)
 //   Address:      /login
 //   Who can open: everybody
-//   Links to:     /signup, /forgot-password, /warehouse/pin; after signing in: homeFor() below
+//   Links to:     /signup, /forgot-password, /warehouse/pin; after signing in: homeFor()
+//                 in src/auth/home.js. Already signed in: RedirectIfSignedIn in App.jsx
+//                 sends them on before this page shows.
 //   Linked from:  the Header "Log in", Sign up, Reset password, and every guarded page when signed
 //                 out
 //   Backend:      api/auth.js
@@ -11,6 +13,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AUTH_ERRORS, getFloorRoster } from '../../api/auth';
+import { homeFor } from '../../auth/home';
 import { useAuth } from '../../auth/useAuth';
 import { useLanguage } from '../../i18n/useLanguage';
 import FloorSignIn from './FloorSignIn';
@@ -100,27 +103,6 @@ const CODE_FAILURE_KEYS = {
   [AUTH_ERRORS.INVALID_CREDENTIALS]: 'login.errors.codeFailed',
   [AUTH_ERRORS.VALIDATION]: 'login.errors.codeFailed',
 };
-
-/**
- * Where somebody lands after signing in. A warehouse worker who came in with a
- * code or a PIN is on a floor device mid-shift, so straight to the floor's
- * dashboard. One who signed in with a password, like a customer, lands on the
- * same profile page a customer does, with a button to the warehouse. An admin
- * lands on that page too, with a "Dashboard" button at the top, so everybody
- * starts in the same place. The rest of the office lands on its own profile,
- * because /profile sends them there anyway (CustomerProfile in App.jsx).
- */
-function homeFor(profile, method) {
-  if (profile?.role === 'driver') return '/driver';
-  // A warehouse manager runs the floor from their own computer: no PIN step.
-  if (profile?.isWarehouseManager && !profile?.isStaff) return '/warehouse';
-  if (profile?.isWarehouse && !profile?.isStaff) {
-    return method === 'password' ? '/profile' : '/warehouse';
-  }
-  if (profile?.isAdmin) return '/profile';
-  if (profile?.isStaff) return '/warehouse/profile';
-  return '/profile';
-}
 
 /** A floor worker who may set a PIN now - signed in with an e-mailed code. */
 function shouldSetPin(profile) {

@@ -34,6 +34,15 @@
     var(--hero-image, none);
 }
 
+/* The photo darkened under a flag-filled title. Light enough that the
+   place is still recognisable, dark enough that the white letter edges and
+   the flag colours stand off it. */
+.heroDimmed {
+  background-image:
+    linear-gradient(rgba(11, 37, 69, 0.45), rgba(11, 37, 69, 0.45)),
+    var(--hero-image, none);
+}
+
 .inner {
   text-align: center;
 }

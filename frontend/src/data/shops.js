@@ -33,15 +33,29 @@
 // scripts/optimize-logos.js, run `npm run logos`, then add a line below.
 
 import action from '../images/optimized/logos/action.webp';
+import amazon from '../images/optimized/logos/amazon.webp';
+import bershka from '../images/optimized/logos/bershka.webp';
+import decathlon from '../images/optimized/logos/decathlon.webp';
+import hema from '../images/optimized/logos/hema.webp';
+import hornbach from '../images/optimized/logos/hornbach.webp';
+import pullbear from '../images/optimized/logos/pullbear.webp';
+import zara from '../images/optimized/logos/zara.webp';
+import zeeman from '../images/optimized/logos/zeeman.webp';
+import jysk from '../images/optimized/logos/jysk.webp';
+import kraaywijn from '../images/optimized/logos/kraaywijn.webp';
+import prenatal from '../images/optimized/logos/prenatal.webp';
 import bolLong from '../images/optimized/logos/bol-long.webp';
 import coolblueLong from '../images/optimized/logos/coolblue-long.webp';
 import autodoc from '../images/optimized/logos/autodoc.webp';
+import babypark from '../images/optimized/logos/babypark.webp';
 import bol from '../images/optimized/logos/bol.webp';
 import coolblue from '../images/optimized/logos/coolblue.webp';
 import hm from '../images/optimized/logos/hm.webp';
 import ikea from '../images/optimized/logos/ikea.webp';
 import karwei from '../images/optimized/logos/karwei.webp';
 import mediamarkt from '../images/optimized/logos/mediamarkt.webp';
+import shein from '../images/optimized/logos/shein.webp';
+import swisssense from '../images/optimized/logos/swisssense.webp';
 import zalando from '../images/optimized/logos/zalando.webp';
 
 export const SHOPS = [
@@ -67,6 +81,20 @@ export const SHOPS = [
   { name: 'MediaMarkt', logo: mediamarkt, href: 'https://www.mediamarkt.nl/' },
   { name: 'Zalando', logo: zalando, href: 'https://www.zalando.nl/' },
   { name: 'Karwei', logo: karwei, tile: true, href: 'https://www.karwei.nl/' },
+  { name: 'Babypark', logo: babypark, tile: true, href: 'https://www.babypark.nl/' },
+  { name: 'Swiss Sense', logo: swisssense, href: 'https://www.swisssense.nl/' },
+  { name: 'JYSK', logo: jysk, tile: true, href: 'https://jysk.nl/' },
+  { name: 'Decathlon', logo: decathlon, tile: true, href: 'https://www.decathlon.nl/' },
+  { name: 'Kraaywijn', logo: kraaywijn, href: 'https://www.kraaywijn.nl/' },
+  { name: 'Prenatal', logo: prenatal, tile: true, href: 'https://www.prenatal.nl/' },
+  { name: 'Amazon', logo: amazon, href: 'https://www.amazon.nl/' },
+  { name: 'Hornbach', logo: hornbach, href: 'https://www.hornbach.nl/' },
+  { name: 'Bershka', logo: bershka, tile: true, href: 'https://www.bershka.com/nl/' },
+  { name: 'HEMA', logo: hema, tile: true, href: 'https://www.hema.nl/' },
+  { name: 'Zara', logo: zara, href: 'https://www.zara.com/nl/' },
+  { name: 'Pull&Bear', logo: pullbear, href: 'https://www.pullandbear.com/nl/' },
+  { name: 'Zeeman', logo: zeeman, href: 'https://www.zeeman.com/nl-nl' },
+  { name: 'SHEIN', logo: shein, href: 'https://nl.shein.com/' },
 ];
 
 /**

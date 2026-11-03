@@ -27,6 +27,10 @@ const WIDTHS = [480, 960, 1600];
 // Everything else in src/images is a flag: SVG, or a PNG small enough that
 // the WebP header would be a meaningful fraction of it.
 const PHOTOGRAPHS = [
+  // The island page banners (behind the flag-filled titles).
+  'Aruba.jpg',
+  'Bonaire.jpg',
+  'Curacao.jpg',
   'Aruba-centraal.avif',
   'Bonaire-centraal.jpg',
   'box-cart.jpg',

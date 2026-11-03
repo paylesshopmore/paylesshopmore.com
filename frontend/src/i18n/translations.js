@@ -1343,10 +1343,10 @@ export const translations = {
       },
       islandsLabel: 'Onze eilanden',
       companies: {
-        title: 'Bedrijven en diensten',
-        lead: 'De partners waarmee wij samenwerken om uw zending op het eiland te krijgen.',
+        title: 'Winkels',
+        lead: 'De winkels waar onze klanten het vaakst bestellen.',
         placeholder: 'Naam',
-        cta: 'Bekijk service',
+        cta: 'Bekijk winkel',
       },
       // What the company itself does. {min} and {max} are the shortest and
       // longest sailing times, filled in from src/data/destinations.js.
@@ -4251,10 +4251,10 @@ export const translations = {
       },
       islandsLabel: 'Our islands',
       companies: {
-        title: 'Companies and services',
-        lead: 'The partners we work with to get your shipment onto the island.',
+        title: 'Shops',
+        lead: 'The shops our customers order from most.',
         placeholder: 'Name',
-        cta: 'View service',
+        cta: 'View shop',
       },
       offer: {
         title: 'What we do for you',
@@ -7157,10 +7157,10 @@ export const translations = {
       },
       islandsLabel: 'Nos islanan',
       companies: {
-        title: 'Kompanianan i servisionan',
-        lead: 'E sosionan ku nos ta traha kuné pa hiba bo envio na e isla.',
+        title: 'Tiendanan',
+        lead: 'E tiendanan kaminda nos klientenan ta kumpra mas tantu.',
         placeholder: 'Nòmber',
-        cta: 'Mira servisio',
+        cta: 'Mira tienda',
       },
       offer: {
         title: 'Kiko nos ta hasi pa bo',
