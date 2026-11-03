@@ -57,6 +57,12 @@ import mediamarkt from '../images/optimized/logos/mediamarkt.webp';
 import shein from '../images/optimized/logos/shein.webp';
 import swisssense from '../images/optimized/logos/swisssense.webp';
 import zalando from '../images/optimized/logos/zalando.webp';
+import jdsports from '../images/optimized/logos/jdsports.webp';
+import primark from '../images/optimized/logos/primark.webp';
+import plutosport from '../images/optimized/logos/plutosport.webp';
+import lidl from '../images/optimized/logos/lidl.webp';
+import leenbakker from '../images/optimized/logos/leenbakker.webp';
+import winparts from '../images/optimized/logos/winparts.webp';
 
 export const SHOPS = [
   { name: 'IKEA', logo: ikea, tile: true, href: 'https://www.ikea.com/nl/nl/' },
@@ -95,6 +101,12 @@ export const SHOPS = [
   { name: 'Pull&Bear', logo: pullbear, href: 'https://www.pullandbear.com/nl/' },
   { name: 'Zeeman', logo: zeeman, href: 'https://www.zeeman.com/nl-nl' },
   { name: 'SHEIN', logo: shein, href: 'https://nl.shein.com/' },
+  { name: 'JD Sports', logo: jdsports, href: 'https://www.jdsports.nl/' },
+  { name: 'Primark', logo: primark, tile: true, href: 'https://www.primark.com/nl-nl' },
+  { name: 'PlutoSport', logo: plutosport, tile: true, href: 'https://www.plutosport.nl/' },
+  { name: 'Lidl', logo: lidl, tile: true, href: 'https://www.lidl.nl/' },
+  { name: 'Leen Bakker', logo: leenbakker, href: 'https://www.leenbakker.nl/' },
+  { name: 'Winparts', logo: winparts, href: 'https://www.winparts.nl/' },
 ];
 
 /**

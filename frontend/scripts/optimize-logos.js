@@ -69,6 +69,17 @@ const LOGOS = {
   'Pull-Bear-.png': ['pullbear', '#ffffff'],
   'zeeman.png': ['zeeman', '#ffffff'],
   'Shein-Logo.png': ['shein', '#ffffff'],
+  'JD_LOGO.jpg': ['jdsports', '#ffffff'],
+  'leenbakker-logo.jpg': ['leenbakker', '#ffffff'],
+  // Drawn on transparency, like Zara's.
+  'winparts.png': ['winparts', '#ffffff'],
+  // PlutoSport and Primark are a wordmark on a large field of brand colour,
+  // the Babypark case, so they get a band of it back round them.
+  'Plutosport.png': ['plutosport', '#2d1a47', 20],
+  'Primark.png': ['primark', '#00a0d5', 20],
+  // Lidl's round badge sits on a blue square. Trimming the blue leaves the
+  // badge with blue corners, which is the tile.
+  'lidl-logo.png': ['lidl', '#1e71b8'],
 
   // The wide "long" logos, used by the services page only - the home page
   // cards are small and square-ish, which suits the compact marks above.
