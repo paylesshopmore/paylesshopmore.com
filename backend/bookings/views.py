@@ -1,6 +1,7 @@
 """The public booking endpoint. The staff half lives in staff/views.py."""
 
 import json
+import logging
 
 from django.db import transaction
 from django.http import FileResponse, Http404
@@ -27,6 +28,8 @@ from .serializers import (
     validate_attachment,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def attachment_response(attachment):
     """Stream one attachment, shown in the browser (so a screenshot can be
@@ -45,6 +48,26 @@ def attachment_response(attachment):
         filename=attachment.original_name or "attachment",
         content_type=attachment.content_type,
     )
+
+
+def _tell_the_office(booking_id):
+    """E-mail the office about a new booking, once it is saved.
+
+    Queued on commit, so the mail never describes a booking that was rolled
+    back. A failure to queue is logged and swallowed: the booking is saved and
+    on the dashboard either way - only the e-mail about it is missing."""
+
+    def send():
+        from .tasks import send_new_booking_email
+
+        try:
+            send_new_booking_email.delay(booking_id)
+        except Exception:
+            logger.exception(
+                "Booking %s was saved but the office e-mail could not be queued.", booking_id
+            )
+
+    transaction.on_commit(send)
 
 
 class BookingCreateView(generics.CreateAPIView):
@@ -165,6 +188,7 @@ class BookingCreateView(generics.CreateAPIView):
                     )
 
         abuse.record("booking")
+        _tell_the_office(booking.pk)
 
         # Only the reference is echoed back — enough for the confirmation
         # screen, and nothing the sender did not already type.

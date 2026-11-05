@@ -96,6 +96,10 @@ class Booking(models.Model):
     office_notes = models.TextField(
         blank=True, help_text="Internal. Never shown to the customer."
     )
+    # When the office was e-mailed about this new booking (bookings/tasks.py).
+    # Null until it went out; claimed before sending, so a retried job never
+    # mails the same booking twice.
+    office_emailed_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     # ---- shipment ------------------------------------------------------
 

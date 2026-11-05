@@ -614,7 +614,10 @@ export default function Bookings() {
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState('');
   const [done, setDone] = useState('');
-  const [openId, setOpenId] = useState(null);
+  // ?booking=41 opens that booking straight away: the link in the "new
+  // booking" e-mail (backend bookings/notify.py). New bookings are at the
+  // top of the list, so it is on the first page.
+  const [openId, setOpenId] = useState(() => Number(params.get('booking')) || null);
   const openBooking = list.rows.find((booking) => booking.id === openId) ?? null;
 
   /** "Send to warehouse": save what was typed, then number and send it. */

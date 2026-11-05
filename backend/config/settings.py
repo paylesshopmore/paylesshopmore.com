@@ -775,6 +775,15 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 # mailbox the office actually reads.
 OFFICE_REPLY_TO_EMAIL = os.environ.get("DJANGO_REPLY_TO_EMAIL", "info@paylesshopmore.com")
 
+# Who is e-mailed when somebody sends the booking form (bookings/notify.py):
+# a comma-separated list, e.g. "info@paylesshopmore.com,owner@example.com".
+# The office's mailbox above by default. Empty to send nothing.
+BOOKING_NOTIFY_EMAILS = [
+    address.strip()
+    for address in os.environ.get("DJANGO_BOOKING_NOTIFY_EMAILS", OFFICE_REPLY_TO_EMAIL).split(",")
+    if address.strip()
+]
+
 # FRONTEND_URL is set in the CORS section above, because the origin the site is
 # served from and the origins the API trusts are the same fact. It is used here
 # to build the link in a reset e-mail, which has to be absolute: the reader

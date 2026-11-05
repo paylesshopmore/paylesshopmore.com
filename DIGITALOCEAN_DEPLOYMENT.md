@@ -35,6 +35,7 @@ matters).
    | `DJANGO_SECRET_KEY` | `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"` |
    | `DJANGO_TWO_FACTOR_ENCRYPTION_KEYS` | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Never lose it. |
    | `EMAIL_HOST`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DJANGO_FROM_EMAIL` | Your mail provider |
+   | `DJANGO_BOOKING_NOTIFY_EMAILS` | Optional. Who is e-mailed about each new booking, comma-separated. Default: `DJANGO_REPLY_TO_EMAIL` (info@paylesshopmore.com) |
    | `AWS_STORAGE_BUCKET_NAME` | The Space's name |
    | `AWS_S3_ENDPOINT_URL` | `https://ams3.digitaloceanspaces.com` |
    | `AWS_S3_REGION_NAME` | `ams3` |
