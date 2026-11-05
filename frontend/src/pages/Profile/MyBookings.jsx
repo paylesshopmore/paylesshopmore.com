@@ -193,6 +193,10 @@ function BookingDetails({ booking, onOrderUpdated }) {
             ? p('valuePending')
             : money.format(Number(booking.value_eur))}
         </Fact>
+        {/* The same handling costs the office sees, worked out on the server. */}
+        {booking.handling && (
+          <Fact label={p('handling')}>{money.format(Number(booking.handling.fee_eur))}</Fact>
+        )}
         {booking.vehicle !== 'na' && (
           <Fact label={b('vehicleLabel')}>{b(`vehicle.${booking.vehicle}`)}</Fact>
         )}

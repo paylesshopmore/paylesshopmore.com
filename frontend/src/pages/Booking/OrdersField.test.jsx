@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { translations } from '../../i18n/translations';
 import { listShops } from '../../api/shops';
 import OrdersField from './OrdersField';
-import { newRow, toPayload, validateOrders } from './orders';
+import { isProductUrl, newProduct, newRow, toPayload, validateOrders } from './orders';
 
 vi.mock('../../api/shops', () => ({ listShops: vi.fn() }));
 
@@ -59,7 +59,12 @@ describe('the store cards', () => {
     await user.type(screen.getByLabelText('What did you order?'), 'Headphones');
 
     expect(toPayload(onRows.mock.calls.at(-1)[0])).toEqual([
-      { shop: null, shop_name: 'Coolblue', description: 'Headphones' },
+      {
+        shop: null,
+        shop_name: 'Coolblue',
+        description: 'Headphones',
+        products: [{ description: 'Headphones', url: '' }],
+      },
     ]);
   });
 
@@ -76,17 +81,24 @@ describe('the store cards', () => {
     expect(screen.getByText('Store 2')).toBeInTheDocument();
   });
 
-  it('takes a screenshot per store and can remove it again', async () => {
+  it('has no screenshot for the whole store any more, only per product', () => {
+    render(<Harness />);
+    expect(screen.queryByText('Screenshot of your order (optional)')).toBeNull();
+    expect(screen.queryByLabelText('Screenshot for store 1')).toBeNull();
+    expect(screen.getAllByText('Add a screenshot')).toHaveLength(1);
+  });
+
+  it('takes a screenshot per product and can remove it again', async () => {
     const user = userEvent.setup();
     const onRows = vi.fn();
     render(<Harness onRows={onRows} />);
 
-    await user.upload(screen.getByLabelText('Screenshot for store 1'), png('bol-order.png'));
-    expect(screen.getByText('bol-order.png')).toBeInTheDocument();
-    expect(onRows.mock.calls.at(-1)[0][0].file.name).toBe('bol-order.png');
+    await user.upload(screen.getByLabelText('Screenshot for product 1 of store 1'), png('shirt.png'));
+    expect(screen.getByText('shirt.png')).toBeInTheDocument();
+    expect(onRows.mock.calls.at(-1)[0][0].products[0].file.name).toBe('shirt.png');
 
-    await user.click(screen.getByRole('button', { name: 'Remove bol-order.png' }));
-    expect(screen.queryByText('bol-order.png')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Remove shirt.png' }));
+    expect(screen.queryByText('shirt.png')).toBeNull();
     expect(screen.getByText('Add a screenshot')).toBeInTheDocument();
   });
 
@@ -94,7 +106,10 @@ describe('the store cards', () => {
     const user = userEvent.setup({ applyAccept: false });
     render(<Harness />);
 
-    await user.upload(screen.getByLabelText('Screenshot for store 1'), new File(['MZ'], 'setup.exe'));
+    await user.upload(
+      screen.getByLabelText('Screenshot for product 1 of store 1'),
+      new File(['MZ'], 'setup.exe'),
+    );
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'setup.exe cannot be added: only PNG, JPG, WebP or PDF.',
@@ -112,16 +127,81 @@ describe('the store cards', () => {
   });
 });
 
+describe('the products under a store', () => {
+  it('adds and removes products, and asks no price or quantity', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    expect(screen.queryByLabelText('Price per item (€)')).toBeNull();
+    expect(screen.queryByLabelText('Quantity')).toBeNull();
+    expect(screen.queryByText('Subtotal')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: '+ Add another product' }));
+    expect(screen.getByText('Product 2')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Remove product 2' }));
+    expect(screen.queryByText('Product 2')).toBeNull();
+  });
+
+  it('asks for the product link with a helpful placeholder', () => {
+    render(<Harness />);
+    expect(screen.getByLabelText('Product link (optional)')).toHaveAttribute(
+      'placeholder',
+      'Paste the direct link to your product here.',
+    );
+  });
+});
+
 describe('the rules', () => {
   it('needs a store and what was bought on every row', () => {
+    const product = (description) => ({ ...newProduct(), description });
     const empty = { ...newRow() };
-    const other = { ...newRow(), shop: 'other', description: 'Shoes' };
-    const fine = { ...newRow(), shop: '3', description: 'Laptop' };
+    const other = { ...newRow(), shop: 'other', products: [product('Shoes')] };
+    const fine = { ...newRow(), shop: '3', products: [product('Laptop')] };
 
     expect(validateOrders([empty, other, fine])).toEqual({
-      [empty.key]: { shop: 'booking.orders.errors.shop', description: 'booking.orders.errors.description' },
+      [empty.key]: {
+        shop: 'booking.orders.errors.shop',
+        products: { [empty.products[0].key]: { description: 'booking.orders.errors.description' } },
+      },
       [other.key]: { shopName: 'booking.orders.errors.shopName' },
     });
+  });
+
+  it('checks each product link', () => {
+    const bad = { ...newProduct(), description: 'Shirt', url: 'javascript:alert(1)' };
+    const row = { ...newRow(), shop: '3', products: [bad] };
+    expect(validateOrders([row])[row.key].products[bad.key]).toEqual({
+      url: 'booking.orders.errors.url',
+    });
+  });
+
+  it('only takes secure https links', () => {
+    expect(isProductUrl('https://www.bol.com/nl/nl/p/example-product/')).toBe(true);
+    for (const link of ['http://shop.example.com/p/1', 'javascript:alert(1)', 'data:text/html,x', 'ftp://example.com', 'www.bol.com', 'https://localhost']) {
+      expect(isProductUrl(link)).toBe(false);
+    }
+  });
+
+  it('sends each product with its link', () => {
+    const row = {
+      ...newRow(),
+      shop: '3',
+      products: [
+        { ...newProduct(), description: 'White T-shirt, size L', url: ' https://www.bol.com/p/1 ' },
+        { ...newProduct(), description: 'Black shoes, size 42' },
+      ],
+    };
+    expect(toPayload([row])).toEqual([
+      {
+        shop: 3,
+        description: 'White T-shirt, size L; Black shoes, size 42',
+        products: [
+          { description: 'White T-shirt, size L', url: 'https://www.bol.com/p/1' },
+          { description: 'Black shoes, size 42', url: '' },
+        ],
+      },
+    ]);
   });
 
   it.each(['nl', 'en', 'pap'])('has all its words in %s', (language) => {

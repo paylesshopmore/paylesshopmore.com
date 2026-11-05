@@ -7,14 +7,49 @@ own consignment, or mark its own packing as good.
 
 import os
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import serializers
 
 from shops.models import Shop
 
-from .models import Booking, BookingAttachment, BookingOrder
+from .models import (
+    Booking,
+    BookingAttachment,
+    BookingOrder,
+    BookingProduct,
+    validate_product_url,
+)
 from .shipments import ready_to_invoice, why_no_shipment
+
+
+def handling_for(booking):
+    """The booking's handling costs, from the one price list
+    (invoicing/calculation.py HANDLING_FEE_RULES), or None without a value.
+
+    The purchase value is the booking's value (`value_eur`, which the office
+    fills in from the order screenshots), else what the customer's products
+    add up to. The suppliers are the stores on the booking form. Worked out
+    on the server every time it is read, so the customer and the office see
+    the same figure and no browser can send its own.
+    """
+    from invoicing.calculation import handling_fee, handling_fee_as_json
+
+    orders = list(booking.orders.all())
+    value = booking.value_eur
+    if value is None:
+        priced = [
+            product.customer_subtotal_eur
+            for order in orders
+            for product in order.products.all()
+            if product.customer_price_eur is not None
+        ]
+        value = sum(priced) if priced else None
+    result = handling_fee(value, suppliers=len(orders) or None)
+    if result is not None:
+        result["value_source"] = "booking" if booking.value_eur is not None else "products"
+    return handling_fee_as_json(result)
 
 
 def validate_attachment(uploaded):
@@ -53,10 +88,44 @@ def validate_attachment(uploaded):
     return BookingAttachment.CONTENT_TYPES[extension]
 
 
+class ProductInputSerializer(serializers.Serializer):
+    """One product under a store, as the booking form sends it: what it is,
+    the link to it on the webshop, the price paid and how many. Its
+    screenshot comes separately, as a file."""
+
+    description = serializers.CharField(max_length=255)
+    url = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+    customer_price_eur = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=0,
+        max_value=1_000_000,
+        required=False,
+        allow_null=True,
+    )
+    quantity = serializers.IntegerField(min_value=1, max_value=999, required=False, default=1)
+
+    def validate_url(self, value):
+        value = (value or "").strip()
+        if not value:
+            return ""
+        try:
+            validate_product_url(value)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError(error.messages) from None
+        return value
+
+
 class OrderInputSerializer(serializers.Serializer):
     """One store row as the booking form sends it: a store from the list
-    (`shop`, its id) or another store by name (`shop_name`), and what was
-    bought there. The screenshot comes separately, as a file."""
+    (`shop`, its id) or another store by name (`shop_name`), what was bought
+    there, and - from the newer form - the products one by one. The
+    screenshots come separately, as files.
+
+    `description` may be left out when there are products: it is then their
+    descriptions joined, so the store row (and the contents line customs
+    reads) still says what was bought. An older form that sends only
+    `description` works as before."""
 
     shop = serializers.PrimaryKeyRelatedField(
         queryset=Shop.objects.filter(is_active=True),
@@ -64,7 +133,15 @@ class OrderInputSerializer(serializers.Serializer):
         allow_null=True,
     )
     shop_name = serializers.CharField(max_length=80, required=False, allow_blank=True)
-    description = serializers.CharField(max_length=255)
+    description = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    products = ProductInputSerializer(many=True, required=False)
+
+    def validate_products(self, value):
+        if len(value) > BookingProduct.MAX_PER_ORDER:
+            raise serializers.ValidationError(
+                f"At most {BookingProduct.MAX_PER_ORDER} products can be added to one store."
+            )
+        return value
 
     def validate(self, attrs):
         shop = attrs.get("shop")
@@ -73,6 +150,17 @@ class OrderInputSerializer(serializers.Serializer):
             raise serializers.ValidationError({"shop": "Choose a store, or type its name."})
         # The listed store's own name wins over anything typed alongside it.
         attrs["shop_name"] = shop.name if shop else name
+
+        products = attrs.get("products") or []
+        description = (attrs.get("description") or "").strip()
+        if not description and products:
+            description = "; ".join(product["description"] for product in products)
+            if len(description) > 255:
+                description = description[:254] + "…"
+        if not description:
+            raise serializers.ValidationError({"description": "Fill in what you ordered."})
+        attrs["description"] = description
+        attrs["products"] = products
         return attrs
 
 
@@ -121,6 +209,82 @@ class StaffAttachmentSerializer(_AttachmentSerializer):
         )
 
 
+class _ProductSerializer(serializers.ModelSerializer):
+    """One product as the customer reported it. The subclasses choose whose
+    download route its screenshot links to; the office's adds its own half
+    (the checked price, the status, the internal notes)."""
+
+    attachment_serializer = None
+    customer_subtotal_eur = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True
+    )
+    screenshot = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BookingProduct
+        fields = [
+            "id",
+            "description",
+            "url",
+            "customer_price_eur",
+            "quantity",
+            "customer_subtotal_eur",
+            "screenshot",
+        ]
+        read_only_fields = fields
+
+    def get_screenshot(self, product):
+        shot = product.screenshot
+        return self.attachment_serializer(shot).data if shot else None
+
+
+class MyProductSerializer(_ProductSerializer):
+    """The customer's own products: what they told us, and nothing the office
+    wrote about them - no checked price, no status, no notes."""
+
+    attachment_serializer = MyAttachmentSerializer
+
+
+class StaffProductSerializer(_ProductSerializer):
+    """The office's view: the customer's figures and the check beside them."""
+
+    attachment_serializer = StaffAttachmentSerializer
+    store_name = serializers.CharField(read_only=True)
+    verification_status_display = serializers.CharField(
+        source="get_verification_status_display", read_only=True
+    )
+    verified_by_name = serializers.SerializerMethodField()
+
+    class Meta(_ProductSerializer.Meta):
+        fields = [
+            *_ProductSerializer.Meta.fields,
+            "store_name",
+            "verified_price_eur",
+            "verification_status",
+            "verification_status_display",
+            "staff_notes",
+            "verified_by_name",
+            "verified_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_verified_by_name(self, product):
+        user = product.verified_by
+        return (user.get_full_name() or user.get_username()) if user else ""
+
+
+class StaffProductCheckSerializer(serializers.ModelSerializer):
+    """What the office may change on a product: its own half only. The
+    customer's description, link, price and quantity are not writable here -
+    the reported price is never replaced, only checked beside."""
+
+    class Meta:
+        model = BookingProduct
+        fields = ["verified_price_eur", "verification_status", "staff_notes"]
+        extra_kwargs = {"staff_notes": {"max_length": 2000}}
+
+
 class _OrderSerializer(serializers.ModelSerializer):
     """One store row as read back, with its screenshot (or null). The
     subclasses choose whose download route the screenshot links to."""
@@ -136,6 +300,11 @@ class _OrderSerializer(serializers.ModelSerializer):
     # several parcels, and staff can register numbers on it too.
     carrier_tracking = serializers.SerializerMethodField()
     carrier_trackings = serializers.SerializerMethodField()
+    # The products one by one, with their links and prices; empty for a
+    # booking sent before products were asked for.
+    product_serializer = None
+    products = serializers.SerializerMethodField()
+    products_subtotal_eur = serializers.SerializerMethodField()
 
     class Meta:
         model = BookingOrder
@@ -149,8 +318,22 @@ class _OrderSerializer(serializers.ModelSerializer):
             "documents",
             "carrier_tracking",
             "carrier_trackings",
+            "products",
+            "products_subtotal_eur",
         ]
         read_only_fields = fields
+
+    def get_products(self, order):
+        return self.product_serializer(order.products.all(), many=True).data
+
+    def get_products_subtotal_eur(self, order):
+        """The customer's prices × quantities added up; null when no product has a price."""
+        priced = [
+            product.customer_subtotal_eur
+            for product in order.products.all()
+            if product.customer_price_eur is not None
+        ]
+        return str(sum(priced)) if priced else None
 
     def _files(self, order):
         # .all(), so a prefetch is used. `screenshots` is the related name of
@@ -162,7 +345,7 @@ class _OrderSerializer(serializers.ModelSerializer):
         return self.attachment_serializer(shots[0]).data if shots else None
 
     def get_documents(self, order):
-        docs = [f for f in self._files(order) if f.kind != BookingAttachment.Kind.SCREENSHOT]
+        docs = [f for f in self._files(order) if f.kind not in BookingAttachment.FORM_KINDS]
         return self.attachment_serializer(docs, many=True).data
 
     def get_carrier_tracking(self, order):
@@ -180,10 +363,12 @@ class _OrderSerializer(serializers.ModelSerializer):
 
 class MyOrderSerializer(_OrderSerializer):
     attachment_serializer = MyAttachmentSerializer
+    product_serializer = MyProductSerializer
 
 
 class StaffOrderSerializer(_OrderSerializer):
     attachment_serializer = StaffAttachmentSerializer
+    product_serializer = StaffProductSerializer
 
 # What the sender fills in. Listed by hand: built from `exclude`, this would
 # start accepting `status` the day somebody added a field to the model.
@@ -353,6 +538,10 @@ class StaffBookingSerializer(serializers.ModelSerializer):
     # What the warehouse measured: intake sheets and scanner measurements.
     # Read-only - the warehouse writes these, the office reads them here.
     warehouse = serializers.SerializerMethodField()
+    # The handling costs by the purchase value, and how many suppliers (stores)
+    # the consignment has - see handling_for.
+    handling = serializers.SerializerMethodField()
+    supplier_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -362,6 +551,8 @@ class StaffBookingSerializer(serializers.ModelSerializer):
             + SENDER_FIELDS
             + [
                 "orders",
+                "handling",
+                "supplier_count",
                 "account",
                 "shipment",
                 "shipment_blocked",
@@ -399,6 +590,13 @@ class StaffBookingSerializer(serializers.ModelSerializer):
 
     def get_shipment_blocked(self, obj):
         return why_no_shipment(obj)
+
+    def get_handling(self, obj):
+        return handling_for(obj)
+
+    def get_supplier_count(self, obj):
+        # .all(), so the prefetched stores are counted, not queried again.
+        return len(obj.orders.all())
 
     def get_warehouse(self, obj):
         return _warehouse(obj)
@@ -584,6 +782,8 @@ class MyBookingSerializer(serializers.ModelSerializer):
     # The shipment the office made of it, so the customer can find it under
     # "My shipments". Null until the office has started on the booking.
     shipment = serializers.SerializerMethodField()
+    # The same handling costs the office sees (handling_for).
+    handling = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -592,6 +792,7 @@ class MyBookingSerializer(serializers.ModelSerializer):
             "created_at",
             "signed_at",
             "orders",
+            "handling",
             "shipment",
             "shipping_number",
             "status",
@@ -610,3 +811,6 @@ class MyBookingSerializer(serializers.ModelSerializer):
 
     def get_shipment(self, obj):
         return _shipment(obj.package)
+
+    def get_handling(self, obj):
+        return handling_for(obj)

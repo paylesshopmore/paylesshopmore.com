@@ -227,7 +227,8 @@ def _order_details(package):
         return {"booking": None, "orders": [], "onward_trackings": onward}
 
     orders = booking.orders.prefetch_related(
-        "screenshots", "carrier_shipments__carrier", "carrier_shipments__events"
+        "screenshots", "carrier_shipments__carrier", "carrier_shipments__events",
+        "products__screenshot",
     )
     return {
         "booking": {

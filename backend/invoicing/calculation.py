@@ -176,3 +176,89 @@ def calculate_totals(charges, adjustments, vat_rate_percent):
 def is_credit(total):
     """True when the invoice ends in money owed *to* the customer."""
     return total is not None and Decimal(total) < 0
+
+
+# ---- handling costs ----------------------------------------------------------
+
+# The handling costs, by purchase value. The ONE place these amounts live:
+# the shipping calculator reads them from /api/pricing/handling/ (so the
+# website never has its own copy), and the office's bookings work them out
+# with handling_fee() below.
+#
+# Read top to bottom; the first rule whose ceiling the value does not exceed
+# applies. `up_to_eur` is inclusive - exactly EUR 500 is still EUR 50 - and
+# None means "anything above the rules before it".
+#
+# `suppliers_included`: how many suppliers (webshops) the rate covers. The
+# EUR 150 rate covers 2. More suppliers than that has no approved price yet,
+# so nothing is added for them - the office is shown the count and decides.
+# None: no supplier limit was given for that rate.
+HANDLING_FEE_RULES = (
+    {"up_to_eur": Decimal("500.00"), "fee_eur": Decimal("50.00"), "suppliers_included": None},
+    {"up_to_eur": None, "fee_eur": Decimal("150.00"), "suppliers_included": 2},
+)
+
+
+def handling_fee(purchase_value, suppliers=None, rules=HANDLING_FEE_RULES):
+    """The handling costs for a purchase value, with how they were found.
+
+        handling_fee(Decimal("500"))   -> fee 50.00   (up to and including 500)
+        handling_fee(Decimal("500.01"))-> fee 150.00
+
+    Returns None when there is no purchase value (nothing to go on), else:
+
+        {"purchase_value_eur": Decimal, "fee_eur": Decimal, "rule": 0,
+         "suppliers": 3 or None, "suppliers_included": 2 or None,
+         "over_supplier_limit": True/False}
+
+    `over_supplier_limit` only says the count is above what the rate covers;
+    it does not change the fee (see HANDLING_FEE_RULES).
+
+    Raises ValueError for a negative value: a purchase cannot cost less than
+    nothing, and a fee worked out from one would be meaningless.
+    """
+    if purchase_value is None or purchase_value == "":
+        return None
+    value = to_cents(Decimal(str(purchase_value)))
+    if value < ZERO:
+        raise ValueError("A purchase value cannot be negative.")
+
+    for index, rule in enumerate(rules):
+        ceiling = rule["up_to_eur"]
+        if ceiling is None or value <= ceiling:
+            included = rule["suppliers_included"]
+            return {
+                "purchase_value_eur": value,
+                "fee_eur": to_cents(rule["fee_eur"]),
+                "rule": index,
+                "suppliers": suppliers,
+                "suppliers_included": included,
+                "over_supplier_limit": bool(
+                    included is not None and suppliers is not None and suppliers > included
+                ),
+            }
+    # The last rule has no ceiling, so this is only reached with broken rules.
+    raise ValueError("The handling fee rules do not cover this value.")
+
+
+def handling_fee_as_json(result):
+    """handling_fee()'s answer with the amounts as strings, for the API."""
+    if result is None:
+        return None
+    return {
+        **result,
+        "purchase_value_eur": str(result["purchase_value_eur"]),
+        "fee_eur": str(result["fee_eur"]),
+    }
+
+
+def handling_rules_as_json(rules=HANDLING_FEE_RULES):
+    """The rules for the calculator page, amounts as strings."""
+    return [
+        {
+            "up_to_eur": None if rule["up_to_eur"] is None else str(rule["up_to_eur"]),
+            "fee_eur": str(rule["fee_eur"]),
+            "suppliers_included": rule["suppliers_included"],
+        }
+        for rule in rules
+    ]

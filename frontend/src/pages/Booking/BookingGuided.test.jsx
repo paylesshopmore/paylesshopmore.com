@@ -138,7 +138,13 @@ describe('booking modes', () => {
       agreed_terms: true,
       signature_name: 'Klaas Klant',
     });
-    expect(orders).toEqual([{ shop: 3, description: 'Laptop' }]);
+    expect(orders).toEqual([
+      {
+        shop: 3,
+        description: 'Laptop',
+        products: [{ description: 'Laptop', url: '' }],
+      },
+    ]);
 
     finish({ id: 41 });
     expect(await screen.findByText('#41')).toBeInTheDocument();

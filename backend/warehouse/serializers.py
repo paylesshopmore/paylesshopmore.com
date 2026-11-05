@@ -19,11 +19,46 @@ from .models import IntakeSheet, IntakeSheetPhoto, Measurement, measurement_tota
 # goods arrived, how many there are, how they are going, and where.
 # received_on ("Datum aanname goederen") is not asked any more: the server fills
 # it in - see IntakeSheetSerializer.create and IntakeSheet.release.
+#
+# Transportwijze (sea or air) is not on the list: the office decides it, not
+# the floor (see can_assign_freight), so a sheet can be handed over before it
+# is chosen - the office then assigns it on the sheet or on the package.
 REQUIRED_FOR_RELEASE = {
     "colli_count": "Aantal colli",
-    "freight": "Transportwijze",
     "destination": "Bestemming",
 }
+
+# What a scanned label's "Shipment details" may hold (IntakeSheet.
+# shipment_details). The same keys as SHIPMENT_DETAILS in
+# frontend/src/ocr/labelFields.js - change both together.
+SHIPMENT_DETAIL_KEYS = (
+    "tracking_number",
+    "ship_date",
+    "shipment_reference",
+    "reference",
+    "purchase_order",
+    "invoice",
+    "department",
+    "origin_id",
+    "carrier",
+    "service",
+)
+
+# Generous ceilings for what a label can carry, so a broken client cannot
+# store a novel in the sheet's row.
+MAX_LABEL_SCANS = 20
+MAX_LINES_PER_SCAN = 120
+MAX_LINE_LENGTH = 300
+
+
+def can_assign_freight(user):
+    """Only the office (and admins) decide whether a sheet goes by sea or air.
+
+    A warehouse worker or warehouse manager sees the choice but cannot make
+    it. Enforced in IntakeSheetViewSet.perform_create/perform_update; the
+    page only hides the dropdown.
+    """
+    return bool(user and user.is_authenticated and user.is_active and user.is_staff)
 
 # The three Ja / Nee boxes. Kept apart from the list above because blank is a
 # real state for them rather than an empty string that means nothing - and
@@ -118,6 +153,10 @@ class MeasurementSerializer(serializers.ModelSerializer):
             "width_cm",
             "height_cm",
             "weight_kg",
+            "volumetric_weight_kg",
+            "chargeable_weight_kg",
+            "weight_unit",
+            "dimension_unit",
             "note",
             "complete",
             "volume_m3",
@@ -191,6 +230,10 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
         read_only=True,
         default=None,
     )
+    # Whether the person asking may choose sea or air. The page shows a
+    # dropdown when true and a read-only label when false; the server holds
+    # the rule either way.
+    can_assign_freight = serializers.SerializerMethodField()
 
     class Meta:
         model = IntakeSheet
@@ -234,6 +277,9 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
             "declared_weight_kg",
             "freight",
             "freight_display",
+            "can_assign_freight",
+            "shipment_details",
+            "label_scans",
             "employee_name",
             # Links
             "booking",
@@ -265,8 +311,14 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
     def get_missing(self, obj):
         return missing_for_release(obj)
 
+    def get_can_assign_freight(self, obj):
+        request = self.context.get("request")
+        return can_assign_freight(request.user if request else None)
+
     def get_totals(self, obj):
-        totals = measurement_totals(list(obj.measurements.all()), obj.freight)
+        # The sheet's freight, else the one the office gave the package.
+        freight = obj.freight or (obj.package.freight if obj.package_id else "")
+        totals = measurement_totals(list(obj.measurements.all()), freight)
         # Strings, like every other decimal DRF sends, so the browser never
         # sees 2.3100000000000001.
         return {
@@ -340,6 +392,54 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
 
     def get_released_by_name(self, obj):
         return self._name(obj.released_by)
+
+    def validate_shipment_details(self, value):
+        """Known keys only, each a short piece of text (blank ones dropped)."""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Expected an object.")
+        unknown = sorted(set(value) - set(SHIPMENT_DETAIL_KEYS))
+        if unknown:
+            raise serializers.ValidationError(f"Unknown field(s): {', '.join(unknown)}.")
+        cleaned = {}
+        for key, text in value.items():
+            if text is None:
+                continue
+            if not isinstance(text, str):
+                raise serializers.ValidationError({key: "Must be text."})
+            text = text.strip()
+            if len(text) > 255:
+                raise serializers.ValidationError({key: "At most 255 characters."})
+            if text:
+                cleaned[key] = text
+        return cleaned
+
+    def validate_label_scans(self, value):
+        """A list of {"lines": [...], "source": "ai"|"device", "read_at": "..."}."""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Expected a list.")
+        if len(value) > MAX_LABEL_SCANS:
+            raise serializers.ValidationError(f"At most {MAX_LABEL_SCANS} scans per sheet.")
+        cleaned = []
+        for scan in value:
+            if not isinstance(scan, dict) or not isinstance(scan.get("lines"), list):
+                raise serializers.ValidationError("Each scan needs a list of lines.")
+            lines = scan["lines"]
+            if len(lines) > MAX_LINES_PER_SCAN or not all(isinstance(line, str) for line in lines):
+                raise serializers.ValidationError(
+                    f"A scan has at most {MAX_LINES_PER_SCAN} lines of text."
+                )
+            if any(len(line) > MAX_LINE_LENGTH for line in lines):
+                raise serializers.ValidationError(
+                    f"A line is at most {MAX_LINE_LENGTH} characters."
+                )
+            source = scan.get("source", "")
+            if source not in ("ai", "device", ""):
+                raise serializers.ValidationError("A scan's source is 'ai' or 'device'.")
+            read_at = scan.get("read_at", "")
+            if not isinstance(read_at, str) or len(read_at) > 40:
+                raise serializers.ValidationError("read_at must be a date and time.")
+            cleaned.append({"lines": lines, "source": source, "read_at": read_at})
+        return cleaned
 
     def validate(self, attrs):
         """Only what would be wrong however incomplete the sheet is.

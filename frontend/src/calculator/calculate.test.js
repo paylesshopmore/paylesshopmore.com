@@ -3,7 +3,7 @@
 // rates.
 
 import { describe, expect, it } from 'vitest';
-import { calculate, isPriced, validateInput } from './calculate';
+import { calculate, handlingFeeFor, isPriced, validateInput } from './calculate';
 import { IMPORT_CATEGORIES, IMPORT_DUTY_PERCENT } from './rates';
 
 // A 75 x 80 x 45 cm box of shoes, € 500 incl. 21% VAT, by sea to Curaçao.
@@ -24,11 +24,16 @@ const RATES = {
   curacao: {
     sea: { perM3: 100, minimum: 35 },
     air: { perKg: 6, minimum: 20 },
-    fees: { administration: 10, handling: 20 },
+    fees: { administration: 10 },
     localTaxPercent: 6,
   },
 };
 const DUTIES = { curacao: { shoes: 22 } };
+// Sample handling rules, shaped like the server's (api/pricing.js).
+const HANDLING = [
+  { up_to_eur: '500.00', fee_eur: '20.00', suppliers_included: null },
+  { up_to_eur: null, fee_eur: '60.00', suppliers_included: 2 },
+];
 
 describe('the calculator, with the rates as shipped', () => {
   it('still works out value, volume and weights', () => {
@@ -65,15 +70,25 @@ describe('the calculator, with the rates as shipped', () => {
     expect(calculate({ ...INPUT, transport: 'air' }).freight).toBe(315); // 45 kg x 7
   });
 
-  it('adds administration, documentation and handling per shipment', () => {
-    const out = calculate(INPUT);
+  it('adds administration and documentation per shipment, and handling by the purchase value', () => {
+    // Without the server's rules: no handling line (and so no total).
+    expect(calculate(INPUT).fees).toEqual([
+      { key: 'administration', amount: 25 },
+      { key: 'documentation', amount: 30 },
+    ]);
 
+    const rules = [
+      { up_to_eur: '500.00', fee_eur: '50.00', suppliers_included: null },
+      { up_to_eur: null, fee_eur: '150.00', suppliers_included: 2 },
+    ];
+    const out = calculate(INPUT, { handlingRules: rules });
     expect(out.fees).toEqual([
       { key: 'administration', amount: 25 },
       { key: 'documentation', amount: 30 },
-      { key: 'handling', amount: 150 },
+      { key: 'handling', amount: 50 }, // EUR 500: still the lower rate
     ]);
-    expect(out.feesTotal).toBe(205);
+    expect(out.feesTotal).toBe(105);
+    expect(calculate({ ...INPUT, priceInclVat: 501 }, { handlingRules: rules }).handling).toBe(150);
   });
 
   it('gives no total while the OB rate is unknown, rather than an invented one', () => {
@@ -115,7 +130,7 @@ describe("Curaçao's import duty table", () => {
 });
 
 describe('the calculator, with rates', () => {
-  const run = (overrides) => calculate({ ...INPUT, ...overrides }, { rates: RATES, duties: DUTIES });
+  const run = (overrides) => calculate({ ...INPUT, ...overrides }, { rates: RATES, duties: DUTIES, handlingRules: HANDLING });
 
   it('prices sea freight by volume, never below the minimum', () => {
     expect(run({}).freight).toBe(35); // 0.27 m3 x 100 = 27, minimum 35
@@ -136,7 +151,7 @@ describe('the calculator, with rates', () => {
   });
 
   it('lists no fees for a route without a freight price', () => {
-    const out = calculate(INPUT, { rates: { curacao: { sea: { perM3: null }, fees: { handling: 20 } } }, duties: DUTIES });
+    const out = calculate(INPUT, { rates: { curacao: { sea: { perM3: null }, fees: { administration: 20 } } }, duties: DUTIES });
 
     expect(out.fees).toEqual([]);
     expect(out.feesTotal).toBe(0);
@@ -187,5 +202,47 @@ describe('checking the form', () => {
       category: 'shoes',
     };
     expect(validateInput(values)).toEqual({});
+  });
+});
+
+describe('handling costs, by the rules from the server', () => {
+  const RULES = [
+    { up_to_eur: '500.00', fee_eur: '50.00', suppliers_included: null },
+    { up_to_eur: null, fee_eur: '150.00', suppliers_included: 2 },
+  ];
+
+  it.each([
+    [100, 50],
+    [250, 50],
+    [500, 50],
+    [500.004, 50],
+    [501, 150],
+    [750, 150],
+    [1000, 150],
+  ])('EUR %s purchase -> EUR %s handling', (value, fee) => {
+    expect(handlingFeeFor(value, RULES)).toBe(fee);
+  });
+
+  it('is unknown without the rules, and then there is no total either', () => {
+    expect(handlingFeeFor(500, null)).toBeNull();
+    const tables = {
+      rates: { curacao: { sea: { perM3: 100 }, fees: { administration: 25 }, localTaxPercent: 6 } },
+      duties: { curacao: { shoes: 10 } },
+    };
+    const input = {
+      destination: 'curacao', priceInclVat: 121, vatPercent: 21, lengthCm: 100, widthCm: 100,
+      heightCm: 100, weightGrams: 1000, category: 'shoes', transport: 'sea',
+    };
+    const without = calculate(input, tables);
+    expect(without.handling).toBeNull();
+    expect(without.fees.map((fee) => fee.key)).toEqual(['administration']);
+    expect(without.total).toBeNull();
+
+    const withRules = calculate(input, { ...tables, handlingRules: RULES });
+    expect(withRules.fees).toEqual([
+      { key: 'administration', amount: 25 },
+      { key: 'handling', amount: 50 },
+    ]);
+    expect(withRules.total).not.toBeNull();
   });
 });

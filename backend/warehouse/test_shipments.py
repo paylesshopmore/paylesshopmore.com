@@ -178,28 +178,116 @@ class FollowStatusTests(ShipmentTestCase):
 
 
 class FreightTests(ShipmentTestCase):
-    def test_an_intake_sheet_fills_in_a_blank_freight(self):
+    """Sea or air is the office's to assign; the warehouse only sees it."""
+
+    def setUp(self):
+        super().setUp()
+        self.office = User.objects.create_user(
+            username="kantoor@example.com",
+            email="kantoor@example.com",
+            password="a-long-enough-password",
+            is_staff=True,
+        )
+
+    def test_the_warehouse_cannot_choose_it_when_starting_a_sheet(self):
         response = self.client.post(
             reverse("staff-intake-list"),
             {"package": self.package.pk, "freight": "air"},
             format="json",
         )
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.package.refresh_from_db()
-        self.assertEqual(self.package.freight, "air")
+        self.assertEqual(self.package.freight, "")
 
-    def test_it_does_not_overrule_the_office(self):
+    def test_the_warehouse_cannot_change_it_on_a_sheet(self):
         self.package.freight = Package.Freight.SEA
         self.package.save()
-        sheet = IntakeSheet.objects.create(package=self.package)
+        sheet = IntakeSheet.objects.create(package=self.package, freight="sea")
 
-        self.client.patch(
+        response = self.client.patch(
             reverse("staff-intake-detail", args=[sheet.pk]), {"freight": "air"}, format="json"
         )
 
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        sheet.refresh_from_db()
         self.package.refresh_from_db()
+        self.assertEqual(sheet.freight, "sea")
         self.assertEqual(self.package.freight, "sea")
+
+    def test_sending_the_same_freight_back_is_not_a_change(self):
+        sheet = IntakeSheet.objects.create(package=self.package, freight="sea")
+        response = self.client.patch(
+            reverse("staff-intake-detail", args=[sheet.pk]),
+            {"freight": "sea", "supplier": "Bol.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["can_assign_freight"])
+
+    def test_the_warehouse_cannot_use_the_assign_action(self):
+        sheet = IntakeSheet.objects.create(package=self.package)
+        response = self.client.post(
+            reverse("staff-intake-freight", args=[sheet.pk]), {"freight": "air"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        sheet.refresh_from_db()
+        self.assertEqual(sheet.freight, "")
+
+    def test_the_office_assigns_it_and_the_package_follows(self):
+        self.client.force_authenticate(self.office)
+        sheet = IntakeSheet.objects.create(package=self.package)
+
+        response = self.client.post(
+            reverse("staff-intake-freight", args=[sheet.pk]), {"freight": "air"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["freight"], "air")
+        self.assertTrue(response.data["can_assign_freight"])
+        self.package.refresh_from_db()
+        self.assertEqual(self.package.freight, "air")
+
+    def test_the_office_can_assign_it_after_the_sheet_was_released(self):
+        self.client.force_authenticate(self.office)
+        sheet = IntakeSheet.objects.create(package=self.package, status=IntakeSheet.Status.RELEASED)
+        response = self.client.post(
+            reverse("staff-intake-freight", args=[sheet.pk]), {"freight": "sea"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        sheet.refresh_from_db()
+        self.assertEqual(sheet.freight, "sea")
+
+    def test_only_sea_air_or_nothing(self):
+        self.client.force_authenticate(self.office)
+        sheet = IntakeSheet.objects.create(package=self.package, freight="sea")
+        response = self.client.post(
+            reverse("staff-intake-freight", args=[sheet.pk]), {"freight": "rail"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.client.post(
+            reverse("staff-intake-freight", args=[sheet.pk]), {"freight": ""}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        sheet.refresh_from_db()
+        self.assertEqual(sheet.freight, "")
+
+    def test_a_change_on_the_package_reaches_the_warehouse_sheet(self):
+        self.client.force_authenticate(self.office)
+        sheet = IntakeSheet.objects.create(package=self.package)
+        response = self.client.patch(
+            reverse("staff-package-detail", args=[self.package.pk]), {"freight": "air"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.client.force_authenticate(self.floor)
+        response = self.client.get(reverse("staff-intake-detail", args=[sheet.pk]))
+        self.assertEqual(response.data["freight"], "air")
+
+    def test_the_warehouse_cannot_change_it_on_the_package(self):
+        response = self.client.patch(
+            reverse("staff-package-detail", args=[self.package.pk]), {"freight": "air"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_the_scan_card_shows_it(self):
         self.package.freight = Package.Freight.AIR

@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/utils';
 import { SHOPS, displayLogo } from '../../data/shops';
 import { listShops } from '../../api/shops';
+import { sortByName } from '../../hooks/useShops';
 import ShopGrid from './ShopGrid';
 
 vi.mock('../../api/shops', async (importOriginal) => {
@@ -27,13 +28,34 @@ describe('ShopGrid', () => {
     listShops.mockRejectedValue(new Error('offline'));
   });
 
-  it('shows every shop, in the order the office arranged them', () => {
+  it('shows every shop, A to Z', () => {
     renderWithProviders(<ShopGrid />);
 
     const named = screen.getAllByRole('img').map((img) => img.getAttribute('alt'));
 
     // One row, so the running order reads straight across.
-    expect(named).toEqual(SHOPS.map((shop) => shop.name));
+    expect(named).toEqual(sortByName(SHOPS).map((shop) => shop.name));
+  });
+
+  it('puts the API shops A to Z, whatever order they arrive in', async () => {
+    listShops.mockResolvedValue([
+      // Names with no bundled logo, so each card shows its name as text.
+      { id: 1, name: 'Zulu', url: 'https://z.example/', logo: null },
+      { id: 2, name: 'bravo', url: 'https://b.example/', logo: null },
+      { id: 3, name: 'Alpha', url: 'https://a.example/', logo: null },
+    ]);
+    renderWithProviders(<ShopGrid />);
+
+    // Each shop's one reachable link, in the order the row shows them.
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('link', { name: /Alpha|bravo|Zulu/ }).map((link) => link.textContent),
+      ).toEqual([
+        expect.stringContaining('Alpha'),
+        expect.stringContaining('bravo'),
+        expect.stringContaining('Zulu'),
+      ]),
+    );
   });
 
   it('fills a short list without announcing any shop twice', async () => {

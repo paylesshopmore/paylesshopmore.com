@@ -228,6 +228,26 @@ export async function updateBooking(id, changes) {
 }
 
 /**
+ * The office's price check on one product of a booking: the price found on
+ * the webshop, the status and internal notes. The customer's own price is
+ * never changed. Answers the product as the office reads it.
+ *
+ * @param {number} id
+ * @param {{ verified_price_eur?: string|null, verification_status?: string, staff_notes?: string }} changes
+ */
+export async function updateBookingProduct(id, changes) {
+  return request(`/staff/booking-products/${id}/`, { method: 'PATCH', body: changes });
+}
+
+// What the office can say about a product's price (BookingProduct.Verification).
+export const PRODUCT_VERIFICATION = [
+  { value: 'not_checked', label: 'Not checked' },
+  { value: 'verified', label: 'Verified' },
+  { value: 'price_changed', label: 'Price changed' },
+  { value: 'unavailable', label: 'Product unavailable' },
+];
+
+/**
  * For the pop-ups in the dashboard corner (pages/Dashboard/StaffAlerts.jsx):
  * the newest contact messages nobody has handled yet, and the newest bookings
  * still on "new". Newest first, because the server orders by -created_at.
@@ -871,6 +891,23 @@ export async function scanCode(code) {
  */
 export async function confirmCourierArrival(code) {
   return request('/staff/intake/courier-arrival/', { method: 'POST', body: { code } });
+}
+
+/** One intake sheet, as it is stored now. */
+export async function getIntakeSheet(id) {
+  return request(`/staff/intake/${id}/`);
+}
+
+/**
+ * The office assigns sea or air freight to a sheet (and its package). Works on
+ * a released sheet too. Refused with a 403 for a warehouse account - the
+ * warehouse only sees the freight, it does not choose it.
+ *
+ * @param {number} id
+ * @param {'sea'|'air'|''} freight  '' takes the assignment back
+ */
+export async function assignIntakeFreight(id, freight) {
+  return request(`/staff/intake/${id}/freight/`, { method: 'POST', body: { freight } });
 }
 
 /**

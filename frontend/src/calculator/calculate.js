@@ -16,8 +16,9 @@
 //                   is charged
 //   freight         sea: volume x price per m³    air: chargeable kg x price per kg
 //                   never below the minimum
-//   fees            fixed amounts per shipment: administration, documentation,
-//                   handling
+//   fees            fixed amounts per shipment: administration, documentation
+//   handling        by the purchase value (price incl. VAT), from the server's
+//                   rules: EUR 50 up to and including EUR 500, EUR 150 above
 //   import duty     goods value x the category's duty %
 //   local tax       (goods value + freight + duty) x the island's tax %
 //   total           freight + fees + duty + local tax
@@ -46,12 +47,36 @@ export function isPriced(destination, transport, rates = RATES) {
 }
 
 /**
+ * The handling costs for a purchase value, by the server's rules (see
+ * api/pricing.js): the first rule whose ceiling the value does not exceed.
+ * Exactly the ceiling still counts (EUR 500 -> the EUR 50 rule). Null without
+ * rules - the page then shows no handling line and no total.
+ *
+ * @param {number} purchaseValue
+ * @param {{ up_to_eur: string|null, fee_eur: string }[]|null} rules
+ */
+export function handlingFeeFor(purchaseValue, rules) {
+  if (!Array.isArray(rules) || rules.length === 0 || !known(purchaseValue)) return null;
+  // In cents, so 500.004 typed as a price is still 500.00 like on the server.
+  const value = round2(purchaseValue);
+  const rule = rules.find((item) => item.up_to_eur === null || value <= Number(item.up_to_eur));
+  const fee = rule ? Number(rule.fee_eur) : Number.NaN;
+  return known(fee) ? fee : null;
+}
+
+/**
  * @param {{ destination: 'curacao', priceInclVat: number, vatPercent: number,
  *           lengthCm: number, widthCm: number, heightCm: number, weightGrams: number,
  *           category: string, transport: 'sea'|'air' }} input
- * @param {{ rates?: object, duties?: object }} [tables]  for tests; defaults to rates.js
+ * @param {{ rates?: object, duties?: object, handlingRules?: object[]|null }} [tables]
+ *   rates and duties default to rates.js (overridden in tests); handlingRules
+ *   come from the server (api/pricing.js) - without them there is no
+ *   handling line and no total
  */
-export function calculate(input, { rates = RATES, duties = IMPORT_DUTY_PERCENT } = {}) {
+export function calculate(
+  input,
+  { rates = RATES, duties = IMPORT_DUTY_PERCENT, handlingRules = null } = {},
+) {
   const { destination, priceInclVat, vatPercent, lengthCm, widthCm, heightCm, weightGrams, category, transport } =
     input;
 
@@ -91,12 +116,17 @@ export function calculate(input, { rates = RATES, duties = IMPORT_DUTY_PERCENT }
   // 3b. Fixed fees per shipment, e.g. [{ key: 'handling', amount: 150 }].
   //     Only the ones that have an amount; they belong to the freight price,
   //     so they are only listed when the freight is.
+  //     Handling comes last, by the purchase value (the price incl. VAT).
+  const handling = handlingFeeFor(priceInclVat, handlingRules);
   const fees =
     freight === null
       ? []
-      : Object.entries(table.fees ?? {})
-          .filter(([, amount]) => known(amount))
-          .map(([key, amount]) => ({ key, amount }));
+      : [
+          ...Object.entries(table.fees ?? {})
+            .filter(([, amount]) => known(amount))
+            .map(([key, amount]) => ({ key, amount })),
+          ...(handling === null ? [] : [{ key: 'handling', amount: handling }]),
+        ];
   const feesTotal = round2(fees.reduce((sum, fee) => sum + fee.amount, 0));
 
   // 4. Import duty - a percentage of the goods value, from the island's
@@ -115,7 +145,11 @@ export function calculate(input, { rates = RATES, duties = IMPORT_DUTY_PERCENT }
 
   // 6. A total only when every part of it is known - a total missing its duty
   //    would look complete and be wrong.
-  const total = freight !== null && duty !== null && localTax !== null ? round2(freight + feesTotal + duty + localTax) : null;
+  //    Handling counts as a part too: a total without it would be too low.
+  const total =
+    freight !== null && duty !== null && localTax !== null && handling !== null
+      ? round2(freight + feesTotal + duty + localTax)
+      : null;
 
   return {
     vatAmount,
@@ -127,6 +161,7 @@ export function calculate(input, { rates = RATES, duties = IMPORT_DUTY_PERCENT }
     freight,
     fees,
     feesTotal,
+    handling,
     duty,
     dutyPercent: known(dutyPercent) ? dutyPercent : null,
     localTax,

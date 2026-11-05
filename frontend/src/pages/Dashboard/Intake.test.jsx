@@ -5,7 +5,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { listIntakeSheets, updateIntakeSheet } from '../../api/staff';
+import { assignIntakeFreight, listIntakeSheets, updateIntakeSheet } from '../../api/staff';
 import { renderWithProviders } from '../../test/utils';
 import Intake from './Intake';
 
@@ -15,6 +15,8 @@ vi.mock('../../api/staff', async (importOriginal) => ({
   getIntakeRecipients: vi.fn().mockResolvedValue({ count: 2, addresses: ['a@example.com', 'b@example.com'] }),
   listIntakePhotos: vi.fn().mockResolvedValue([]),
   updateIntakeSheet: vi.fn(),
+  assignIntakeFreight: vi.fn(),
+  getIntakeSheet: vi.fn().mockResolvedValue(null),
 }));
 const auth = { user: { id: 1, role: 'office', notifications: { warehouse: true } }, refreshUser: vi.fn() };
 vi.mock('../../auth/useAuth', () => ({ useAuth: () => auth }));
@@ -137,5 +139,53 @@ describe('Intake sheets', () => {
     expect(within(dialog).getByRole('button', { name: /release/i })).toBeInTheDocument();
     expect(within(dialog).queryByRole('button', { name: 'Next' })).toBeNull();
     expect(window.localStorage.getItem('plsm.intakeMode')).toBe('form');
+  });
+
+  it('shows the warehouse the freight read-only, waiting for the office', async () => {
+    listIntakeSheets.mockResolvedValue({
+      results: [{ ...SHEET, freight: '', can_assign_freight: false }],
+      count: 1,
+      hasNext: false,
+      hasPrevious: false,
+    });
+    const user = userEvent.setup();
+    renderIntake();
+    await user.click(await screen.findByRole('button', { name: 'Open sheet' }));
+    const dialog = screen.getByRole('dialog');
+
+    expect(within(dialog).getByText('Waiting for office assignment')).toBeInTheDocument();
+    expect(within(dialog).queryByRole('combobox', { name: 'Freight' })).toBeNull();
+  });
+
+  it('lets the office assign the freight, saved at once', async () => {
+    listIntakeSheets.mockResolvedValue({
+      results: [{ ...SHEET, freight: '', can_assign_freight: true }],
+      count: 1,
+      hasNext: false,
+      hasPrevious: false,
+    });
+    assignIntakeFreight.mockResolvedValue({ ...SHEET, freight: 'air', can_assign_freight: true });
+    const user = userEvent.setup();
+    renderIntake();
+    await user.click(await screen.findByRole('button', { name: 'Open sheet' }));
+    const dialog = screen.getByRole('dialog');
+
+    await user.selectOptions(within(dialog).getByRole('combobox', { name: 'Freight' }), 'air');
+
+    expect(assignIntakeFreight).toHaveBeenCalledWith(11, 'air');
+    expect(await within(dialog).findByText('Freight assigned.')).toBeInTheDocument();
+  });
+
+  it('never sends the freight with a save from the form', async () => {
+    const user = userEvent.setup();
+    updateIntakeSheet.mockReset().mockImplementation(async (id, fields) => ({ ...SHEET, ...fields, measurements: [] }));
+    renderIntake();
+    await user.click(await screen.findByRole('button', { name: 'Open sheet' }));
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByRole('textbox', { name: 'Supplier' }), 'Bol.com');
+    await user.click(within(dialog).getByRole('button', { name: 'Save draft' }));
+
+    expect(updateIntakeSheet).toHaveBeenCalled();
+    expect(updateIntakeSheet.mock.calls[0][1]).not.toHaveProperty('freight');
   });
 });

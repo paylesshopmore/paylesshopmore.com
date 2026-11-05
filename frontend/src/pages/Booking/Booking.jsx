@@ -316,8 +316,16 @@ function Review({ form, orders, shopNames, onEdit, t }) {
         `${t('booking.guided.store')} ${index + 1}`,
         [
           row.shop === 'other' ? row.shopName : (shopNames[row.shop] ?? row.shop),
-          row.description,
-          row.file ? `📎 ${row.file.name}` : null,
+          row.products
+            .map((product) =>
+              [
+                product.description,
+                product.file ? `📎 ${product.file.name}` : null,
+              ]
+                .filter(Boolean)
+                .join(' '),
+            )
+            .join('; '),
         ]
           .filter(Boolean)
           .join(' · '),
@@ -438,7 +446,11 @@ export default function Booking() {
         ['sender_first_name', 'sender_last_name', 'sender_email', 'sender_phone', 'signature_name'].includes(name)
           ? false
           : form[name] !== empty,
-      ) || orders.some((row) => row.shop || row.description.trim() || row.file),
+      ) || orders.some(
+        (row) =>
+          row.shop ||
+          row.products.some((product) => product.description.trim() || product.url.trim() || product.file),
+      ),
     [form, orders],
   );
   useEffect(() => {
@@ -574,7 +586,9 @@ export default function Booking() {
           language,
         },
         toPayload(orders),
-        orders.map((row) => row.file),
+        // No screenshot per store any more, only per product.
+        [],
+        orders.map((row) => row.products.map((product) => product.file)),
       );
       setReference(saved);
     } catch (error) {

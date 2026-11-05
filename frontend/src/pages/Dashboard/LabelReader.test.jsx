@@ -101,6 +101,104 @@ describe('the label reader', () => {
   });
 });
 
+describe('measurements and shipment details on a label', () => {
+  const FEDEX = ['C MELODIE', 'SHIP DATE: 03NOV26 ACTWGT: 13.40 KG', 'DIMS: 60x40x20 CM', 'TRK#', '8796 3229 7750'];
+
+  function renderFull(props = {}) {
+    const handlers = {
+      onPick: vi.fn(() => true),
+      onMeasure: vi.fn(() => true),
+      onDetail: vi.fn(() => true),
+      onUnassign: vi.fn(),
+      onScanned: vi.fn(),
+      ...props,
+    };
+    renderWithProviders(<LabelReader {...handlers} />);
+    return handlers;
+  }
+
+  beforeEach(() => readLabel.mockResolvedValue(FEDEX));
+
+  it('keeps the label as read, splits it into chips and fills in what has a caption', async () => {
+    const user = userEvent.setup();
+    const handlers = renderFull();
+    await scan(user);
+
+    expect(handlers.onScanned).toHaveBeenCalledWith({ lines: FEDEX, source: 'device' });
+    // The line with two captions became two chips.
+    expect(screen.getByRole('button', { name: 'SHIP DATE: 03NOV26' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'ACTWGT: 13.40 KG' })).toBeInTheDocument();
+
+    expect(handlers.onMeasure).toHaveBeenCalledWith({ weight_kg: '13.4', weight_unit: 'kg' }, { auto: true });
+    expect(handlers.onMeasure).toHaveBeenCalledWith(
+      { length_cm: '60', width_cm: '40', height_cm: '20', dimension_unit: 'cm' },
+      { auto: true },
+    );
+    expect(handlers.onDetail).toHaveBeenCalledWith('ship_date', '03NOV26', { auto: true });
+    // The name is never filled in by itself.
+    expect(handlers.onPick).not.toHaveBeenCalled();
+    // C MELODIE, TRK# and the number are still waiting.
+    expect(screen.getByText('Nog niet toegewezen: 3 van 6')).toBeInTheDocument();
+  });
+
+  it('joins a caption and its number into Shipment details', async () => {
+    const user = userEvent.setup();
+    const handlers = renderFull();
+    await scan(user);
+
+    await user.click(screen.getByRole('button', { name: 'TRK#' }));
+    await user.click(screen.getByRole('button', { name: /8796 3229 7750/ }));
+    await user.click(screen.getByRole('button', { name: 'Zendinggegevens' }));
+
+    expect(handlers.onDetail).toHaveBeenCalledWith('tracking_number', '8796 3229 7750', { auto: false });
+  });
+
+  it('asks which weight when a weight has no caption', async () => {
+    readLabel.mockResolvedValue(['13400 G']);
+    const user = userEvent.setup();
+    const handlers = renderFull();
+    await scan(user);
+
+    await user.click(screen.getByRole('button', { name: '13400 G' }));
+    await user.click(screen.getByRole('button', { name: 'Meting' }));
+    await user.click(screen.getByRole('button', { name: 'Volumegewicht' }));
+
+    expect(handlers.onMeasure).toHaveBeenCalledWith(
+      { volumetric_weight_kg: '13.4', weight_unit: 'g' },
+      { auto: false },
+    );
+  });
+
+  it('removes an assignment again', async () => {
+    const user = userEvent.setup();
+    const handlers = renderFull();
+    await scan(user);
+
+    await user.click(screen.getByRole('button', { name: '"ACTWGT: 13.40 KG" verwijderen uit Werkelijk gewicht' }));
+
+    expect(handlers.onUnassign).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'measure', target: 'actualWeight' }),
+    );
+    expect(screen.getByText('Nog niet toegewezen: 4 van 6')).toBeInTheDocument();
+  });
+
+  it('asks before a chip already used goes somewhere else too', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const user = userEvent.setup();
+    const handlers = renderFull();
+    await scan(user);
+
+    await user.click(screen.getByRole('button', { name: 'C MELODIE' }));
+    await user.click(screen.getByRole('button', { name: 'Afzender' }));
+    await user.click(screen.getByRole('button', { name: 'C MELODIE' }));
+    await user.click(screen.getByRole('button', { name: 'Ontvanger' }));
+
+    expect(confirm).toHaveBeenCalled();
+    expect(handlers.onPick).toHaveBeenCalledTimes(1);
+    confirm.mockRestore();
+  });
+});
+
 describe('tidying what was read', () => {
   it('squeezes spaces and drops empty lines and box-edge noise', () => {
     expect(toLines('  Jan   de Vries \n\n | \nKaya Grandi 12\n—\n')).toEqual([

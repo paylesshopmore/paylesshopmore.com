@@ -56,8 +56,12 @@ from accounts.reauth import require_recent_reauth
 from accounts.signin_codes import CodeNotAllowed, code_goes_on_screen, issue_code
 from accounts.views import ShipmentChangeRefused
 from accounts.warehouse import follow_status
-from bookings.models import Booking, BookingAttachment
-from bookings.serializers import StaffBookingSerializer
+from bookings.models import Booking, BookingAttachment, BookingProduct
+from bookings.serializers import (
+    StaffBookingSerializer,
+    StaffProductCheckSerializer,
+    StaffProductSerializer,
+)
 from bookings.shipments import SendRefused, follow_booking_status, number_and_send, send_to_warehouse
 from bookings.views import attachment_response
 from docreview.models import DocumentJob
@@ -550,6 +554,7 @@ class PackageViewSet(StaffViewSet):
         """
         package = serializer.instance
         previous_status = package.status
+        previous_freight = package.freight
         status = serializer.validated_data.get("status", previous_status)
         stamps = {}
 
@@ -573,6 +578,14 @@ class PackageViewSet(StaffViewSet):
         try:
             with transaction.atomic():
                 package = serializer.save(**stamps)
+
+                # Sea or air is the office's decision, made here or on the
+                # intake sheet. The sheets of this package follow at once, so
+                # the warehouse reads the same answer on its own screen.
+                if package.freight != previous_freight:
+                    package.intake_sheets.update(
+                        freight=package.freight, updated_at=timezone.now()
+                    )
 
                 # The order's own record of the move, written before anything that
                 # follows from it so the history reads in the order it happened.
@@ -614,6 +627,60 @@ class PackageViewSet(StaffViewSet):
             raise ShipmentChangeRefused(str(exc)) from exc
 
 
+class BookingProductViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """The products customers listed on their bookings, for the office to check.
+
+    GET ?booking=<id> lists one booking's products; PATCH changes only the
+    office's half - the checked webshop price, the status and the internal
+    notes (StaffProductCheckSerializer). What the customer reported, the
+    price included, cannot be changed here.
+
+    Behind IsStaff like the rest of the dashboard: a warehouse account or a
+    customer gets a 403, whatever the page shows."""
+
+    permission_classes = [IsStaff]
+    queryset = BookingProduct.objects.select_related(
+        "order", "screenshot", "verified_by"
+    )
+
+    def get_serializer_class(self):
+        if self.action in ("update", "partial_update"):
+            return StaffProductCheckSerializer
+        return StaffProductSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        booking = self.request.query_params.get("booking")
+        if booking is not None:
+            if not booking.isdigit():
+                raise ValidationError({"booking": "Expected a booking id."})
+            queryset = queryset.filter(booking_id=int(booking))
+        return queryset
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        product = self.get_object()
+        check = StaffProductCheckSerializer(product, data=request.data, partial=partial)
+        check.is_valid(raise_exception=True)
+
+        changes = check.validated_data
+        # Who checked, and when: stamped whenever the price or the status
+        # changes, not for a note alone.
+        stamp = {}
+        if any(
+            key in changes and changes[key] != getattr(product, key)
+            for key in ("verified_price_eur", "verification_status")
+        ):
+            stamp = {"verified_by": request.user, "verified_at": timezone.now()}
+        check.save(**stamp)
+        return Response(StaffProductSerializer(product).data)
+
+
 class BookingViewSet(StaffViewSet):
     """Booking forms, as submitted by customers.
 
@@ -644,6 +711,8 @@ class BookingViewSet(StaffViewSet):
             .select_related("user", "package", "package__invoice")
             .prefetch_related(
                 "orders__screenshots",
+                "orders__products__screenshot",
+                "orders__products__verified_by",
                 # Each order's courier tracking (tracking app).
                 "orders__carrier_shipments__carrier",
                 "orders__carrier_shipments__events",

@@ -14,6 +14,7 @@ import { renderWithProviders } from '../../test/utils';
 import Services from './Services';
 import { DESTINATIONS } from '../../data/destinations';
 import { SHOPS } from '../../data/shops';
+import { sortByName } from '../../hooks/useShops';
 
 describe('the services page', () => {
   it('opens with the same photo banner as the destination pages', () => {
@@ -121,8 +122,9 @@ describe('the services page', () => {
     // The bundled list is what renders before - and instead of - an answer
     // from the API, so the grid is never empty even with no server behind it.
     const named = await within(companies).findAllByRole('heading', { level: 3 });
+    // A to Z, whatever order the list is kept in.
     expect(named.map((heading) => heading.textContent)).toEqual(
-      SHOPS.map((shop) => shop.name),
+      sortByName(SHOPS).map((shop) => shop.name),
     );
   });
 

@@ -14,6 +14,7 @@ import ConnectionError from '../../components/ConnectionError/ConnectionError';
 import OrderList from '../../components/AttachmentList/OrderList';
 import HelpDialog from '../../components/HelpDialog/HelpDialog';
 import BookingWarehouseMeasurements from './BookingWarehouseMeasurements';
+import ProductCheck from './ProductCheck';
 import { warehouseSummary } from './bookingMeasurements';
 import { Chip, Field, Group, Progress } from './sheet';
 import { BOOKING_STATUSES, listBookings, sendBookingToWarehouse, updateBooking } from '../../api/staff';
@@ -319,7 +320,18 @@ function InvoiceState({ shipment }) {
   return <Chip tone="off">{d('invoiceAfterMeasuring')}</Chip>;
 }
 
-function BookingSheet({ booking, busy, onSave, onSend }) {
+/** The booking with one of its products replaced by the saved one. */
+function withProduct(booking, saved) {
+  return {
+    ...booking,
+    orders: (booking.orders ?? []).map((order) => ({
+      ...order,
+      products: (order.products ?? []).map((product) => (product.id === saved.id ? saved : product)),
+    })),
+  };
+}
+
+function BookingSheet({ booking, busy, onSave, onSend, onProductSaved }) {
   const d = usePageText('bookings');
   const c = usePageText('common');
   const freight = labelFor(c, 'freight', booking.freight, booking.freight_display);
@@ -443,6 +455,40 @@ function BookingSheet({ booking, busy, onSave, onSend }) {
             <strong>{formatMoney(booking.value_eur)}</strong>
           )}
         </Field>
+        {/* Worked out on the server from the purchase value (backend
+            invoicing/calculation.py HANDLING_FEE_RULES): the same figure the
+            calculator and the customer see. */}
+        <Field label={d('handlingCosts')}>
+          {booking.handling ? (
+            <>
+              <strong>{formatMoney(booking.handling.fee_eur)}</strong>{' '}
+              <span className={styles.mutedCell}>
+                {d(
+                  booking.handling.value_source === 'products'
+                    ? 'handlingFromProducts'
+                    : 'handlingFromValue',
+                  { value: formatMoney(booking.handling.purchase_value_eur) },
+                )}
+              </span>
+            </>
+          ) : (
+            <Chip tone="off">{d('handlingNeedsValue')}</Chip>
+          )}
+        </Field>
+        {/* How many suppliers (stores) the consignment has. The EUR 150 rate
+            covers 2; more is flagged for the office, not charged - there is
+            no approved price for it yet. */}
+        <Field label={d('suppliers')}>
+          {booking.supplier_count ?? 0}{' '}
+          {booking.handling?.suppliers_included != null && (
+            <span className={styles.mutedCell}>
+              {d('suppliersIncluded', { count: booking.handling.suppliers_included })}
+            </span>
+          )}
+          {booking.handling?.over_supplier_limit && (
+            <Chip tone="bad">{d('suppliersOverLimit')}</Chip>
+          )}
+        </Field>
         <Field label={d('insured')}>
           {booking.insured ? (
             <Chip tone="good">{formatMoney(booking.insured_value_eur)}</Chip>
@@ -499,7 +545,27 @@ function BookingSheet({ booking, busy, onSave, onSend }) {
         )}
         {booking.orders?.length > 0 ? (
           <Field label={d('storesOrdered', { count: booking.orders.length })} wide>
-            <OrderList orders={booking.orders} openLabel={(name) => d('open', { name })} />
+            <OrderList
+              orders={booking.orders}
+              openLabel={(name) => d('open', { name })}
+              productLabels={{
+                link: d('productLink'),
+                copy: d('copyLink'),
+                copied: d('copied'),
+                price: d('customerPrice'),
+                quantity: d('quantity'),
+                subtotal: d('subtotal'),
+                total: d('storeTotal'),
+                noLink: d('noLink'),
+              }}
+              renderProductExtra={(product) => (
+                <ProductCheck
+                  key={product.id}
+                  product={product}
+                  onSaved={onProductSaved}
+                />
+              )}
+            />
           </Field>
         ) : (
           <Field label={d('contents')} wide>
@@ -774,6 +840,7 @@ export default function Bookings() {
             busy={savingId === openBooking.id}
             onSave={(changes) => save(openBooking, changes)}
             onSend={(changes) => send(openBooking, changes)}
+            onProductSaved={(product) => list.replaceRow(withProduct(openBooking, product))}
           />
         </HelpDialog>
       )}

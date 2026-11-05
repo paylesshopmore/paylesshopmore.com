@@ -17,7 +17,7 @@ from tracking.models import Carrier, CarrierShipment
 from tracking.normalize import InvalidTrackingNumber, normalize_tracking_number
 from tracking.sync import register_now, start_tracking
 
-from .models import Booking, BookingAttachment, BookingOrder
+from .models import Booking, BookingAttachment, BookingOrder, BookingProduct
 from .serializers import (
     BookingSerializer,
     MyBookingSerializer,
@@ -102,6 +102,20 @@ class BookingCreateView(generics.CreateAPIView):
             except ValidationError as error:
                 raise ValidationError({"orders": {index: {"screenshot": error.detail}}}) from error
 
+        # And a screenshot per product, as `order_N_product_M_screenshot`.
+        product_shots = {}
+        for index, order in enumerate(orders):
+            for number in range(len(order["products"])):
+                uploaded = request.FILES.get(f"order_{index}_product_{number}_screenshot")
+                if uploaded is None:
+                    continue
+                try:
+                    product_shots[index, number] = (uploaded, validate_attachment(uploaded))
+                except ValidationError as error:
+                    raise ValidationError(
+                        {"orders": {index: {"products": {number: {"screenshot": error.detail}}}}}
+                    ) from error
+
         # Attached when the sender happens to be signed in, so the booking
         # turns up against their account. The form does not require one.
         user = request.user if request.user.is_authenticated else None
@@ -125,6 +139,29 @@ class BookingCreateView(generics.CreateAPIView):
                         original_name=(uploaded.name or "")[:255],
                         content_type=content_type,
                         size_bytes=uploaded.size,
+                    )
+                for number, product in enumerate(order["products"]):
+                    shot = None
+                    if (index, number) in product_shots:
+                        uploaded, content_type = product_shots[index, number]
+                        shot = BookingAttachment.objects.create(
+                            booking=booking,
+                            order=row,
+                            kind=BookingAttachment.Kind.PRODUCT,
+                            file=uploaded,
+                            original_name=(uploaded.name or "")[:255],
+                            content_type=content_type,
+                            size_bytes=uploaded.size,
+                        )
+                    BookingProduct.objects.create(
+                        booking=booking,
+                        order=row,
+                        description=product["description"],
+                        url=product.get("url", ""),
+                        customer_price_eur=product.get("customer_price_eur"),
+                        quantity=product.get("quantity") or 1,
+                        screenshot=shot,
+                        position=number,
                     )
 
         abuse.record("booking")
@@ -189,6 +226,7 @@ class MyBookingListView(generics.ListAPIView):
             .filter(package__isnull=True)
             .prefetch_related(
                 "orders__screenshots",
+                "orders__products__screenshot",
                 "orders__carrier_shipments__carrier",
                 "orders__carrier_shipments__events",
             )
@@ -232,7 +270,7 @@ class MyBookingAttachmentView(APIView):
 
     def delete(self, request, booking_id, attachment_id):
         attachment = self._attachment(request, booking_id, attachment_id)
-        if attachment.kind == BookingAttachment.Kind.SCREENSHOT:
+        if attachment.kind in BookingAttachment.FORM_KINDS:
             raise PermissionDenied("The screenshot sent with the booking cannot be removed.")
         _refuse_if_closed(attachment.booking)
         attachment.file.delete(save=False)
@@ -288,7 +326,8 @@ class MyOrderTrackingView(APIView):
             register_now(shipment)
 
         order = BookingOrder.objects.prefetch_related(
-            "screenshots", "carrier_shipments__carrier", "carrier_shipments__events"
+            "screenshots", "carrier_shipments__carrier", "carrier_shipments__events",
+            "products__screenshot",
         ).get(pk=order.pk)
         return Response(MyOrderSerializer(order).data)
 
@@ -371,7 +410,7 @@ class MyOrderDocumentView(APIView):
             raise ValidationError({"file": "Choose a file to add."})
         content_type = validate_attachment(uploaded)
 
-        documents = order.screenshots.exclude(kind=BookingAttachment.Kind.SCREENSHOT)
+        documents = order.screenshots.exclude(kind__in=BookingAttachment.FORM_KINDS)
         if documents.count() >= BookingAttachment.MAX_DOCUMENTS_PER_ORDER:
             raise ValidationError(
                 {

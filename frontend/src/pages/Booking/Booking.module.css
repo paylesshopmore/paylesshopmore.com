@@ -603,6 +603,30 @@
   outline-offset: 2px;
 }
 
+/* The products under one store: a white card each inside the store card. */
+.productList {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.productCard {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.productTitle {
+  color: var(--navy, #0b2545);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
 /* "Screenshot toevoegen": a <label> for the hidden file input inside it. */
 .screenshotButton {
   /* Keeps the hidden file input (.srOnly, absolute) inside this box. */

@@ -20,9 +20,11 @@
 //   Who can open: everybody
 //   Links to:     / (Home)
 //   Linked from:  the Header and Footer menus, the warehouse Profile page
-//   Backend:      none for the sums (src/calculator/); api/quote.js (the QuoteForm under the result)
+//   Backend:      api/pricing.js (the handling-cost rules; the other sums are
+//                 in src/calculator/), api/quote.js (the QuoteForm under the result)
 
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { getHandlingRules } from '../../api/pricing';
 import { Link } from 'react-router-dom';
 import { calculate, validateInput } from '../../calculator/calculate';
 import { DESTINATIONS, IMPORT_CATEGORIES } from '../../calculator/rates';
@@ -125,6 +127,19 @@ function Choice({ legend, name, options, value, onChange }) {
   );
 }
 
+/** Form values are text ('500'); the calculator needs numbers (500). */
+function toInput(form) {
+  return {
+    ...form,
+    priceInclVat: Number(form.priceInclVat),
+    vatPercent: Number(form.vatPercent),
+    lengthCm: Number(form.lengthCm),
+    widthCm: Number(form.widthCm),
+    heightCm: Number(form.heightCm),
+    weightGrams: Number(form.weightGrams),
+  };
+}
+
 export default function Calculator() {
   const { t } = useLanguage();
   const format = useFormat();
@@ -134,22 +149,53 @@ export default function Calculator() {
   const [values, setValues] = useState(EMPTY);
   // Field -> translation key of its error message, e.g. { lengthCm: '...' }.
   const [errors, setErrors] = useState({});
-  // The last calculation: what was typed (`input`) and what came out.
-  const [result, setResult] = useState(null);
+  // What the shown result was worked out from (the typed numbers), or null
+  // before the first Calculate. The result itself is worked out from this
+  // below, with the latest handling-cost rules.
+  const [input, setInput] = useState(null);
   const [quoteOpen, setQuoteOpen] = useState(false);
   // The result card, so we can scroll to it after calculating.
   const resultRef = useRef(null);
+  // The handling-cost rules, from the server (backend invoicing/
+  // calculation.py). null until they arrive, or when they cannot be fetched:
+  // then the result has no handling line and no total, rather than a guess.
+  const [handlingRules, setHandlingRules] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getHandlingRules()
+      .then((answer) => {
+        if (!cancelled) setHandlingRules(answer?.rules ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Worked out again only when the numbers or the rules change - so the
+  // handling costs follow the price as it is typed, and appear as soon as
+  // the rules arrive.
+  const result = useMemo(
+    () => (input ? { input, output: calculate(input, { handlingRules }) } : null),
+    [input, handlingRules],
+  );
 
   // One handler for every field: the input's `name` says which value to set.
   function handleChange(event) {
     const { name, value } = event.target;
-    setValues((current) => ({ ...current, [name]: value }));
+    const next = { ...values, [name]: value };
+    setValues(next);
+    // Once there is a result it follows the form: change the price and the
+    // handling costs (and everything else) update at once, without pressing
+    // Calculate again. A half-typed form keeps the last good result.
+    if (input && Object.keys(validateInput(next)).length === 0) setInput(toInput(next));
     // The visitor is fixing this field, so stop showing its error.
     setErrors((current) => {
       if (!current[name]) return current;
-      const next = { ...current };
-      delete next[name];
-      return next;
+      const remaining = { ...current };
+      delete remaining[name];
+      return remaining;
     });
   }
 
@@ -160,21 +206,11 @@ export default function Calculator() {
     const found = validateInput(values);
     setErrors(found);
     if (Object.keys(found).length > 0) {
-      setResult(null);
+      setInput(null);
       return;
     }
 
-    // Form values are text ('500'); the calculator needs numbers (500).
-    const input = {
-      ...values,
-      priceInclVat: Number(values.priceInclVat),
-      vatPercent: Number(values.vatPercent),
-      lengthCm: Number(values.lengthCm),
-      widthCm: Number(values.widthCm),
-      heightCm: Number(values.heightCm),
-      weightGrams: Number(values.weightGrams),
-    };
-    setResult({ input, output: calculate(input) });
+    setInput(toInput(values));
     setQuoteOpen(false);
     // On a phone the result is below the form: bring it into view.
     window.requestAnimationFrame?.(() =>

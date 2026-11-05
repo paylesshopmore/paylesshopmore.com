@@ -926,3 +926,80 @@ class RecipientTests(IntakeSheetTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["addresses"], ["kantoor@example.com"])
+
+
+class LabelDataTests(IntakeSheetTestCase):
+    """What a scanned shipping label adds: the carrier's own weights, the
+    units they came in, the shipment details and the text as read."""
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(self.warehouse)
+
+    def patch(self, data):
+        return self.client.patch(self.detail_url, data, format="json")
+
+    def test_a_line_keeps_the_labels_weights_and_units(self):
+        response = self.patch(
+            {
+                "measurements": [
+                    {"quantity": 1, "length_cm": "60", "width_cm": "40", "height_cm": "20",
+                     "weight_kg": "13.4", "volumetric_weight_kg": "9.6",
+                     "chargeable_weight_kg": "13.4", "weight_unit": "g", "dimension_unit": "mm"},
+                ]
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        line = self.sheet.measurements.get()
+        self.assertEqual(str(line.volumetric_weight_kg), "9.60")
+        self.assertEqual(line.weight_unit, "g")
+        self.assertEqual(line.dimension_unit, "mm")
+        totals = response.data["totals"]
+        # 60 x 40 x 20 / 1,000,000 = 0.048 m3.
+        self.assertEqual(totals["volume_m3"], "0.048")
+        # The label's own figures win over the worked-out ones.
+        self.assertEqual(totals["volumetric_weight_kg"], "9.60")
+        self.assertEqual(totals["chargeable_weight_kg"], "13.40")
+
+    def test_a_negative_weight_or_an_unknown_unit_is_refused(self):
+        response = self.patch(
+            {"measurements": [{"quantity": 1, "volumetric_weight_kg": "-1"}]}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        response = self.patch({"measurements": [{"quantity": 1, "weight_unit": "lb"}]})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_shipment_details_take_known_keys_only(self):
+        response = self.patch(
+            {"shipment_details": {"tracking_number": " 8796 3229 7750 ", "ship_date": "03NOV26", "po": ""}}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        response = self.patch(
+            {"shipment_details": {"tracking_number": " 8796 3229 7750 ", "purchase_order": ""}}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.sheet.refresh_from_db()
+        self.assertEqual(self.sheet.shipment_details, {"tracking_number": "8796 3229 7750"})
+
+    def test_the_label_text_is_kept_as_read(self):
+        scan = {"lines": ["ACTWGT: 13.40 KG", "C MELODIE"], "source": "device",
+                "read_at": "2026-11-05T10:00:00Z"}
+        response = self.patch({"label_scans": [scan]})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.sheet.refresh_from_db()
+        self.assertEqual(self.sheet.label_scans, [scan])
+
+        response = self.patch({"label_scans": [{"lines": "not a list"}]})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_a_sheet_can_be_released_before_the_office_chose_the_freight(self):
+        fields = complete_sheet_fields()
+        fields["freight"] = ""
+        for name, value in fields.items():
+            setattr(self.sheet, name, value)
+        self.sheet.save()
+        Measurement.objects.create(
+            sheet=self.sheet, length_cm=10, width_cm=10, height_cm=10, weight_kg=1
+        )
+        self.assertEqual(missing_for_release(self.sheet), [])

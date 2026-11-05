@@ -35,8 +35,10 @@ import {
   INTAKE_FREIGHT,
   INTAKE_PACKAGING,
   INTAKE_STATUSES,
+  assignIntakeFreight,
   createIntakeSheet,
   getIntakeRecipients,
+  getIntakeSheet,
   listIntakeSheets,
   releaseIntakeSheet,
   reopenIntakeSheet,
@@ -45,9 +47,11 @@ import {
 import { useAuth } from '../../auth/useAuth';
 import { setWarehouseEmails } from '../../api/profile';
 import IntakePhotos from './IntakePhotos';
+import { SHIPMENT_DETAILS } from '../../ocr/labelFields';
+import LabelMeasurement from './LabelMeasurement';
 import LabelReader from './LabelReader';
 import Measurements from './Measurements';
-import { isComplete, toLine, toLinePayload, totalsFor } from './measure';
+import { EMPTY_LINE, isComplete, toLine, toLinePayload, totalsFor } from './measure';
 import { useCollection } from './useCollection';
 import { formatDate, formatDateTime } from './format';
 import {
@@ -94,8 +98,12 @@ const EMPTY = {
   packaging: '',
   packaging_other: '',
   dimensions_weight: '',
-  freight: '',
+  // No `freight`: sea or air is the office's to assign (FreightControl
+  // below, its own request), so a save from the floor never sends it.
 };
+
+// How many label readings a sheet keeps (the server allows 20).
+const MAX_SCANS = 20;
 
 /** A sheet from the API, as the form holds it: nulls become empty strings. */
 function toDraft(sheet) {
@@ -107,6 +115,10 @@ function toDraft(sheet) {
   }
 
   draft.measurements = (sheet.measurements ?? []).map(toLine);
+  // What the scanned labels said: the tapped-in details, and every reading
+  // exactly as read.
+  draft.shipment_details = { ...(sheet.shipment_details ?? {}) };
+  draft.label_scans = sheet.label_scans ?? [];
 
   return draft;
 }
@@ -137,7 +149,8 @@ function toPayload(draft) {
 const STEPS = [
   { key: 'shipment', required: ['destination'] },
   { key: 'checks', required: ['packed_well', 'damage_present', 'address_label_present'] },
-  { key: 'goods', required: ['colli_count', 'freight'] },
+  // Not freight: the office assigns it, the floor only sees it.
+  { key: 'goods', required: ['colli_count'] },
   { key: 'measure', required: [] },
   { key: 'send', required: [] },
 ];
@@ -181,6 +194,77 @@ function missingInStep(step, draft, d) {
  */
 function missingFor(draft, d) {
   return STEPS.flatMap((step) => missingInStep(step, draft, d));
+}
+
+/**
+ * Sea or air, at the top of the sheet.
+ *
+ * For the office (the server says so in `can_assign_freight`): a dropdown
+ * that saves at once - also on a released sheet, because the warehouse hands
+ * the goods over and the office decides afterwards how they travel. For the
+ * warehouse: the same answer, read-only, with a picture to recognise it by,
+ * and "Waiting for office assignment" until there is one. The server refuses
+ * a change from a warehouse account whatever this shows.
+ */
+function FreightControl({ sheet, onSaved }) {
+  const d = usePageText('intake');
+  const c = usePageText('common');
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const freight = sheet.freight || '';
+  const icon = freight === 'sea' ? '🚢' : freight === 'air' ? '✈️' : '⏳';
+  const name = freight
+    ? labelFor(c, 'freight', freight, sheet.freight_display)
+    : d('freightNotAssigned');
+
+  if (!sheet.can_assign_freight) {
+    return (
+      <div className={styles.freightStatus} data-freight={freight || 'none'} role="status">
+        <span className={styles.freightIcon} aria-hidden="true">{icon}</span>
+        <span>
+          <span className={styles.intakeLabel}>{d('freightStatus')}</span>{' '}
+          <strong>{name}</strong>
+          {!freight && <span className={styles.freightWaiting}>{d('freightWaiting')}</span>}
+        </span>
+      </div>
+    );
+  }
+
+  async function change(value) {
+    setBusy(true);
+    setMessage('');
+    try {
+      onSaved(await assignIntakeFreight(sheet.id, value));
+      setMessage(d('freightSaved'));
+    } catch (failure) {
+      setMessage(failure?.status === 403 ? d('freightRefused') : d('freightFailed'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={styles.freightStatus} data-freight={freight || 'none'}>
+      <span className={styles.freightIcon} aria-hidden="true">{icon}</span>
+      <label className={styles.freightPick}>
+        <span className={styles.intakeLabel}>{d('field.freight')}</span>
+        <select
+          className={styles.intakeInput}
+          value={freight}
+          disabled={busy}
+          onChange={(event) => change(event.target.value)}
+        >
+          <option value="">{d('freightNotAssigned')}</option>
+          {translatedOptions(INTAKE_FREIGHT, c, 'freight').map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {message && <span className={styles.intakeHint}>{message}</span>}
+    </div>
+  );
 }
 
 /** A labelled box. `wide` spans the grid, for the ones people write in. */
@@ -305,7 +389,64 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
   const saved = toDraft(sheet);
   const dirty =
     Object.keys(EMPTY).some((field) => String(draft[field]) !== String(saved[field])) ||
-    JSON.stringify(draft.measurements) !== JSON.stringify(saved.measurements);
+    ['measurements', 'shipment_details', 'label_scans'].some(
+      (field) => JSON.stringify(draft[field]) !== JSON.stringify(saved[field]),
+    );
+
+  // Which package the Measurement box (and the label reader) fills in.
+  const [measureIndex, setMeasureIndex] = useState(0);
+  // The boxes filled from a label, highlighted until somebody edits them:
+  // "supplier", "m0:weight_kg", "d:tracking_number".
+  const [fromLabel, setFromLabel] = useState(() => new Set());
+
+  function markFromLabel(keys, on = true) {
+    setFromLabel((current) => {
+      const next = new Set(current);
+      for (const key of keys) {
+        if (on) next.add(key);
+        else next.delete(key);
+      }
+      return next;
+    });
+  }
+
+  // The warehouse sees the freight the office assigns without reopening
+  // the sheet: looked up again every 20 seconds and whenever the window
+  // gets focus. Only the freight is taken over - the rest of the sheet is
+  // whatever is being typed here.
+  const sheetRef = useRef(sheet);
+  const onSavedRef = useRef(onSaved);
+  useEffect(() => {
+    sheetRef.current = sheet;
+    onSavedRef.current = onSaved;
+  });
+  useEffect(() => {
+    if (sheet.can_assign_freight) return undefined;
+    let stopped = false;
+    async function check() {
+      try {
+        const fresh = await getIntakeSheet(sheet.id);
+        const current = sheetRef.current;
+        if (!stopped && fresh && fresh.freight !== current.freight) {
+          onSavedRef.current({
+            ...current,
+            freight: fresh.freight,
+            freight_display: fresh.freight_display,
+            totals: fresh.totals,
+          });
+        }
+      } catch {
+        // Tried again on the next tick.
+      }
+    }
+    const timer = window.setInterval(check, 20_000);
+    window.addEventListener('focus', check);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', check);
+    };
+  }, [sheet.id, sheet.can_assign_freight]);
 
   // Once anything is measured, colli and cubic metres are the lines' totals,
   // worked out here as they are typed and again on the server when saved.
@@ -320,7 +461,144 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
   function set(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
     setNote('');
+    // Edited by hand: no longer "from the label".
+    markFromLabel([field], false);
   }
+
+  /** Asks before a label replaces something already in a box. */
+  function confirmReplace(field, current, next) {
+    return window.confirm(d('replaceValue', { field, current, next }));
+  }
+
+  // A tapped label line into Leverancier, Bestemming, Afzender, Ontvanger or
+  // Opmerkingen. Opmerkingen gets it added (once); any other box is
+  // replaced - after asking, when it already says something else.
+  function pickFromLabel(field, text) {
+    if (field === 'notes') {
+      const there = draft.notes.split('\n').some((line) => line.trim() === text.trim());
+      if (!there) {
+        setDraft((current) => ({
+          ...current,
+          notes: current.notes.trim() ? `${current.notes}\n${text}` : text,
+        }));
+      }
+    } else {
+      const current = String(draft[field] ?? '').trim();
+      if (current && current !== text && !confirmReplace(dc(`field.${field}`), current, text)) {
+        return false;
+      }
+      setDraft((now) => ({ ...now, [field]: text }));
+    }
+    markFromLabel([field]);
+    setNote('');
+    return true;
+  }
+
+  // Numbers from a label into the package picked in the Measurement box
+  // ({ weight_kg: '13.4', weight_unit: 'kg' }, or the three sizes).
+  // `auto` (filled in by itself after a scan): only into empty boxes.
+  // By hand: replaces, after asking when a box already holds another number.
+  function measureFromLabel(values, { auto }) {
+    const index = draft.measurements.length ? Math.min(measureIndex, draft.measurements.length - 1) : 0;
+    const line = draft.measurements[index] ?? EMPTY_LINE;
+    const numbers = Object.keys(values).filter((key) => !key.endsWith('_unit'));
+    const taken = numbers.filter(
+      (key) => String(line[key] ?? '').trim() !== '' && Number(line[key]) !== Number(values[key]),
+    );
+    if (taken.length) {
+      if (auto) return false;
+      const current = taken.map((key) => line[key]).join(' × ');
+      const next = taken.map((key) => values[key]).join(' × ');
+      if (!confirmReplace(d('measureSection'), current, next)) return false;
+    }
+    setDraft((now) => {
+      const lines = now.measurements.length ? [...now.measurements] : [{ ...EMPTY_LINE }];
+      lines[index] = { ...lines[index], ...values };
+      return { ...now, measurements: lines };
+    });
+    markFromLabel(numbers.map((key) => `m${index}:${key}`));
+    setNote('');
+    return true;
+  }
+
+  // A courier number or date into Shipment details. Same rules as above.
+  function detailFromLabel(key, value, { auto }) {
+    const current = String(draft.shipment_details[key] ?? '').trim();
+    if (current === value) return true;
+    if (current) {
+      if (auto) return false;
+      if (!confirmReplace(dc(`detail.${key}`), current, value)) return false;
+    }
+    setDraft((now) => ({ ...now, shipment_details: { ...now.shipment_details, [key]: value } }));
+    markFromLabel([`d:${key}`]);
+    setNote('');
+    return true;
+  }
+
+  // "Remove" under the chips: the box it filled is emptied - only when it
+  // still holds what the label put there, so nothing typed since is lost.
+  function unassignFromLabel(assignment) {
+    if (assignment.kind === 'field') {
+      const { field, text } = assignment;
+      setDraft((now) => {
+        if (field === 'notes') {
+          const notes = now.notes.split('\n').filter((line) => line.trim() !== text.trim()).join('\n');
+          return { ...now, notes };
+        }
+        return now[field] === text ? { ...now, [field]: '' } : now;
+      });
+      markFromLabel([field], false);
+    } else if (assignment.kind === 'measure') {
+      const numbers = Object.keys(assignment.values).filter((key) => !key.endsWith('_unit'));
+      setDraft((now) => {
+        const at = now.measurements.findIndex((line) =>
+          numbers.every((key) => Number(line[key]) === Number(assignment.values[key])),
+        );
+        if (at === -1) return now;
+        const lines = [...now.measurements];
+        lines[at] = { ...lines[at], ...Object.fromEntries(numbers.map((key) => [key, ''])) };
+        return { ...now, measurements: lines };
+      });
+    } else if (assignment.kind === 'detail') {
+      setDraft((now) => {
+        if (now.shipment_details[assignment.key] !== assignment.value) return now;
+        const details = { ...now.shipment_details };
+        delete details[assignment.key];
+        return { ...now, shipment_details: details };
+      });
+      markFromLabel([`d:${assignment.key}`], false);
+    }
+    setNote('');
+  }
+
+  // Every label read is kept with the sheet exactly as read.
+  function keepScan({ lines, source }) {
+    const scan = {
+      lines: lines.slice(0, 120).map((line) => line.slice(0, 300)),
+      source,
+      read_at: new Date().toISOString(),
+    };
+    setDraft((now) => ({ ...now, label_scans: [...now.label_scans, scan].slice(-MAX_SCANS) }));
+  }
+
+  function setDetail(key, value) {
+    setDraft((now) => {
+      const details = { ...now.shipment_details, [key]: value };
+      if (!value.trim()) delete details[key];
+      return { ...now, shipment_details: details };
+    });
+    setNote('');
+    markFromLabel([`d:${key}`], false);
+  }
+
+  // The weight_kg / length_cm ... of the package shown in the Measurement
+  // box that came from a label.
+  const assignedMeasure = new Set(
+    [...fromLabel]
+      .filter((key) => key.startsWith(`m${measureIndex}:`))
+      .map((key) => key.slice(key.indexOf(':') + 1)),
+  );
+  const assignedClass = (key) => (fromLabel.has(key) ? ` ${styles.intakeInputAssigned}` : '');
 
   async function save() {
     setBusy('save');
@@ -449,6 +727,8 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
         {sheet.revision > 1 && (
           <StatusBadge tone="attention">{d('version', { number: sheet.revision })}</StatusBadge>
         )}
+        {/* Sea or air: chosen by the office, shown to the warehouse. */}
+        <FreightControl sheet={sheet} onSaved={onSaved} />
         {/* Step by step or the whole form: the worker's choice. */}
         {!locked && (
           <div className={styles.modeSwitch} role="group" aria-label={d('modeLabel')}>
@@ -650,41 +930,37 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
           <LabelReader
             disabled={locked}
             onAiFill={fillFromLabel}
-            onPick={(field, text) => {
-              setDraft((current) => ({
-                ...current,
-                [field]:
-                  field === 'notes' && current.notes.trim() ? `${current.notes}
-${text}` : text,
-              }));
-              setNote('');
-            }}
+            onPick={pickFromLabel}
+            onMeasure={measureFromLabel}
+            onDetail={detailFromLabel}
+            onUnassign={unassignFromLabel}
+            onScanned={keepScan}
           />
           <div className={styles.intakeGrid}>
             <Field label={d('supplier')}>
               <input
-                className={styles.intakeInput}
+                className={styles.intakeInput + assignedClass('supplier')}
                 value={draft.supplier}
                 onChange={(event) => set('supplier', event.target.value)}
               />
             </Field>
             <Field label={d('field.destination')}>
               <input
-                className={styles.intakeInput}
+                className={styles.intakeInput + assignedClass('destination')}
                 value={draft.destination}
                 onChange={(event) => set('destination', event.target.value)}
               />
             </Field>
             <Field label={d('sender')}>
               <input
-                className={styles.intakeInput}
+                className={styles.intakeInput + assignedClass('sender')}
                 value={draft.sender}
                 onChange={(event) => set('sender', event.target.value)}
               />
             </Field>
             <Field label={d('recipient')}>
               <input
-                className={styles.intakeInput}
+                className={styles.intakeInput + assignedClass('recipient')}
                 value={draft.recipient}
                 onChange={(event) => set('recipient', event.target.value)}
               />
@@ -698,6 +974,55 @@ ${text}` : text,
               />
             </Field>
           </div>
+
+          {/* The weights and sizes a label (or a tape measure) gives. The
+              same lines as the Measurements step, one package at a time. */}
+          <p className={styles.intakeSubHead}>{d('measureSection')}</p>
+          <LabelMeasurement
+            lines={draft.measurements}
+            index={Math.min(measureIndex, Math.max(draft.measurements.length - 1, 0))}
+            onIndexChange={setMeasureIndex}
+            onChange={(lines) => {
+              setDraft((current) => ({ ...current, measurements: lines }));
+              setNote('');
+              setFromLabel(
+                (current) => new Set([...current].filter((key) => !key.startsWith(`m${measureIndex}:`))),
+              );
+            }}
+            freight={sheet.freight}
+            assigned={assignedMeasure}
+            disabled={locked}
+          />
+
+          {/* The courier's numbers and dates. */}
+          <p className={styles.intakeSubHead}>{d('detailsSection')}</p>
+          <div className={styles.intakeGrid}>
+            {SHIPMENT_DETAILS.map((key) => (
+              <Field key={key} label={dc(`detail.${key}`)}>
+                <input
+                  className={styles.intakeInput + assignedClass(`d:${key}`)}
+                  value={draft.shipment_details[key] ?? ''}
+                  onChange={(event) => setDetail(key, event.target.value)}
+                />
+              </Field>
+            ))}
+          </div>
+
+          {/* Every label read for this sheet, exactly as read - nothing on
+              a label is lost, tapped in or not. */}
+          {draft.label_scans.length > 0 && (
+            <details className={styles.labelScans}>
+              <summary>{d('labelScans', { count: draft.label_scans.length })}</summary>
+              {draft.label_scans.map((scan, index) => (
+                <div key={`${scan.read_at}-${index}`} className={styles.labelScan}>
+                  <p className={styles.intakeHint}>
+                    {scan.read_at ? formatDateTime(scan.read_at) : ''} · {scan.source === 'ai' ? 'AI' : '📱'}
+                  </p>
+                  <pre className={styles.labelScanText}>{scan.lines.join('\n')}</pre>
+                </div>
+              ))}
+            </details>
+          )}
         </div>
         )}
 
@@ -741,20 +1066,8 @@ ${text}` : text,
                 />
               </Field>
             )}
-            <Field label={d('field.freight')}>
-              <select
-                className={styles.intakeInput}
-                value={draft.freight}
-                onChange={(event) => set('freight', event.target.value)}
-              >
-                <option value="">—</option>
-                {translatedOptions(INTAKE_FREIGHT, c, 'freight').map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {/* Transportwijze is not chosen here: the office assigns it
+                (FreightControl, at the top of the sheet). */}
             {/* The old free-text box, kept for what does not fit a line -
                 and for the sheets written before there were lines. */}
             <Field label={d('extraNotes')} wide>
@@ -779,7 +1092,7 @@ ${text}` : text,
               setDraft((current) => ({ ...current, measurements: lines }));
               setNote('');
             }}
-            freight={draft.freight}
+            freight={sheet.freight}
             declaredWeight={sheet.declared_weight_kg}
             disabled={locked}
           />
@@ -1107,7 +1420,11 @@ export default function Intake() {
                       <div>
                         {row.colli_count ?? '—'} {labelFor(d, 'packaging', row.packaging, row.packaging_display)}
                       </div>
-                      <div className={styles.mutedCell}>{labelFor(c, 'freight', row.freight, row.freight_display)}</div>
+                      <div className={row.freight ? styles.mutedCell : styles.freightWaiting}>
+                        {row.freight
+                          ? labelFor(c, 'freight', row.freight, row.freight_display)
+                          : d('freightWaiting')}
+                      </div>
                       {/* The one thing on a sheet that changes what the
                           office does before they have opened it. */}
                       {row.damage_present === 'yes' && (

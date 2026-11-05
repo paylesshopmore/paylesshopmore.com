@@ -4,19 +4,36 @@
 // store the customer bought from. Each card has
 //   - the store: a dropdown of the webshops on the site (managed in
 //     Dashboard -> Shops), plus "Andere winkel" with a box for its name
-//   - what they bought there (required: it becomes the contents line customs
-//     reads - see backend bookings/views.py)
-//   - a screenshot of the order (optional, one per store)
+//   - the products bought there, one small card each:
+//       what it is (required: together they become the contents line
+//       customs reads - see backend bookings/views.py), the link to it on
+//       the webshop, and a screenshot of it - and "+ Nog een product
+//     toevoegen" for the next one, up to MAX_PRODUCTS. (Price, quantity
+//     and subtotal were asked here too; removed on request.)
+// (There used to be a screenshot of the whole order per store as well;
+// removed on request - each product has its own screenshot instead.)
 // and "+ Nog een winkel toevoegen" adds another card, up to MAX_ORDERS.
+//
+// The link is optional: the office uses it to find exactly what was
+// ordered and check the price on the webshop, but a customer without one
+// can still send the form.
 //
 // Nothing is uploaded here: the rows and their screenshots are kept in the
 // form and sent together with it (src/api/booking.js submitBooking). The
-// rules - what is required, which files are allowed - are in orders.js.
+// rules - what is required, which links and files are allowed - are in
+// orders.js.
 
 import { useEffect, useState } from 'react';
 import { listShops } from '../../api/shops';
 import { fill } from '../../i18n/fill';
-import { MAX_ORDERS, SCREENSHOT, newRow, screenshotProblem } from './orders';
+import {
+  MAX_ORDERS,
+  MAX_PRODUCTS,
+  SCREENSHOT,
+  newProduct,
+  newRow,
+  screenshotProblem,
+} from './orders';
 import styles from './Booking.module.css';
 
 const MEGABYTE = 1024 * 1024;
@@ -29,31 +46,33 @@ function formatSize(bytes, language) {
     : `${number.format(Math.max(1, Math.round(bytes / 1024)))} kB`;
 }
 
-/** The screenshot part of one card: a button, or the chosen file. */
-function Screenshot({ row, index, onFile, t, language }) {
+/**
+ * A screenshot: a button, or the chosen file with a remove button.
+ * `item` is the store row or the product the file belongs to.
+ */
+function Screenshot({ item, inputId, inputLabel, onFile, t, language }) {
   const [problem, setProblem] = useState(null);
-  const inputId = `order-${row.key}-screenshot`;
 
   // A preview of a chosen picture, read into a data: address. (Not
   // URL.createObjectURL: React runs effects twice in development, and the
   // clean-up that released the address left a broken image behind.)
   const [read, setRead] = useState(null);
   useEffect(() => {
-    if (!row.file?.type.startsWith('image/')) return undefined;
+    if (!item.file?.type.startsWith('image/')) return undefined;
     let live = true;
     const reader = new FileReader();
     reader.onload = () => {
-      if (live) setRead({ file: row.file, url: reader.result });
+      if (live) setRead({ file: item.file, url: reader.result });
     };
-    reader.readAsDataURL(row.file);
+    reader.readAsDataURL(item.file);
     return () => {
       live = false;
     };
-  }, [row.file]);
+  }, [item.file]);
   // Only the preview of the file chosen now, never a stale one.
-  const preview = read?.file === row.file ? read.url : null;
+  const preview = read?.file === item.file ? read.url : null;
 
-  if (row.file) {
+  if (item.file) {
     return (
       <div className={styles.attachment}>
         {preview ? (
@@ -64,14 +83,14 @@ function Screenshot({ row, index, onFile, t, language }) {
           </span>
         )}
         <span className={styles.attachmentText}>
-          <span className={styles.attachmentName}>{row.file.name}</span>
-          <span className={styles.attachmentSize}>{formatSize(row.file.size, language)}</span>
+          <span className={styles.attachmentName}>{item.file.name}</span>
+          <span className={styles.attachmentSize}>{formatSize(item.file.size, language)}</span>
         </span>
         <button
           type="button"
           className={styles.attachmentRemove}
           onClick={() => onFile(null)}
-          aria-label={fill(t('booking.orders.removeScreenshot'), { name: row.file.name })}
+          aria-label={fill(t('booking.orders.removeScreenshot'), { name: item.file.name })}
         >
           ×
         </button>
@@ -93,7 +112,7 @@ function Screenshot({ row, index, onFile, t, language }) {
           type="file"
           accept={SCREENSHOT.extensions.join(',')}
           className={styles.srOnly}
-          aria-label={fill(t('booking.orders.screenshotFor'), { number: index + 1 })}
+          aria-label={inputLabel}
           onChange={(event) => {
             const file = event.target.files?.[0];
             // Cleared, so choosing the same file again still counts.
@@ -111,6 +130,79 @@ function Screenshot({ row, index, onFile, t, language }) {
         </span>
       )}
     </>
+  );
+}
+
+/** One product under a store. */
+function Product({ product, index, storeIndex, count, errors, onChange, onRemove, t, language }) {
+  const id = (field) => `product-${product.key}-${field}`;
+  const set = (field) => (event) => onChange({ [field]: event.target.value });
+
+  return (
+    <li className={styles.productCard}>
+      <div className={styles.orderHead}>
+        <span className={styles.productTitle}>
+          {fill(t('booking.orders.product'), { number: index + 1 })}
+        </span>
+        {count > 1 && (
+          <button
+            type="button"
+            className={styles.orderRemove}
+            onClick={onRemove}
+            aria-label={fill(t('booking.orders.removeProductNamed'), { number: index + 1 })}
+          >
+            {t('booking.orders.removeProduct')}
+          </button>
+        )}
+      </div>
+
+      <label className={styles.field} htmlFor={id('description')}>
+        <span className={styles.label}>{t('booking.orders.description')}</span>
+        <input
+          id={id('description')}
+          className={styles.input}
+          value={product.description}
+          maxLength={255}
+          placeholder={t('booking.orders.descriptionPlaceholder')}
+          onChange={set('description')}
+          aria-invalid={Boolean(errors.description)}
+        />
+        {errors.description && <span className={styles.error}>{t(errors.description)}</span>}
+      </label>
+
+      <label className={styles.field} htmlFor={id('url')}>
+        <span className={styles.label}>{t('booking.orders.url')}</span>
+        <input
+          id={id('url')}
+          className={styles.input}
+          type="url"
+          inputMode="url"
+          autoComplete="off"
+          spellCheck={false}
+          value={product.url}
+          maxLength={2000}
+          placeholder={t('booking.orders.urlPlaceholder')}
+          onChange={set('url')}
+          aria-invalid={Boolean(errors.url)}
+        />
+        {errors.url && <span className={styles.error}>{t(errors.url)}</span>}
+      </label>
+
+      <div className={styles.field}>
+        <span className={styles.label}>{t('booking.orders.productScreenshot')}</span>
+        <Screenshot
+          item={product}
+          inputId={id('screenshot')}
+          inputLabel={fill(t('booking.orders.productScreenshotFor'), {
+            product: index + 1,
+            number: storeIndex + 1,
+          })}
+          onFile={(file) => onChange({ file })}
+          t={t}
+          language={language}
+        />
+      </div>
+    </li>
   );
 }
 
@@ -142,6 +234,14 @@ export default function OrdersField({ rows, onChange, errors, serverError, t, la
 
   function update(key, changes) {
     onChange(rows.map((row) => (row.key === key ? { ...row, ...changes } : row)));
+  }
+
+  function updateProduct(row, productKey, changes) {
+    update(row.key, {
+      products: row.products.map((product) =>
+        product.key === productKey ? { ...product, ...changes } : product,
+      ),
+    });
   }
 
   return (
@@ -215,32 +315,36 @@ export default function OrdersField({ rows, onChange, errors, serverError, t, la
                 )}
               </div>
 
-              <label className={styles.field} htmlFor={id('description')}>
-                <span className={styles.label}>{t('booking.orders.description')}</span>
-                <input
-                  id={id('description')}
-                  className={styles.input}
-                  value={row.description}
-                  maxLength={255}
-                  placeholder={t('booking.orders.descriptionPlaceholder')}
-                  onChange={(event) => update(row.key, { description: event.target.value })}
-                  aria-invalid={Boolean(rowErrors.description)}
-                />
-                {rowErrors.description && (
-                  <span className={styles.error}>{t(rowErrors.description)}</span>
-                )}
-              </label>
+              <ol className={styles.productList}>
+                {row.products.map((product, number) => (
+                  <Product
+                    key={product.key}
+                    product={product}
+                    index={number}
+                    storeIndex={index}
+                    count={row.products.length}
+                    errors={rowErrors.products?.[product.key] ?? {}}
+                    onChange={(changes) => updateProduct(row, product.key, changes)}
+                    onRemove={() =>
+                      update(row.key, {
+                        products: row.products.filter((other) => other.key !== product.key),
+                      })
+                    }
+                    t={t}
+                    language={language}
+                  />
+                ))}
+              </ol>
 
-              <div className={styles.field}>
-                <span className={styles.label}>{t('booking.orders.screenshot')}</span>
-                <Screenshot
-                  row={row}
-                  index={index}
-                  onFile={(file) => update(row.key, { file })}
-                  t={t}
-                  language={language}
-                />
-              </div>
+              {row.products.length < MAX_PRODUCTS && (
+                <button
+                  type="button"
+                  className={styles.orderAdd}
+                  onClick={() => update(row.key, { products: [...row.products, newProduct()] })}
+                >
+                  + {t('booking.orders.addProduct')}
+                </button>
+              )}
             </li>
           );
         })}

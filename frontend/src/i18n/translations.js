@@ -612,7 +612,7 @@ export const translations = {
       // "Uw bestellingen" on the booking form (src/pages/Booking/OrdersField.jsx).
       orders: {
         title: 'Uw bestellingen',
-        hint: 'Kies per winkel waar u heeft besteld en wat u daar heeft gekocht. Een screenshot van uw bestelling helpt ons om alles snel te herkennen.',
+        hint: 'Kies per winkel waar u heeft besteld en vul per product in wat het is en de link. Een screenshot van uw bestelling helpt ons om alles snel te herkennen.',
         store: 'Winkel {number}',
         shop: 'Winkel',
         choose: 'Kies een winkel…',
@@ -626,6 +626,14 @@ export const translations = {
         removeScreenshot: '{name} verwijderen',
         removeStore: 'Verwijderen',
         add: 'Nog een winkel toevoegen',
+        product: 'Product {number}',
+        removeProduct: 'Verwijderen',
+        removeProductNamed: 'Product {number} verwijderen',
+        addProduct: 'Nog een product toevoegen',
+        url: 'Link naar het product (optioneel)',
+        urlPlaceholder: 'Plak hier de directe link naar uw product.',
+        productScreenshot: 'Screenshot van dit product (optioneel)',
+        productScreenshotFor: 'Screenshot voor product {product} van winkel {number}',
         wrongType: '{name} kan niet worden toegevoegd: alleen PNG, JPG, WebP of PDF.',
         tooBig: '{name} is groter dan 10 MB.',
         refused: 'Een winkel of screenshot kon niet worden verwerkt. Controleer uw bestellingen en probeer het opnieuw.',
@@ -633,6 +641,7 @@ export const translations = {
           shop: 'Kies een winkel.',
           shopName: 'Vul de naam van de winkel in.',
           description: 'Vul in wat u heeft besteld.',
+          url: 'Plak de volledige link, beginnend met https://',
         },
       },
       value: 'Waarde',
@@ -831,6 +840,8 @@ export const translations = {
       // "Mijn boekingen" (src/pages/Profile/MyBookings.jsx). The field
       // labels in its pop-up come from booking.* above.
       bookings: {
+        handling: 'Handlingkosten',
+        products: { link: 'Productlink', copy: 'Link kopiëren', copied: 'Gekopieerd', price: 'Prijs', quantity: 'Aantal', subtotal: 'Subtotaal', total: 'Subtotaal winkel', noLink: 'Geen link opgegeven' },
         intro: 'De boekingen die u heeft verstuurd terwijl u was ingelogd, de nieuwste bovenaan. Klik op een boeking om alles te zien wat u heeft ingevuld. Zodra wij een boeking bevestigen, vindt u hem onder Mijn zendingen.',
         loading: 'Uw boekingen worden geladen…',
         failed: 'Uw boekingen konden niet worden geladen.',
@@ -3527,7 +3538,7 @@ export const translations = {
       // "Uw bestellingen" on the booking form (src/pages/Booking/OrdersField.jsx).
       orders: {
         title: 'Your orders',
-        hint: 'For each store, choose where you ordered and what you bought there. A screenshot of your order helps us recognise everything quickly.',
+        hint: 'For each store, choose where you ordered, then add each product: what it is and its link. A screenshot of your order helps us recognise everything quickly.',
         store: 'Store {number}',
         shop: 'Store',
         choose: 'Choose a store…',
@@ -3541,6 +3552,14 @@ export const translations = {
         removeScreenshot: 'Remove {name}',
         removeStore: 'Remove',
         add: 'Add another store',
+        product: 'Product {number}',
+        removeProduct: 'Remove',
+        removeProductNamed: 'Remove product {number}',
+        addProduct: 'Add another product',
+        url: 'Product link (optional)',
+        urlPlaceholder: 'Paste the direct link to your product here.',
+        productScreenshot: 'Screenshot of this product (optional)',
+        productScreenshotFor: 'Screenshot for product {product} of store {number}',
         wrongType: '{name} cannot be added: only PNG, JPG, WebP or PDF.',
         tooBig: '{name} is larger than 10 MB.',
         refused: 'A store or screenshot could not be processed. Check your orders and try again.',
@@ -3548,6 +3567,7 @@ export const translations = {
           shop: 'Choose a store.',
           shopName: 'Fill in the name of the store.',
           description: 'Fill in what you ordered.',
+          url: 'Paste the full link, starting with https://',
         },
       },
       value: 'Value',
@@ -3744,6 +3764,8 @@ export const translations = {
       // "Mijn boekingen" (src/pages/Profile/MyBookings.jsx). The field
       // labels in its pop-up come from booking.* above.
       bookings: {
+        handling: 'Handling costs',
+        products: { link: 'Product link', copy: 'Copy link', copied: 'Copied', price: 'Price', quantity: 'Qty', subtotal: 'Subtotal', total: 'Store subtotal', noLink: 'No link given' },
         intro: 'The bookings you sent while logged in, newest first. Click a booking to see everything you filled in. Once we confirm a booking, you will find it under My shipments.',
         loading: 'Loading your bookings…',
         failed: 'Your bookings could not be loaded.',
@@ -6445,6 +6467,14 @@ export const translations = {
         removeScreenshot: 'Kita {name}',
         removeStore: 'Kita',
         add: 'Agregá otro tienda',
+        product: 'Produkto {number}',
+        removeProduct: 'Kita',
+        removeProductNamed: 'Kita produkto {number}',
+        addProduct: 'Agregá un otro produkto',
+        url: 'Link di e produkto (opshonal)',
+        urlPlaceholder: 'Pega e link direkto di bo produkto aki.',
+        productScreenshot: 'Screenshot di e produkto aki (opshonal)',
+        productScreenshotFor: 'Screenshot pa produkto {product} di tienda {number}',
         wrongType: 'No por agregá {name}: solamente PNG, JPG, WebP òf PDF.',
         tooBig: '{name} ta mas grandi ku 10 MB.',
         refused: 'No por a prosesá un tienda òf screenshot. Kontrolá bo òrdunan i purba atrobe.',
@@ -6452,6 +6482,7 @@ export const translations = {
           shop: 'Skohe un tienda.',
           shopName: 'Yena e nòmber di e tienda.',
           description: 'Yena kiko bo a ordená.',
+          url: 'Pega e link kompleto, kuminsando ku https://',
         },
       },
       value: 'Balor',
@@ -6648,6 +6679,8 @@ export const translations = {
       // "Mijn boekingen" (src/pages/Profile/MyBookings.jsx). The field
       // labels in its pop-up come from booking.* above.
       bookings: {
+        handling: 'Kosto di handling',
+        products: { link: 'Link di produkto', copy: 'Kopiá link', copied: 'Kopiá', price: 'Preis', quantity: 'Kantidat', subtotal: 'Subtotal', total: 'Subtotal di tienda', noLink: 'No a duna link' },
         intro: 'E boekingnan ku bo a manda miéntras bo tabata login, e mas nobo ariba. Klek riba un boeking pa mira tur loke bo a yena. Ora nos konfirmá un boeking, bo ta haña e bou di Mi enbionan.',
         loading: 'Bo boekingnan ta kargando…',
         failed: 'No por a karga bo boekingnan.',

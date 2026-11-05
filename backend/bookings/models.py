@@ -12,6 +12,7 @@ import os
 import re
 import uuid
 
+from django.conf import settings
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 from django.utils import timezone
@@ -198,7 +199,7 @@ class Booking(models.Model):
     # their account. Null for anyone booking without an account, which the
     # form allows.
     user = models.ForeignKey(
-        "accounts.User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -352,6 +353,12 @@ class BookingAttachment(models.Model):
         INVOICE = "invoice", "Invoice"
         TRACKING = "tracking", "Track-and-trace"
         OTHER = "other", "Other"
+        # Sent with the booking form for one product (BookingProduct.screenshot).
+        PRODUCT = "product", "Product screenshot"
+
+    # Sent with the booking form: part of what was submitted, so never
+    # removable afterwards, and not one of the store's later documents.
+    FORM_KINDS = (Kind.SCREENSHOT, Kind.PRODUCT)
 
     # The kinds a customer can choose when adding a document later.
     DOCUMENT_KINDS = (
@@ -393,6 +400,130 @@ class BookingAttachment(models.Model):
     @property
     def is_image(self):
         return self.content_type.startswith("image/")
+
+
+def validate_product_url(value):
+    """A product link must be a secure web address: https:// only, with a host,
+    and nothing a browser could run ("javascript:", "data:" ...). Plain
+    http:// is refused too: every webshop serves https, and the office should
+    never be sent to an unencrypted page.
+
+    Checked here rather than with URLValidator alone, because what matters is
+    the scheme: the office clicks these links, so the rule is "only ever a
+    secure web page", whatever else the text looks like."""
+    from urllib.parse import urlsplit
+
+    from django.core.exceptions import ValidationError
+
+    text = value or ""
+    # Spaces, tabs and control characters are how "java\tscript:" sneaks past
+    # a scheme check in some browsers.
+    if any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in text):
+        raise ValidationError("A product link cannot contain spaces.")
+    try:
+        parts = urlsplit(text)
+    except ValueError as error:
+        raise ValidationError("This is not a valid link.") from error
+    if parts.scheme.lower() != "https":
+        raise ValidationError("Only secure links starting with https:// can be added.")
+    if not parts.hostname or "." not in parts.hostname:
+        raise ValidationError("Paste the full link, for example https://www.bol.com/...")
+
+
+class BookingProduct(models.Model):
+    """One product within a store row: what exactly the customer bought, with
+    a link to it on the webshop, the price they paid and how many.
+
+    "Store: bol.com" has one BookingOrder; "white T-shirt, 2 × €19.99" and
+    "black shoes, 1 × €59.99" are two of these under it. The office follows
+    the link to see exactly what was ordered and checks the price.
+
+    The customer's price is never changed: it is what they told us. What the
+    office finds on the webshop goes in `verified_price_eur`, next to it, with
+    a status and the office's own notes - which the customer never sees
+    (MyProductSerializer leaves them out).
+
+    Prices are checked by hand. Webshops do not all allow prices to be read
+    automatically, and a price read wrongly is worse than one not read; an
+    integration for a particular shop can fill verified_price_eur later."""
+
+    # More than this under one store is not a real order.
+    MAX_PER_ORDER = 20
+
+    class Verification(models.TextChoices):
+        NOT_CHECKED = "not_checked", "Not checked"
+        VERIFIED = "verified", "Verified"
+        PRICE_CHANGED = "price_changed", "Price changed"
+        UNAVAILABLE = "unavailable", "Product unavailable"
+
+    # The store row (and through it, the booking - the consignment). CASCADE
+    # with the store: a product means nothing without it.
+    order = models.ForeignKey(BookingOrder, on_delete=models.CASCADE, related_name="products")
+    # Also stored directly, so the office can list one booking's products
+    # without a join through the stores, and so the owner check is one field.
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name="products")
+
+    # What the customer says it is ("White T-shirt, size L").
+    description = models.CharField(max_length=255)
+    url = models.URLField(max_length=2000, blank=True, validators=[validate_product_url])
+    customer_price_eur = models.DecimalField(
+        "price reported by the customer (EUR)",
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
+    # A screenshot of this product, when the customer added one. A private
+    # BookingAttachment like every other customer file: read only through the
+    # checked download routes.
+    screenshot = models.OneToOneField(
+        BookingAttachment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="product",
+    )
+
+    # ---- the office's half -------------------------------------------------
+    verified_price_eur = models.DecimalField(
+        "price on the webshop, checked by the office (EUR)",
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    verification_status = models.CharField(
+        max_length=20, choices=Verification.choices, default=Verification.NOT_CHECKED
+    )
+    # Internal. Never sent to the customer.
+    staff_notes = models.TextField(blank=True)
+    verified_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    position = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+        indexes = [models.Index(fields=["booking", "verification_status"])]
+
+    def __str__(self):
+        return f"{self.order.shop_name}: {self.description}"
+
+    @property
+    def store_name(self):
+        return self.order.shop_name
+
+    @property
+    def customer_subtotal_eur(self):
+        """Price × quantity, as the customer reported it, or None without a price."""
+        if self.customer_price_eur is None:
+            return None
+        return self.customer_price_eur * self.quantity
 
 
 class ShippingNumberSequence(models.Model):

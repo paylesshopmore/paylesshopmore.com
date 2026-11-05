@@ -2,7 +2,7 @@
 
 from django.contrib import admin
 
-from .models import Booking, BookingAttachment, BookingOrder
+from .models import Booking, BookingAttachment, BookingOrder, BookingProduct
 
 
 class BookingOrderInline(admin.TabularInline):
@@ -26,9 +26,23 @@ class BookingAttachmentInline(admin.TabularInline):
     readonly_fields = fields
 
 
+class BookingProductInline(admin.TabularInline):
+    """The products the customer listed. Their half is read-only; the
+    office's price check is done on the dashboard."""
+
+    model = BookingProduct
+    extra = 0
+    can_delete = False
+    fields = (
+        "order", "description", "url", "customer_price_eur", "quantity",
+        "verified_price_eur", "verification_status", "staff_notes",
+    )
+    readonly_fields = ("order", "description", "url", "customer_price_eur", "quantity")
+
+
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    inlines = [BookingOrderInline, BookingAttachmentInline]
+    inlines = [BookingOrderInline, BookingProductInline, BookingAttachmentInline]
     list_display = (
         "shipping_number",
         "sender_name",

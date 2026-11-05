@@ -24,7 +24,7 @@ from django.utils import timezone
 from rest_framework import mixins
 from rest_framework import status as http_status
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
@@ -42,6 +42,7 @@ from .serializers import (
     IntakeSheetSerializer,
     ScannedBookingSerializer,
     ScannedPackageSerializer,
+    can_assign_freight,
     missing_for_release,
 )
 from .services import release_sheet
@@ -62,6 +63,17 @@ class SheetLocked(APIException):
     default_detail = (
         "This intake sheet has been released and can no longer be changed."
     )
+
+
+class FreightRefused(PermissionDenied):
+    """A warehouse account trying to choose sea or air.
+
+    The office decides how goods travel. The warehouse page shows the choice
+    read-only and never sends it; this is what holds when a request is made
+    by hand.
+    """
+
+    default_detail = "Only the office can assign sea or air freight."
 
 
 class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
@@ -184,6 +196,8 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         to still exist.
         """
         user = self.request.user
+        if serializer.validated_data.get("freight") and not can_assign_freight(user):
+            raise FreightRefused()
         # The number is given, not typed (see _number), except by whoever
         # runs the warehouse: an admin or a warehouse manager.
         if not user.can_manage_warehouse:
@@ -279,6 +293,15 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         if serializer.instance.released:
             raise SheetLocked()
 
+        # Sea or air: the office's call. Sending back the value already
+        # stored is not a change (an older page does that on every save); a
+        # different one from a warehouse account is refused, not ignored, so
+        # the caller knows it did not happen.
+        previous_freight = serializer.instance.freight
+        wanted_freight = serializer.validated_data.get("freight", previous_freight)
+        if wanted_freight != previous_freight and not can_assign_freight(self.request.user):
+            raise FreightRefused()
+
         # The shipment number on a sheet is fixed once given, for everybody
         # (admins and warehouse managers included). Sending the same number
         # back, as the form does on every save, is not a change. A sheet with
@@ -297,7 +320,10 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         sheet = serializer.save(**extra)
         # A sheet from before numbering, or one a manager emptied, gets one.
         self._number(sheet)
-        self._share_freight(sheet)
+        if sheet.freight != previous_freight:
+            self._assign_package_freight(sheet)
+        else:
+            self._share_freight(sheet)
         operations.measure_from_intake(sheet, self.request.user)
 
     def _share_freight(self, sheet):
@@ -310,6 +336,44 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         if package is not None and sheet.freight and not package.freight:
             package.freight = sheet.freight
             package.save(update_fields=["freight", "updated_at"])
+
+    def _assign_package_freight(self, sheet):
+        """The office changed the sheet's freight: the package follows.
+
+        Unlike _share_freight this overwrites, because it is the office
+        itself deciding - here rather than on the Packages page.
+        """
+        package = sheet.package
+        if package is not None and package.freight != sheet.freight:
+            package.freight = sheet.freight
+            package.save(update_fields=["freight", "updated_at"])
+
+    @action(detail=True, methods=["post"])
+    def freight(self, request, pk=None):
+        """POST {"freight": "sea" | "air" | ""}: the office assigns sea or air.
+
+        Its own action rather than part of the sheet's PATCH, for two reasons.
+        It is allowed on a released sheet too - the warehouse hands the goods
+        over, and the office decides afterwards how they travel - while every
+        other box is locked by then. And it is the one change on a sheet that
+        only the office may make: 403 for anybody else, whatever the page
+        shows.
+        """
+        if not can_assign_freight(request.user):
+            raise FreightRefused()
+        sheet = self.get_object()
+        value = request.data.get("freight", "")
+        if value is None:
+            value = ""
+        if value not in ("", *IntakeSheet.Freight.values):
+            raise ValidationError({"freight": ["Choose sea, air, or nothing."]})
+
+        if value != sheet.freight:
+            with transaction.atomic():
+                sheet.freight = value
+                sheet.save(update_fields=["freight", "updated_at"])
+                self._assign_package_freight(sheet)
+        return Response(self.get_serializer(sheet).data)
 
     @action(detail=True, methods=["post"])
     def release(self, request, pk=None):

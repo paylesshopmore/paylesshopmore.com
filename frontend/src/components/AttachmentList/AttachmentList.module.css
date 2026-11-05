@@ -177,3 +177,96 @@
 .orderShot .tile {
   min-width: 0;
 }
+
+/* ---- ProductList: the products under one store ---- */
+
+.products {
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.productRows {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.productRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem 1rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.productMain {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.productName {
+  color: #0f172a;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.productLink {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.6rem;
+  font-size: 0.88rem;
+}
+
+.productCopy {
+  min-height: 2.25rem;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #075985;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.productCopy:hover {
+  background: #f0f9ff;
+}
+
+.productMuted {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.productFigures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 1rem;
+  color: #334155;
+  font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The office's price check, the whole width under the product. */
+.productExtra {
+  flex-basis: 100%;
+}
+
+.productTotal {
+  margin: 0;
+  text-align: right;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}

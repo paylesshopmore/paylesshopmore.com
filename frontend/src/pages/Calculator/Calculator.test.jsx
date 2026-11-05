@@ -8,6 +8,17 @@ import { calculate } from '../../calculator/calculate';
 import { renderWithProviders } from '../../test/utils';
 import Calculator from './Calculator';
 
+// The handling-cost rules as the server gives them (backend invoicing/
+// calculation.py HANDLING_FEE_RULES).
+vi.mock('../../api/pricing', () => ({
+  getHandlingRules: vi.fn().mockResolvedValue({
+    rules: [
+      { up_to_eur: '500.00', fee_eur: '50.00', suppliers_included: null },
+      { up_to_eur: null, fee_eur: '150.00', suppliers_included: 2 },
+    ],
+  }),
+}));
+
 vi.mock('../../calculator/calculate', async (importOriginal) => {
   const actual = await importOriginal();
   return { ...actual, calculate: vi.fn(actual.calculate) };
@@ -77,7 +88,8 @@ describe('the shipping calculator', () => {
     expect(screen.getByText('Administration fee')).toBeInTheDocument();
     expect(screen.getByText('Documentation fee')).toBeInTheDocument();
     expect(screen.getByText('Handling fee')).toBeInTheDocument();
-    expect(screen.getByText('€150.00')).toBeInTheDocument();
+    // EUR 500 is still the lower rate.
+    expect(screen.getByText('€50.00')).toBeInTheDocument();
     expect(screen.getByText(/Not every charge for this destination is known yet/)).toBeInTheDocument();
     expect(screen.queryByText('Total (indication)')).toBeNull();
 
@@ -91,7 +103,7 @@ describe('the shipping calculator', () => {
     expect(message.value).toContain('Transport method: Sea freight');
     expect(message.value).toContain('Dutch VAT (21%): €86.78');
     expect(message.value).toContain('Freight (Sea freight): €48.60');
-    expect(message.value).toContain('Handling fee: €150.00');
+    expect(message.value).toContain('Handling fee: €50.00');
     expect(message.value).toContain('Import duty (13%): €53.72');
   });
 
@@ -126,5 +138,25 @@ describe('the shipping calculator', () => {
     expect(screen.getByText('Handling fee')).toBeInTheDocument();
     expect(screen.getByText('€308.26')).toBeInTheDocument();
     expect(screen.queryByText(/We do not calculate the price/)).toBeNull();
+  });
+
+  it('updates the handling costs as soon as the price changes', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Calculator />, { route: '/calculator' });
+    await fillForm(user);
+    await user.click(screen.getByRole('button', { name: 'Calculate' }));
+
+    const handling = () => screen.getByText('Handling fee').closest('div').querySelector('dd');
+    expect(handling()).toHaveTextContent('€50.00');
+
+    // No second press of Calculate: the result follows the form.
+    const price = screen.getByLabelText('Price incl. VAT in euros');
+    await user.clear(price);
+    await user.type(price, '501');
+    expect(handling()).toHaveTextContent('€150.00');
+
+    await user.clear(price);
+    await user.type(price, '250');
+    expect(handling()).toHaveTextContent('€50.00');
   });
 });

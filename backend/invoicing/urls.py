@@ -4,9 +4,10 @@ Only the customer-facing half lives here. The review queue is part of the back
 office and is routed by staff/urls.py, under /api/staff/, behind IsStaff.
 """
 
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from . import views
+from . import pricing_views, views
 
 router = DefaultRouter()
 # basename, because get_queryset is overridden and there is no .queryset for
@@ -14,4 +15,8 @@ router = DefaultRouter()
 # reverses: invoice-list, invoice-detail and invoice-pdf.
 router.register("invoices", views.InvoiceViewSet, basename="invoice")
 
-urlpatterns = router.urls
+urlpatterns = [
+    # The handling-cost rules, for the shipping calculator (public).
+    path("pricing/handling/", pricing_views.HandlingFeeView.as_view(), name="pricing-handling"),
+    *router.urls,
+]

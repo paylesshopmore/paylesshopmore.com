@@ -25,8 +25,21 @@ const BUNDLED_TILE = new Map(
   SHOPS.map((shop) => [shop.name.toLowerCase(), shop.tile ?? false]),
 );
 
+/**
+ * The shops A to Z by name, ignoring case and accents, so "bol.com" and
+ * "Bol.com" sort the same and a new shop always lands in its place in the
+ * alphabet, wherever it was added or dragged to in the dashboard.
+ *
+ * A copy: the list it is given is left as it was.
+ */
+export function sortByName(shops) {
+  return [...shops].sort((a, b) =>
+    String(a.name ?? '').localeCompare(String(b.name ?? ''), 'nl', { sensitivity: 'base' }),
+  );
+}
+
 /** The bundled list, in the shape the API returns, for use before it answers. */
-const BUNDLED_SHOPS = SHOPS.map((shop, index) => ({
+const BUNDLED_SHOPS = sortByName(SHOPS).map((shop, index) => ({
   id: `bundled-${index}`,
   name: shop.name,
   url: shop.href,
@@ -70,7 +83,7 @@ export function useShops() {
         // An empty table is not an answer worth showing. It means the office
         // has emptied it or the seed never ran, and either way the bundled
         // list is better than nothing on a public page.
-        if (rows.length > 0) setShops(rows.map(withLogo));
+        if (rows.length > 0) setShops(sortByName(rows).map(withLogo));
       })
       // Left on the bundled list. The services page is not worth an error
       // banner over: the visitor still sees shops, which is the point of it.

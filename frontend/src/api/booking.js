@@ -54,13 +54,16 @@ export const VEHICLES = [
  * the screenshot for store N as `order_N_screenshot` - so the booking and
  * its screenshots are saved together or not at all.
  *
+ * A product's own screenshot goes as `order_N_product_M_screenshot`.
+ *
  * @param {object} booking the sender's half of the form
- * @param {object[]} orders [{shop, shop_name?, description}], one per store
+ * @param {object[]} orders [{shop, shop_name?, description, products}], one per store
  * @param {(File|null)[]} [screenshots] per store, in the same order
+ * @param {(File|null)[][]} [productScreenshots] per store, per product
  * @returns {Promise<{id: number, created_at: string}>} the reference only
  */
-export async function submitBooking(booking, orders, screenshots = []) {
-  if (!screenshots.some(Boolean)) {
+export async function submitBooking(booking, orders, screenshots = [], productScreenshots = []) {
+  if (!screenshots.some(Boolean) && !productScreenshots.flat().some(Boolean)) {
     return request('/bookings/', { method: 'POST', body: { ...booking, orders } });
   }
 
@@ -74,6 +77,11 @@ export async function submitBooking(booking, orders, screenshots = []) {
   formData.append('orders', JSON.stringify(orders));
   screenshots.forEach((file, index) => {
     if (file) formData.append(`order_${index}_screenshot`, file);
+  });
+  productScreenshots.forEach((files, index) => {
+    (files ?? []).forEach((file, number) => {
+      if (file) formData.append(`order_${index}_product_${number}_screenshot`, file);
+    });
   });
 
   return request('/bookings/', { method: 'POST', formData });

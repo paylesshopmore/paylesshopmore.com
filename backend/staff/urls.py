@@ -21,6 +21,10 @@ router.register("messages", views.ContactMessageViewSet, basename="staff-message
 router.register("document-jobs", DocumentJobViewSet, basename="staff-document-job")
 router.register("packages", views.PackageViewSet, basename="staff-package")
 router.register("bookings", views.BookingViewSet, basename="staff-booking")
+# The products on the bookings, with the office's price check.
+router.register(
+    "booking-products", views.BookingProductViewSet, basename="staff-booking-product"
+)
 router.register("invoices", views.InvoiceViewSet, basename="staff-invoice")
 # The invoice settings page's lists. Read by all staff, changed by admins.
 router.register("invoice-ports", invoice_config.PortViewSet, basename="staff-invoice-port")

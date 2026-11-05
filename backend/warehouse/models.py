@@ -189,7 +189,30 @@ class IntakeSheet(models.Model):
         blank=True, help_text="Afmetingen & gewicht, as written."
     )
 
+    # Sea or air. Decided by the office, never by the floor: the API refuses a
+    # change from a warehouse account (IntakeSheetViewSet.perform_update), and
+    # the warehouse sees it read-only ("Waiting for office assignment" while it
+    # is blank). Blank is allowed for as long as the office has not decided.
     freight = models.CharField(max_length=10, choices=Freight.choices, blank=True)
+
+    # ------------------------------------------------------------------
+    # What the scanned shipping label said
+    # ------------------------------------------------------------------
+
+    # The courier's own numbers and dates, tapped across from a scanned label
+    # (LabelReader.jsx): {"tracking_number": "8796 3229 7750", "ship_date":
+    # "03NOV26", ...}. One JSON object rather than a column each, because which
+    # of them a label carries differs per courier and none of them is something
+    # the system calculates with - they are there to be read and searched.
+    # Only the keys in SHIPMENT_DETAIL_KEYS are accepted (serializers.py).
+    shipment_details = models.JSONField(default=dict, blank=True)
+
+    # Every label read for this sheet, exactly as the reader returned it
+    # (before it was split into chips): [{"lines": [...], "source": "ai" or
+    # "device", "read_at": "..."}]. Kept so nothing on a label is lost even
+    # when nobody tapped it into a box, and so a wrong box can be checked
+    # against what was really printed.
+    label_scans = models.JSONField(default=list, blank=True)
 
     # Naam werknemer - the person who signs the sheet off.
     #
@@ -448,6 +471,41 @@ class Measurement(models.Model):
         max_digits=8, decimal_places=2, null=True, blank=True,
         validators=[MinValueValidator(0)],
     )
+    # What the carrier's label states, when it states it. Blank means: work
+    # it out (the volume weight from the sizes and the freight, the
+    # chargeable weight as the higher of the two). Per item, like weight_kg,
+    # and never confused with it: weight_kg is what the scale (or the label's
+    # ACTWGT) says the goods weigh.
+    volumetric_weight_kg = models.DecimalField(
+        "volume weight per item (kg)",
+        max_digits=8, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    chargeable_weight_kg = models.DecimalField(
+        "chargeable weight per item (kg)",
+        max_digits=8, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+    )
+
+    # The numbers above are ALWAYS stored in kg and cm. These say which unit
+    # they were read or typed in ("13400 G" is stored as 13.40 kg with
+    # weight_unit "g"), so a figure that looks wrong can be traced back to
+    # the label.
+    class WeightUnit(models.TextChoices):
+        KG = "kg", "kg"
+        G = "g", "g"
+
+    class DimensionUnit(models.TextChoices):
+        CM = "cm", "cm"
+        MM = "mm", "mm"
+        M = "m", "m"
+
+    weight_unit = models.CharField(
+        max_length=2, choices=WeightUnit.choices, default=WeightUnit.KG
+    )
+    dimension_unit = models.CharField(
+        max_length=2, choices=DimensionUnit.choices, default=DimensionUnit.CM
+    )
     note = models.CharField(max_length=255, blank=True)
 
     class Meta:
@@ -473,12 +531,16 @@ class Measurement(models.Model):
             return None
         return self.quantity * self.weight_kg
 
-    def volumetric_weight_kg(self, freight):
+    def volumetric_weight_for(self, freight):
         """The line's volume weight for this freight ("sea" or "air").
 
-        None until the line is measured, or when the freight is not one we
-        have a divisor for (not chosen yet).
+        The label's own figure when one was entered (times the quantity),
+        otherwise worked out from the sizes. None until the line is measured,
+        or when there is no stated figure and the freight is not one we have
+        a divisor for (not chosen yet).
         """
+        if self.volumetric_weight_kg is not None:
+            return self.quantity * self.volumetric_weight_kg
         divisor = VOLUMETRIC_DIVISORS.get(freight)
         if divisor is None or None in (self.length_cm, self.width_cm, self.height_cm):
             return None
@@ -512,12 +574,22 @@ def measurement_totals(measurements, freight=""):
     volume = sum((line.volume_m3 for line in lines), Decimal(0))
     weight = sum((line.total_weight_kg for line in lines), Decimal(0))
 
-    if freight not in VOLUMETRIC_DIVISORS:
-        volumetric = chargeable = None
+    # Per line: the label's stated volume weight, else the one the freight
+    # gives. Unknown for one line means unknown for the total.
+    per_line = [line.volumetric_weight_for(freight) for line in lines]
+    if None in per_line:
+        volumetric = None
     else:
-        volumetric = sum(
-            (line.volumetric_weight_kg(freight) for line in lines), Decimal(0)
+        volumetric = sum(per_line, Decimal(0)).quantize(Decimal("0.01"))
+
+    if all(line.chargeable_weight_kg is not None for line in lines):
+        # Every line carries the carrier's own chargeable figure: use it.
+        chargeable = sum(
+            (line.quantity * line.chargeable_weight_kg for line in lines), Decimal(0)
         ).quantize(Decimal("0.01"))
+    elif volumetric is None:
+        chargeable = None
+    else:
         chargeable = max(weight, volumetric).quantize(Decimal("0.01"))
 
     return {

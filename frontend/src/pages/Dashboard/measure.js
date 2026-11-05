@@ -12,6 +12,13 @@ export const EMPTY_LINE = {
   width_cm: '',
   height_cm: '',
   weight_kg: '',
+  // What the carrier's label states, when it does (blank: worked out).
+  volumetric_weight_kg: '',
+  chargeable_weight_kg: '',
+  // The unit the weight and sizes were read or typed in. The numbers above
+  // are always kg and cm; these only say where they came from.
+  weight_unit: 'kg',
+  dimension_unit: 'cm',
   note: '',
 };
 
@@ -19,7 +26,8 @@ export const EMPTY_LINE = {
 export function toLine(line) {
   const draft = { ...EMPTY_LINE };
   for (const field of Object.keys(EMPTY_LINE)) {
-    draft[field] = line[field] === null || line[field] === undefined ? '' : String(line[field]);
+    if (line[field] !== null && line[field] !== undefined) draft[field] = String(line[field]);
+    else if (!field.endsWith('_unit')) draft[field] = '';
   }
   return draft;
 }
@@ -35,6 +43,10 @@ export function toLinePayload(line) {
     width_cm: blankToNull(line.width_cm),
     height_cm: blankToNull(line.height_cm),
     weight_kg: blankToNull(line.weight_kg),
+    volumetric_weight_kg: blankToNull(line.volumetric_weight_kg ?? ''),
+    chargeable_weight_kg: blankToNull(line.chargeable_weight_kg ?? ''),
+    weight_unit: line.weight_unit || 'kg',
+    dimension_unit: line.dimension_unit || 'cm',
     note: line.note,
   };
 }
@@ -81,6 +93,8 @@ export function totalsFor(lines, transportType = null) {
   let volume = 0;
   let weight = 0;
   let volumetric = 0;
+  // Stays true while every line has a volume weight, stated or worked out.
+  let volumetricKnown = true;
 
   // Every figure is PER ITEM, so each one is multiplied by the line's
   // Aantal: 3 cartons of 10 kg is 30 kg.
@@ -89,8 +103,12 @@ export function totalsFor(lines, transportType = null) {
     const cm3 = number(line.length_cm) * number(line.width_cm) * number(line.height_cm);
     volume += (quantity * cm3) / 1_000_000; // cm³ -> m³
     weight += quantity * number(line.weight_kg);
-    if (transportType) volumetric += (quantity * cm3) / TRANSPORT_TYPES[transportType].cm3PerKg;
+    // The label's own volume weight wins over the worked-out one.
+    const stated = number(line.volumetric_weight_kg ?? '');
+    if (stated !== null) volumetric += quantity * stated;
+    else if (transportType) volumetric += (quantity * cm3) / TRANSPORT_TYPES[transportType].cm3PerKg;
+    else volumetricKnown = false;
   }
 
-  return { colli, volume, weight, volumetric: transportType ? volumetric : null };
+  return { colli, volume, weight, volumetric: volumetricKnown ? volumetric : null };
 }

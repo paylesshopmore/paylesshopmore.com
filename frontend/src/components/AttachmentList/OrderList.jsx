@@ -28,6 +28,7 @@ function isWebLink(value) {
   }
 }
 import AttachmentList from './AttachmentList';
+import ProductList from './ProductList';
 import styles from './AttachmentList.module.css';
 
 /**
@@ -44,6 +45,10 @@ import styles from './AttachmentList.module.css';
  * @param {string} [props.trackingLabel] what to call the track-and-trace line
  * @param {(order: object) => void} [props.onRemoveTracking] shows a remove
  *   button on it when given
+ * @param {object} [props.productLabels] the words for the products (ProductList)
+ * @param {string} [props.language] for the euro amounts
+ * @param {(product: object, order: object) => import('react').ReactNode} [props.renderProductExtra]
+ *   anything to show under a product - the office's price check
  */
 export default function OrderList({
   orders,
@@ -54,6 +59,9 @@ export default function OrderList({
   renderOrderExtra,
   trackingLabel = 'Track-and-trace',
   onRemoveTracking,
+  productLabels,
+  language,
+  renderProductExtra,
 }) {
   if (!orders?.length) return null;
 
@@ -72,6 +80,15 @@ export default function OrderList({
               </span>
             )}
           </div>
+
+          {/* The products one by one, with their links and prices. */}
+          <ProductList
+            order={order}
+            labels={productLabels}
+            language={language}
+            openLabel={openLabel}
+            renderExtra={renderProductExtra}
+          />
 
           {(order.documents?.length > 0 || order.tracking_code) && (
             <ul className={styles.docs}>

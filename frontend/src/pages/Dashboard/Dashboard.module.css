@@ -2589,6 +2589,262 @@
   gap: 0.45rem;
 }
 
+/* The target buttons are thumb-sized on an iPad. */
+.labelTargets .intakeRelease {
+  min-height: 2.9rem;
+}
+
+/* "Not assigned yet: 12 of 40". */
+.labelCount {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+/* Put into a box already. */
+.labelLineTick {
+  color: #15803d;
+  font-weight: 800;
+}
+
+/* What a chip was recognised as: "Actual weight", "Tracking number". */
+.labelLineTag {
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: var(--cyan-text);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* The second row: which Measurement or Shipment details box. */
+.labelSubTargets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.6rem;
+  border: 1px dashed var(--cyan);
+  border-radius: 12px;
+  background: #f0f9ff;
+}
+
+.labelSubTarget {
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--cyan);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.labelSubTarget:hover {
+  background: #e0f2fe;
+}
+
+/* What went where, each with Remove. */
+.labelAssigned {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--ground);
+}
+
+.labelAssigned > .intakeLabel {
+  margin: 0 0 0.4rem;
+}
+
+.labelAssignedList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.labelAssignedRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.labelAssignedText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.labelAssignedRemove {
+  min-height: 2.25rem;
+  margin-left: auto;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #b91c1c;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* A box filled from a label: green until somebody edits it. */
+.intakeInputAssigned {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+/* A smaller eyebrow inside a section: Measurement, Shipment details. */
+.intakeSubHead {
+  margin: 1.4rem 0 0.6rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+
+/* The Measurement box (LabelMeasurement.jsx). */
+.labelMeasure {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.labelMeasurePackages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.labelMeasureHead {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.labelMeasureGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.8rem;
+}
+
+.measureBig {
+  composes: intakeInput;
+  min-height: 3rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.measureBig[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.measureBoxHint {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.labelMeasureVolume {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0 0.7rem;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: var(--ground);
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--navy);
+}
+
+/* Every label read for the sheet, as read. */
+.labelScans {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.labelScans summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.labelScan {
+  margin-top: 0.5rem;
+}
+
+.labelScanText {
+  margin: 0.25rem 0 0;
+  padding: 0.6rem;
+  max-height: 14rem;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--ground);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Sea or air at the top of the sheet: a dropdown for the office, a plain
+   label with a picture for the warehouse. */
+.freightStatus {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.85rem;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.freightStatus[data-freight='sea'] {
+  border-color: #0ea5e9;
+  background: #f0f9ff;
+}
+
+.freightStatus[data-freight='air'] {
+  border-color: #8b5cf6;
+  background: #f5f3ff;
+}
+
+.freightStatus[data-freight='none'] {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.freightIcon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.freightPick {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 11rem;
+}
+
+.freightWaiting {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #b45309;
+}
+
 /* The live camera on the intake sheet: the picture, then its buttons. */
 .intakeCamera {
   display: flex;
@@ -4847,4 +5103,94 @@ button.bkAction:disabled {
   margin-bottom: 0.2rem;
   font-weight: 600;
   color: var(--ink);
+}
+
+/* The office's price check under a booking's product (ProductCheck.jsx).
+   The left edge says the status at a glance. */
+.productCheck {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid #94a3b8;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.productCheck[data-tone='good'] {
+  border-left-color: #16a34a;
+}
+
+.productCheck[data-tone='warn'] {
+  border-left-color: #f59e0b;
+}
+
+.productCheck[data-tone='bad'] {
+  border-left-color: #dc2626;
+}
+
+.productCheckGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.6rem 0.9rem;
+}
+
+.productCheckField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.productCheckWide {
+  grid-column: 1 / -1;
+}
+
+.productCheckLabel {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.productCheckInput {
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0.5rem 0.65rem;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+.productCheckInput:focus {
+  outline: 2px solid var(--cyan);
+  outline-offset: 1px;
+}
+
+.productCheckInput[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.productCheckBad {
+  font-size: 0.78rem;
+  color: #b91c1c;
+}
+
+.productCheckActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.productCheckActions .rowButton {
+  min-height: 2.5rem;
+}
+
+.productCheckHint {
+  font-size: 0.8rem;
+  color: var(--muted);
 }

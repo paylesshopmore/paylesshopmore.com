@@ -33,10 +33,14 @@ export const RATES = {
     // Fixed amounts per shipment, on top of the freight. The same for sea and
     // air. Each key needs a label in the translations:
     // calculator.result.fees.<key>.
+    //
+    // Handling is NOT here: it depends on the purchase value (EUR 50 up to
+    // EUR 500, EUR 150 above) and lives on the server, in backend
+    // invoicing/calculation.py HANDLING_FEE_RULES. The calculator page asks
+    // for those rules (api/pricing.js) and passes them to calculate().
     fees: {
       administration: 25, // administratiekosten
       documentation: 30, // documentatiekosten
-      handling: 150, // handling fee
     },
     // The island's tax on imports, charged on goods value + freight + import
     // duty. (Curaçao: omzetbelasting / OB.)
