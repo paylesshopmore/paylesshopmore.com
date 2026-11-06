@@ -52,7 +52,13 @@ import {
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import { TutorialContext } from './context';
-import { isTutorialDone, markTutorialDone } from './storage';
+import {
+  clearProgress,
+  isTutorialDone,
+  markTutorialDone,
+  readProgress,
+  saveProgress,
+} from './storage';
 import { GENERAL_TOUR, stepsOf, tourForPath } from './tutorialSteps';
 
 const TutorialModal = lazy(() => import('./TutorialModal'));
@@ -68,6 +74,19 @@ const NO_AUTO_OPEN = [
 
 // Milliseconds after the page loads before the tour opens by itself.
 const AUTO_OPEN_DELAY = 1200;
+
+/**
+ * The tour that was open in this tab before a refresh (storage.js), checked
+ * against the tours that exist now: a step number past the end of its tour
+ * (the tour was shortened in an update) is moved back to the last step.
+ * null when there is nothing to resume.
+ */
+function resumable() {
+  const saved = readProgress();
+  if (!saved) return null;
+  const count = stepsOf(saved.tourId).length;
+  return { tourId: saved.tourId, stepIndex: Math.min(saved.stepIndex, count - 1) };
+}
 
 /**
  * Renders nothing if the tour crashes, instead of taking the page down.
@@ -99,10 +118,14 @@ export default function TutorialProvider({ enabled = true, children }) {
   const { pathname } = useLocation();
   const { isAuthenticated, isChecking } = useAuth();
 
-  const [isOpen, setIsOpen] = useState(false);
+  // A tour that was open before a page refresh (or a sign-in / sign-out that
+  // reloaded the page) opens again on the same step. Read once, on the
+  // first render; useState's function form makes sure of that.
+  const [resumed] = useState(resumable);
+  const [isOpen, setIsOpen] = useState(Boolean(resumed));
   // Which tour is showing: GENERAL_TOUR or a page tour's id.
-  const [tourId, setTourId] = useState(GENERAL_TOUR);
-  const [stepIndex, setStepIndex] = useState(0);
+  const [tourId, setTourId] = useState(resumed?.tourId ?? GENERAL_TOUR);
+  const [stepIndex, setStepIndex] = useState(resumed?.stepIndex ?? 0);
   const steps = stepsOf(tourId);
   // The tour of the page being looked at, for "Tour this page".
   const pageTourId = tourForPath(pathname);
@@ -114,7 +137,9 @@ export default function TutorialProvider({ enabled = true, children }) {
   // the browser could not save the "seen" flag (private windows, blocked
   // site data). Without this, the auto-open below would fire again every
   // time a tour closed, and the tour could never be got rid of.
-  const openedThisVisit = useRef(false);
+  // A resumed tour counts as opened, so the auto-open below does not
+  // start a second one on top of it.
+  const openedThisVisit = useRef(Boolean(resumed));
 
   /**
    * Open a tour, at its start or at the step with this id.
@@ -145,8 +170,20 @@ export default function TutorialProvider({ enabled = true, children }) {
   // request, so there is nothing to remember.
   const close = useCallback(() => {
     if (tourId === GENERAL_TOUR) markTutorialDone();
+    clearProgress();
     setIsOpen(false);
   }, [tourId]);
+
+  // While a tour is open, remember where it is (storage.js), so a refresh,
+  // a sign-in or a sign-out picks it up on the same step.
+  //
+  // Note what is NOT here: the language. Switching language only changes
+  // the words (LanguageContext); tourId and stepIndex live in this
+  // component's state, which a language change does not touch. So the tour
+  // stays on the same step, just translated.
+  useEffect(() => {
+    if (isOpen) saveProgress(tourId, stepIndex);
+  }, [isOpen, tourId, stepIndex]);
 
   const next = useCallback(() => {
     setStepIndex((current) => Math.min(current + 1, steps.length - 1));

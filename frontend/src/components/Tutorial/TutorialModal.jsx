@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../i18n/useLanguage';
+import TutorialLanguage from './TutorialLanguage';
 import TutorialProgress from './TutorialProgress';
 import TutorialSpotlight from './TutorialSpotlight';
 import TutorialStep from './TutorialStep';
@@ -272,6 +273,9 @@ export default function TutorialModal() {
         <div ref={contentRef}>
           <div className={styles.cardHead}>
             <TutorialProgress current={stepIndex + 1} total={steps.length} />
+            {/* Change language without leaving the tour (TutorialLanguage.jsx).
+                Shown on every step, the welcome step included. */}
+            <TutorialLanguage />
             <button
               type="button"
               className={styles.close}

@@ -24,6 +24,9 @@ beforeEach(() => {
   // whatever languages jsdom claims the browser prefers.
   window.localStorage.clear();
   window.localStorage.setItem('plsm.language', 'en');
+  // The tour remembers a tour in progress here (Tutorial/storage.js). Left
+  // over from one test, it would reopen the tour in the next.
+  window.sessionStorage.clear();
 });
 
 afterEach(() => {

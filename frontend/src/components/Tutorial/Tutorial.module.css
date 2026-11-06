@@ -196,6 +196,87 @@
   flex: 1;
 }
 
+/* ---- Language picker in the card head (TutorialLanguage.jsx) ---------- */
+
+/* One small pill per language, side by side, between the step counter and
+   the ×. */
+.language {
+  flex: none;
+  display: flex;
+  gap: 0.25rem;
+  margin-top: -0.2rem;
+  padding: 0.2rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+}
+
+.languageOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  /* 32px high: comfortable for a finger on a tablet, small enough for the
+     card's top row. */
+  min-height: 32px;
+  padding: 0 0.55rem 0 0.3rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #475569;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.languageOption:hover {
+  background: #eef2f7;
+  color: #0b2545;
+}
+
+/* The language being read: filled, so it is clear which one is on. */
+.languageActive,
+.languageActive:hover {
+  background: #0b2545;
+  color: #ffffff;
+}
+
+.languageOption:focus-visible {
+  outline: 3px solid #29abe2;
+  outline-offset: 2px;
+}
+
+.languageFlag {
+  display: flex;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 50%;
+  /* A hairline edge, so the white in a flag does not melt into the pill. */
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+
+.languageFlag svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Narrow phones: only the flags, so the step counter keeps its room. The
+   language names stay readable for screen readers (aria-label) and the
+   active one is still filled. */
+@media (max-width: 400px) {
+  .languageOption {
+    padding: 0 0.3rem;
+  }
+
+  .languageOption > span:last-child {
+    display: none;
+  }
+}
+
 .progressText {
   margin: 0 0 0.35rem;
   font-size: 0.85rem;

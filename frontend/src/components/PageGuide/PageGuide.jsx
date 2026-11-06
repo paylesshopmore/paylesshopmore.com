@@ -30,10 +30,11 @@
 // than an error. Private windows throw on both read and write, so both are
 // wrapped.
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import RobotGuide from '../RobotGuide/RobotGuide';
 import TutorialHelpMenu from '../Tutorial/TutorialHelpMenu';
+import { TutorialContext } from '../Tutorial/context';
 import ChatPanel from '../ChatAssistant/ChatPanel';
 import { useChat } from '../ChatAssistant/useChat';
 import {
@@ -145,6 +146,10 @@ export default function PageGuide() {
   // page, with the conversation so far.
   const chat = useChat();
   const { setChatOpen } = chat;
+  // Whether the onboarding tour is on screen. Read straight from the context
+  // (not useTutorial(), which throws) so this still works if the robot is
+  // ever shown somewhere without the tour around it.
+  const tourOpen = useContext(TutorialContext)?.isOpen ?? false;
 
   const [open, setOpen] = useState(() => chat.chatOpen);
   // Whether the page explanation is shown in full ("Read more").
@@ -174,6 +179,9 @@ export default function PageGuide() {
   // useSpeech silences the old one as it unmounts.
   useEffect(() => {
     if (!pageKey || off || !isAuthenticated || !userId) return undefined;
+    // Never on top of the tour: two pop-ups at once is one too many. It is
+    // not marked as seen either, so it gets its turn once the tour closes.
+    if (tourOpen) return undefined;
     if (readSeen(userId).includes(pageKey)) return undefined;
 
     const timer = window.setTimeout(() => {
@@ -182,7 +190,7 @@ export default function PageGuide() {
     }, 900);
 
     return () => window.clearTimeout(timer);
-  }, [pageKey, off, isAuthenticated, userId]);
+  }, [pageKey, off, isAuthenticated, userId, tourOpen]);
 
   // The bubble arrives a moment after the page, so it is noticed rather
   // than lost in the page loading.

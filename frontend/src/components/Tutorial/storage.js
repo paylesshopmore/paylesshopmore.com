@@ -45,3 +45,47 @@ export function markTutorialDone() {
     // Nothing to do; see the note at the top.
   }
 }
+
+// ---- A tour in progress ---------------------------------------------------
+//
+// Which tour is open and on which step, so a page refresh, a sign-in or a
+// sign-out carries on where the visitor was instead of starting over at
+// step 1. Kept in sessionStorage (this browser tab only, gone when the tab
+// closes): a tour left open yesterday should not pop up again tomorrow.
+// Cleared as soon as the tour is closed, skipped or finished.
+
+export const PROGRESS_KEY = 'plsm.tutorialProgress';
+
+/** { tourId, stepIndex } of the tour that was open, or null. */
+export function readProgress() {
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(PROGRESS_KEY));
+    if (
+      saved &&
+      typeof saved.tourId === 'string' &&
+      Number.isInteger(saved.stepIndex) &&
+      saved.stepIndex >= 0
+    ) {
+      return saved;
+    }
+  } catch {
+    // Blocked storage or a damaged value: start fresh.
+  }
+  return null;
+}
+
+export function saveProgress(tourId, stepIndex) {
+  try {
+    window.sessionStorage.setItem(PROGRESS_KEY, JSON.stringify({ tourId, stepIndex }));
+  } catch {
+    // Then a refresh starts the tour over. Harmless.
+  }
+}
+
+export function clearProgress() {
+  try {
+    window.sessionStorage.removeItem(PROGRESS_KEY);
+  } catch {
+    // Nothing to do.
+  }
+}
