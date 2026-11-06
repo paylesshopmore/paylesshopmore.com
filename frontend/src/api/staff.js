@@ -817,13 +817,41 @@ export const INVOICE_STATUSES = [
 
 /**
  * `measured: 'true'` keeps only sheets with measured lines; `mine: 'true'`
- * only the sheets the signed-in person started.
+ * only the sheets the signed-in person started; `unassigned: 'true'` only
+ * the sheets nobody has tied to a customer yet (the "Without a customer"
+ * queue, oldest first).
  *
  * @param {{ search?: string, status?: string, freight?: string, measured?: string,
  *   mine?: string, ordering?: string, page?: number }} filters
  */
 export async function listIntakeSheets(filters) {
   return toPage(await request(`/staff/intake/${query(filters)}`));
+}
+
+/**
+ * Which EXISTING customers goods could belong to: by customer number,
+ * e-mail address, shipment / booking / consignment / courier number, or
+ * name. Never links anything. Answers { results, too_many }; each result has
+ * matched_by (how it was found) and exact (false for a name match, which
+ * may be somebody else with the same name). See warehouse/customers.py.
+ *
+ * @param {string} q
+ */
+export async function lookupCustomers(q) {
+  return request(`/staff/warehouse/customers/${query({ q })}`);
+}
+
+/**
+ * Puts the goods on an intake sheet under an existing customer, optionally
+ * with one of their open shipments or bookings. Changing a customer that is
+ * already set is for managers and needs `reason`. Answers the updated sheet.
+ *
+ * @param {number} id  the intake sheet
+ * @param {{ customer: number, package?: number, booking?: number,
+ *           matched_by?: string, reason?: string }} body
+ */
+export async function assignIntakeCustomer(id, body) {
+  return request(`/staff/intake/${id}/assign-customer/`, { method: 'POST', body });
 }
 
 /**

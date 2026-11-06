@@ -38,8 +38,9 @@ import { system } from './pages/system';
 import { documentReview } from './pages/documentReview';
 import { website } from './pages/website';
 import { warehouseManager } from './pages/warehouseManager';
+import { warehouseCustomers } from './pages/warehouseCustomers';
 
-const PAGES = { common, floorDevices, workers, bookingWarehouse, documents, intakeCamera, quotes, packages, bookings, invoices, addInvoice, shops, customers, intake, measurements, measurementsList, warehouseAccess, messages, blog, warehouseProfile, security, courierTracking, prealerts, reports, system, documentReview, website, warehouseManager };
+const PAGES = { common, floorDevices, workers, bookingWarehouse, documents, intakeCamera, quotes, packages, bookings, invoices, addInvoice, shops, customers, intake, measurements, measurementsList, warehouseAccess, messages, blog, warehouseProfile, security, courierTracking, prealerts, reports, system, documentReview, website, warehouseManager, warehouseCustomers };
 
 function forLanguage(language) {
   return Object.fromEntries(Object.entries(PAGES).map(([name, page]) => [name, page[language]]));

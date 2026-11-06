@@ -116,6 +116,8 @@ const WarehouseLogin = lazy(() => import('./pages/Warehouse/WarehouseLogin'));
 const ManagerLayout = lazy(() => import('./pages/Warehouse/ManagerLayout'));
 const ManagerOverview = lazy(() => import('./pages/Warehouse/ManagerOverview'));
 const ManagerActivity = lazy(() => import('./pages/Warehouse/ManagerActivity'));
+const UnassignedQueue = lazy(() => import('./pages/Warehouse/UnassignedQueue'));
+const AssignCustomer = lazy(() => import('./pages/Warehouse/AssignCustomer'));
 const PackagePage = lazy(() => import('./pages/Warehouse/PackagePage'));
 const ShipmentLabel = lazy(() => import('./pages/Warehouse/ShipmentLabel'));
 
@@ -365,6 +367,9 @@ export default function App() {
               <Route path="activity" element={<Navigate to="/warehouse" replace />} />
               <Route path="profile" element={<WarehouseProfile />} />
               <Route path="pin" element={<SetPinPage />} />
+              {/* Goods without a customer, and finding whose they are. */}
+              <Route path="unassigned" element={<UnassignedQueue />} />
+              <Route path="assign/:sheetId" element={<AssignCustomer />} />
               {/* Warehouse management: admins and warehouse managers only
                   (ManagerLayout checks; the server refuses everyone else).
                   The Workers tab is the same page as /dashboard/workers. */}

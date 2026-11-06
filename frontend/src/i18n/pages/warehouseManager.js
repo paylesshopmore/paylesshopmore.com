@@ -67,6 +67,7 @@ export const warehouseManager = {
     allActions: 'All actions',
     groupFloor: 'Sign-in and accounts',
     groupPackage: 'Packages',
+    groupCustomer: 'Customers',
     clearFilters: 'Clear filters',
     colWhen: 'When',
     colWho: 'Who',
@@ -95,6 +96,7 @@ export const warehouseManager = {
       length_cm: 'Length (cm)',
       width_cm: 'Width (cm)',
       height_cm: 'Height (cm)',
+      customer: 'Customer',
     },
     actions: {
       pin_sign_in: 'Signed in with PIN (floor device)',
@@ -127,6 +129,8 @@ export const warehouseManager = {
       location_changed: 'Location changed',
       problem_reported: 'Problem reported',
       problem_resolved: 'Problem resolved',
+      customer_assigned: 'Customer assigned',
+      customer_changed: 'Customer changed',
     },
   },
   nl: {
@@ -189,6 +193,7 @@ export const warehouseManager = {
     allActions: 'Alle handelingen',
     groupFloor: 'Inloggen en accounts',
     groupPackage: 'Pakketten',
+    groupCustomer: 'Klanten',
     clearFilters: 'Filters wissen',
     colWhen: 'Wanneer',
     colWho: 'Wie',
@@ -217,6 +222,7 @@ export const warehouseManager = {
       length_cm: 'Lengte (cm)',
       width_cm: 'Breedte (cm)',
       height_cm: 'Hoogte (cm)',
+      customer: 'Klant',
     },
     actions: {
       pin_sign_in: 'Ingelogd met pincode (vloerapparaat)',
@@ -249,6 +255,8 @@ export const warehouseManager = {
       location_changed: 'Locatie gewijzigd',
       problem_reported: 'Probleem gemeld',
       problem_resolved: 'Probleem opgelost',
+      customer_assigned: 'Klant toegewezen',
+      customer_changed: 'Klant gewijzigd',
     },
   },
   pap: {
@@ -311,6 +319,7 @@ export const warehouseManager = {
     allActions: 'Tur akshon',
     groupFloor: 'Drenta i kuentanan',
     groupPackage: 'Paketenan',
+    groupCustomer: 'Klientenan',
     clearFilters: 'Kita filternan',
     colWhen: 'Ki ora',
     colWho: 'Ken',
@@ -339,6 +348,7 @@ export const warehouseManager = {
       length_cm: 'Largura (cm)',
       width_cm: 'Hanchura (cm)',
       height_cm: 'Haltura (cm)',
+      customer: 'Kliente',
     },
     actions: {
       pin_sign_in: 'Drenta ku PIN (aparato riba vloer)',
@@ -371,6 +381,8 @@ export const warehouseManager = {
       location_changed: 'Lokashon kambiá',
       problem_reported: 'Problema reportá',
       problem_resolved: 'Problema resolvé',
+      customer_assigned: 'Kliente asigná',
+      customer_changed: 'Kliente kambiá',
     },
   },
 };

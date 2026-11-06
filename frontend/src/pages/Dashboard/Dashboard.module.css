@@ -5194,3 +5194,11 @@ button.bkAction:disabled {
   font-size: 0.8rem;
   color: var(--muted);
 }
+
+/* The sheet's customer in the intake header row (Intake.jsx SheetCustomer). */
+.intakeCustomer {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}

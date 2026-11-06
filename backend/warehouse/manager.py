@@ -38,7 +38,13 @@ from accounts.signin_codes import idle_seconds
 from staff.permissions import IsWarehouseManager
 
 from . import report
-from .models import IntakeSheet, PackageActivity, PackageDamageReport, PackageMeasurement
+from .models import (
+    IntakeAssignment,
+    IntakeSheet,
+    PackageActivity,
+    PackageDamageReport,
+    PackageMeasurement,
+)
 from .operations import intake_lines
 
 User = get_user_model()
@@ -167,9 +173,11 @@ def build_stats():
     waiting = _in_warehouse().filter(warehouse_stage__in=WAITING_STAGES)
 
     # Goods that arrived with nothing to say whose they are: an intake sheet
-    # linked to neither a shipment nor a booking. Phase 3 (assigning
-    # customers) works through these; until then they are counted here.
-    unassigned = IntakeSheet.objects.filter(package__isnull=True, booking__isnull=True)
+    # with no customer, shipment or booking - the "Without a customer" queue
+    # (IntakeSheetViewSet ?unassigned=true).
+    unassigned = IntakeSheet.objects.filter(
+        customer__isnull=True, package__isnull=True, booking__isnull=True
+    )
 
     missing = _missing_measurements()
 
@@ -257,6 +265,7 @@ class ManagerStatsView(APIView):
 
 FLOOR_KINDS = dict(FloorEvent.Kind.choices)
 PACKAGE_ACTIONS = dict(PackageActivity.Action.choices)
+CUSTOMER_KINDS = dict(IntakeAssignment.Kind.choices)
 
 
 def _parse_day(value, field):
@@ -356,6 +365,32 @@ def _add_measurement_changes(rows):
             changes[f"to_{field}"] = str(getattr(after, field))
 
 
+def _assignment_row(assignment):
+    sheet = assignment.sheet
+    before = _name(assignment.from_customer)
+    after = _name(assignment.to_customer)
+    details = [part for part in (assignment.matched_by, assignment.reason) if part]
+    return {
+        "id": f"customer-{assignment.pk}",
+        "source": "customer",
+        "at": assignment.created_at,
+        "worker": _person(assignment.user),
+        "subject": None,
+        "action": assignment.kind,
+        "action_display": CUSTOMER_KINDS.get(assignment.kind, assignment.kind),
+        "package": (
+            {"id": assignment.package_id, "tracking_number": assignment.package.tracking_number}
+            if assignment.package_id
+            else None
+        ),
+        # The intake sheet the goods are on (a link to it in the app).
+        "sheet": {"id": sheet.pk, "reference": sheet.reference},
+        "device": None,
+        "description": " · ".join(details),
+        "changes": {"from_customer": before, "to_customer": after},
+    }
+
+
 def build_activity(params):
     """One page of the merged log, newest first, and what it was filtered by."""
     worker = _positive_int(params.get("worker"), "worker")
@@ -376,7 +411,7 @@ def build_activity(params):
         if package is None:
             package = 0  # matches nothing: an unknown number shows no rows
 
-    if action and action not in FLOOR_KINDS and action not in PACKAGE_ACTIONS:
+    if action and not any(action in kinds for kinds in (FLOOR_KINDS, PACKAGE_ACTIONS, CUSTOMER_KINDS)):
         raise ValidationError({"action": ["Not an action the log knows."]})
     if date_from and date_to and date_from > date_to:
         raise ValidationError({"date_to": ["The end is before the start."]})
@@ -385,9 +420,10 @@ def build_activity(params):
 
     start, end = _day_bounds(date_from, date_to)
 
-    # Which of the two tables can hold a matching row at all.
+    # Which of the three tables can hold a matching row at all.
     want_floor = package is None and not tracking and (not action or action in FLOOR_KINDS)
     want_package = not action or action in PACKAGE_ACTIONS
+    want_customer = not action or action in CUSTOMER_KINDS
 
     floor_events = FloorEvent.objects.none()
     if want_floor:
@@ -417,15 +453,38 @@ def build_activity(params):
             activities = activities.filter(timestamp__lt=end)
         activities = activities.order_by("-timestamp", "-pk")
 
-    total = floor_events.count() + activities.count()
+    # Goods put under a customer (warehouse/customers.py). The tracking
+    # filter also matches the intake sheet's own number, which is what an
+    # unidentified box is known by.
+    assignments = IntakeAssignment.objects.none()
+    if want_customer:
+        assignments = IntakeAssignment.objects.select_related(
+            "sheet", "package", "user", "from_customer", "to_customer"
+        )
+        if worker:
+            assignments = assignments.filter(user_id=worker)
+        if package is not None and tracking:
+            assignments = assignments.filter(Q(package_id=package) | Q(sheet__reference__iexact=tracking))
+        elif package is not None:
+            assignments = assignments.filter(package_id=package)
+        if action:
+            assignments = assignments.filter(kind=action)
+        if start:
+            assignments = assignments.filter(created_at__gte=start)
+        if end:
+            assignments = assignments.filter(created_at__lt=end)
+        assignments = assignments.order_by("-created_at", "-pk")
 
-    # Merge the two newest-first lists. Each can contribute at most
+    total = floor_events.count() + activities.count() + assignments.count()
+
+    # Merge the three newest-first lists. Each can contribute at most
     # page * PAGE_SIZE rows to the first `page` pages, so that is all that is
     # read from either.
     upto = page * PAGE_SIZE
     merged = heapq.merge(
         (_floor_row(event) for event in floor_events[:upto]),
         (_package_row(activity) for activity in activities[:upto]),
+        (_assignment_row(assignment) for assignment in assignments[:upto]),
         key=lambda row: row["at"],
         reverse=True,
     )
@@ -463,6 +522,10 @@ def filter_options():
         + [
             {"value": value, "label": label, "group": "package"}
             for value, label in PackageActivity.Action.choices
+        ]
+        + [
+            {"value": value, "label": label, "group": "customer"}
+            for value, label in IntakeAssignment.Kind.choices
         ],
     }
 

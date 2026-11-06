@@ -135,6 +135,7 @@ export default function ManagerActivity() {
   const anyFilter = FILTERS.some((key) => filters[key]);
   const floorActions = options?.actions.filter((action) => action.group === 'floor') ?? [];
   const packageActions = options?.actions.filter((action) => action.group === 'package') ?? [];
+  const customerActions = options?.actions.filter((action) => action.group === 'customer') ?? [];
 
   return (
     <section aria-labelledby="manager-activity">
@@ -183,6 +184,13 @@ export default function ManagerActivity() {
             </optgroup>
             <optgroup label={m('groupPackage')}>
               {packageActions.map((action) => (
+                <option key={action.value} value={action.value}>
+                  {actionLabel(action.value, action.label)}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={m('groupCustomer')}>
+              {customerActions.map((action) => (
                 <option key={action.value} value={action.value}>
                   {actionLabel(action.value, action.label)}
                 </option>
@@ -271,13 +279,20 @@ export default function ManagerActivity() {
                       </td>
                       <td>{actionLabel(row.action, row.action_display)}</td>
                       <td>
-                        {row.package ? (
+                        {row.package && (
                           <Link to={`/warehouse/packages/${row.package.id}`} className={styles.link}>
                             {row.package.tracking_number}
                           </Link>
-                        ) : (
-                          '—'
                         )}
+                        {/* Goods put under a customer: their intake sheet. */}
+                        {row.sheet && (
+                          <div>
+                            <Link to={`/warehouse/intake?sheet=${row.sheet.id}`} className={styles.link}>
+                              {row.sheet.reference || `#${row.sheet.id}`}
+                            </Link>
+                          </div>
+                        )}
+                        {!row.package && !row.sheet && '—'}
                       </td>
                       <td>
                         {row.description}

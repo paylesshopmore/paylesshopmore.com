@@ -27,12 +27,13 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.views import APIView
 
 from staff.permissions import IsWarehouseOrStaff, WarehouseRateThrottle
 from staff.views import StaffViewSet
 from tracking.matching import confirm_arrival, find_by_courier_number, scan_summary
 
-from . import operations, scanning, shipments
+from . import customers, operations, scanning, shipments
 from .access import SectionAllowed
 from .models import AlreadyReleased, IntakeSheet, IntakeSheetPhoto, NotReleased
 from .recipients import handover_recipients
@@ -76,6 +77,22 @@ class FreightRefused(PermissionDenied):
     default_detail = "Only the office can assign sea or air freight."
 
 
+class CustomerLookupView(APIView):
+    """GET ?q=...: which existing customers these goods could belong to.
+
+    By customer number, e-mail address, shipment / booking / consignment /
+    courier number, or name. Answers what a worker needs to recognise the
+    customer and choose a shipment to link to - no phone number, no full
+    address, no money. Never writes, never links: see assign-customer.
+    """
+
+    permission_classes = [IsWarehouseOrStaff]
+    throttle_classes = [WarehouseRateThrottle]
+
+    def get(self, request):
+        return Response(customers.lookup(request.query_params.get("q", "")))
+
+
 class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
     """Warehouse intake sheets: list, read, fill in, and hand over.
 
@@ -101,7 +118,7 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
     serializer_class = IntakeSheetSerializer
 
     queryset = IntakeSheet.objects.select_related(
-        "created_by", "released_by", "booking", "package"
+        "created_by", "released_by", "booking", "package", "customer"
     ).prefetch_related("measurements")
 
     search_fields = (
@@ -127,6 +144,35 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
             self.throttle_scope = "label_read"
             throttles.append(ScopedRateThrottle())
         return throttles
+
+    @action(detail=True, methods=["post"], url_path="assign-customer")
+    def assign_customer(self, request, pk=None):
+        """POST {"customer": id, "package"?: id, "booking"?: id,
+        "matched_by"?: "...", "reason"?: "..."}: whose goods these are.
+
+        An EXISTING customer only - nothing here creates an account. The
+        shipment or booking, if given, must be one of that customer's open
+        ones. Identifying goods without a customer: anybody on the floor.
+        Moving goods to a different customer: admins and warehouse managers,
+        with a reason. Every assignment is recorded (IntakeAssignment).
+        See warehouse/customers.py.
+        """
+        sheet = self.get_object()
+        sheet = customers.assign(
+            sheet,
+            request.user,
+            customer_id=request.data.get("customer"),
+            package_id=request.data.get("package"),
+            booking_id=request.data.get("booking"),
+            matched_by=request.data.get("matched_by", ""),
+            reason=request.data.get("reason", ""),
+        )
+        # Linked to a shipment just now: the measurements on the sheet count
+        # for it, and it gets the sheet's freight - as when a sheet is saved.
+        self._share_freight(sheet)
+        operations.measure_from_intake(sheet, request.user)
+        fresh = self.get_queryset().get(pk=sheet.pk)
+        return Response(self.get_serializer(fresh).data)
 
     @action(detail=False, methods=["post"], url_path="read-label")
     def read_label(self, request):
@@ -180,6 +226,14 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         if self.request.query_params.get("mine") == "true":
             queryset = queryset.filter(created_by=self.request.user)
 
+        # `?unassigned=true`: the "Without a customer" queue - goods nobody
+        # has tied to a customer, shipment or booking yet. Oldest first, so
+        # what has waited longest is at the top.
+        if self.request.query_params.get("unassigned") == "true":
+            queryset = queryset.filter(
+                customer__isnull=True, package__isnull=True, booking__isnull=True
+            ).order_by("created_at")
+
         return queryset
 
     def perform_create(self, serializer):
@@ -209,6 +263,9 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         )
 
         self._prefill_from_link(sheet)
+        # Started from a scan of a known shipment or booking: whose goods
+        # these are is known already (warehouse/customers.py).
+        customers.sync_from_links(sheet)
         self._number(sheet)
         self._share_freight(sheet)
         # The intake form is where the warehouse measures: the package counts
@@ -310,6 +367,15 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         if wanted is not None and wanted.strip() != serializer.instance.reference.strip():
             raise ValidationError({"reference": ["The shipment number cannot be changed."]})
 
+        # Linking the sheet to another customer's shipment or booking is a
+        # change of owner: that goes through "Assign customer" (with its
+        # permission check and its record), not through a form save.
+        customers.check_link_change(
+            serializer.instance,
+            serializer.validated_data.get("package"),
+            serializer.validated_data.get("booking"),
+        )
+
         # A sheet the office prepared (a booking sent to the warehouse) has no
         # signature yet: the first person to save it is the one filling it in.
         extra = {}
@@ -318,6 +384,7 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
             extra = {"created_by": user, "employee_name": user.get_full_name() or user.get_username()}
 
         sheet = serializer.save(**extra)
+        customers.sync_from_links(sheet)
         # A sheet from before numbering, or one a manager emptied, gets one.
         self._number(sheet)
         if sheet.freight != previous_freight:

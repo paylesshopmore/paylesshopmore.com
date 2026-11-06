@@ -116,6 +116,12 @@ urlpatterns = [
     ),
     # The warehouse manager's dashboard (/warehouse/manager): the overview
     # numbers and the activity log. Admins and warehouse managers.
+    # Which existing customer goods belong to (warehouse/customers.py).
+    path(
+        "warehouse/customers/",
+        warehouse_views.CustomerLookupView.as_view(),
+        name="staff-warehouse-customer-lookup",
+    ),
     path(
         "warehouse/manager/stats/",
         warehouse_manager.ManagerStatsView.as_view(),

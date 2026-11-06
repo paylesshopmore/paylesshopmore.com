@@ -33,7 +33,7 @@ import dashboard from '../Dashboard/Dashboard.module.css';
 import AccountMenu from '../../components/AccountMenu/AccountMenu';
 import { tourForPath } from '../../components/Tutorial/tutorialSteps';
 import { useTutorial } from '../../components/Tutorial/useTutorial';
-import { ClockIcon, HelpIcon, HomeIcon, LogOutIcon, MenuIcon, ScanIcon, SheetIcon, UserIcon } from './icons';
+import { AlertIcon, ClockIcon, HelpIcon, HomeIcon, LogOutIcon, MenuIcon, ScanIcon, SheetIcon, UserIcon } from './icons';
 import { canManageWarehouse } from '../Dashboard/managerAccess';
 import styles from './Warehouse.module.css';
 
@@ -43,6 +43,9 @@ const NAV = [
   // `section`: an admin can switch it off for warehouse workers
   // (Dashboard -> Warehouse access); it is then left out of the menu.
   { to: '/warehouse/intake', labelKey: 'intake', icon: SheetIcon, section: 'intake', primary: true },
+  // Goods nobody has tied to a customer yet (UnassignedQueue.jsx). Part of
+  // the intake sheets, so switched off with them.
+  { to: '/warehouse/unassigned', labelKey: 'unassigned', icon: AlertIcon, section: 'intake' },
   { to: '/warehouse/profile', labelKey: 'profile', icon: UserIcon },
   // Warehouse management (ManagerLayout): admins and warehouse managers only.
   { to: '/warehouse/manager', labelKey: 'management', icon: ClockIcon, managers: true },

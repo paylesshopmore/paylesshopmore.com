@@ -26,7 +26,8 @@
 //   Backend:      api/staff.js, api/profile.js
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { canManageWarehouse } from './managerAccess';
 import Loading from '../../components/Loading/Loading';
 import HelpDialog from '../../components/HelpDialog/HelpDialog';
 import ConnectionError from '../../components/ConnectionError/ConnectionError';
@@ -349,6 +350,35 @@ function storeMode(mode) {
  * that opening a different sheet builds a fresh form instead of leaving one
  * sheet's half-typed remarks sitting in another's boxes.
  */
+/**
+ * Whose goods these are, in the sheet's header row - and the way to say so
+ * (AssignCustomer.jsx). No customer yet: anybody may find one. Already set:
+ * only a manager or admin may change it (the server checks the same). Not on
+ * a released sheet, which has gone to the office.
+ */
+function SheetCustomer({ sheet, locked }) {
+  const d = usePageText('intake');
+  const { user } = useAuth();
+  const customer = sheet.customer;
+  const mayChange = !locked && (!customer || canManageWarehouse(user));
+  return (
+    <span className={styles.intakeCustomer}>
+      {customer ? (
+        <StatusBadge tone="done">
+          {d('customerIs', { name: customer.name, code: customer.customer_code })}
+        </StatusBadge>
+      ) : (
+        <StatusBadge tone="attention">{d('noCustomer')}</StatusBadge>
+      )}
+      {mayChange && (
+        <Link to={`/warehouse/assign/${sheet.id}`} className={styles.link}>
+          {customer ? d('changeCustomer') : d('findCustomer')}
+        </Link>
+      )}
+    </span>
+  );
+}
+
 function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
   const d = usePageText('intake');
   const c = usePageText('common');
@@ -729,6 +759,8 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
         )}
         {/* Sea or air: chosen by the office, shown to the warehouse. */}
         <FreightControl sheet={sheet} onSaved={onSaved} />
+        {/* Whose goods: the customer, or a way to find them. */}
+        <SheetCustomer sheet={sheet} locked={locked} />
         {/* Step by step or the whole form: the worker's choice. */}
         {!locked && (
           <div className={styles.modeSwitch} role="group" aria-label={d('modeLabel')}>

@@ -234,6 +234,7 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
     # dropdown when true and a read-only label when false; the server holds
     # the rule either way.
     can_assign_freight = serializers.SerializerMethodField()
+    customer = serializers.SerializerMethodField()
 
     class Meta:
         model = IntakeSheet
@@ -284,6 +285,9 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
             # Links
             "booking",
             "package",
+            # Whose goods: {id, name, customer_code} or null (see
+            # warehouse/customers.py). Set through assign-customer only.
+            "customer",
             # Provenance
             "created_by_name",
             "released_by_name",
@@ -307,6 +311,16 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
             # once, on create, by the viewset.
             "employee_name",
         ]
+
+    def get_customer(self, obj):
+        customer = obj.customer
+        if customer is None:
+            return None
+        return {
+            "id": customer.pk,
+            "name": customer.get_full_name() or customer.email,
+            "customer_code": customer.customer_code,
+        }
 
     def get_missing(self, obj):
         return missing_for_release(obj)

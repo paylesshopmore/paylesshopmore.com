@@ -185,6 +185,8 @@ sheets, Profile) and the "Guide" button for the warehouse tour.
 | `/warehouse/intake` | `Dashboard/Intake.jsx` | Intake sheets: the form, label scanner, damage photos | `staff.js`, `profile.js` |
 | `/warehouse/profile` | `Warehouse/WarehouseProfile.jsx` | The worker's own page | `staff.js`, `profile.js` |
 | `/warehouse/pin` | `Warehouse/SetPinPage.jsx` | Choose a floor PIN after an e-mailed code, or (required) after signing in with a PIN a manager generated | `profile.js` |
+| `/warehouse/unassigned` | `Warehouse/UnassignedQueue.jsx` | "Without a customer": intake sheets nobody has tied to a customer, shipment or booking yet, oldest first | `staff.js` (`listIntakeSheets({ unassigned })`) |
+| `/warehouse/assign/:sheetId` | `Warehouse/AssignCustomer.jsx` | Find the customer (number, e-mail, tracking/booking/consignment number, name), check, confirm. Existing customers only; changing one that is set: managers, with a reason | `staff.js` (`lookupCustomers`, `assignIntakeCustomer`) |
 | `/warehouse/manager` | `Warehouse/ManagerOverview.jsx` (in `ManagerLayout.jsx`) | Warehouse management, admins and warehouse managers only: live numbers, who is signed in, today per worker, packages that need attention | `warehouse.js` (`getManagerStats`) |
 | `/warehouse/manager/workers` | `Dashboard/Workers.jsx` | The Workers page, inside warehouse management: add workers, generate PINs, switch accounts off/on | `staff.js` |
 | `/warehouse/manager/activity` | `Warehouse/ManagerActivity.jsx` | The whole warehouse's activity log (sign-ins, PINs, every package action), filterable by worker, action, tracking number and date | `warehouse.js` (`getManagerActivity`) |

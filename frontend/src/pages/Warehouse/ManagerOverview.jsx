@@ -18,7 +18,7 @@
 // CONNECTED PAGES  (the whole map: docs/WEBSITE-MAP.md)
 //   Address:      /warehouse/manager
 //   Who can open: admins and warehouse managers (ManagerLayout)
-//   Links to:     /warehouse/packages/:id, /warehouse/intake?sheet=:id,
+//   Links to:     /warehouse/packages/:id, /warehouse/assign/:sheetId,
 //                 /warehouse/manager/activity
 //   Backend:      api/warehouse.js getManagerStats
 
@@ -249,7 +249,7 @@ export default function ManagerOverview() {
             name="unassigned"
             rows={attention.unassigned}
             total={totals.unassigned}
-            linkFor={(row) => `/warehouse/intake?sheet=${row.id}`}
+            linkFor={(row) => `/warehouse/assign/${row.id}`}
             describe={(row) => ({
               title: row.reference || `#${row.id}`,
               note: [row.supplier, row.recipient, formatDateTime(row.created_at)].filter(Boolean).join(' · '),

@@ -321,3 +321,123 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ---- finding a customer (AssignCustomer, UnassignedQueue) ----------------- */
+
+.searchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.75rem;
+}
+
+.searchRow > button {
+  margin-top: 1.55rem;
+}
+
+/* The main action: the brand yellow, like every primary button here. */
+.primaryButton {
+  min-height: 48px;
+  padding: 0 1.3rem;
+  border: 0;
+  border-radius: 10px;
+  background: var(--brand-yellow, #fde047);
+  color: var(--brand-ink, #0b2545);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primaryButton:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.primaryButton:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.5rem 0 0;
+}
+
+/* A link styled as a button (.button is shared with real buttons). */
+a.button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* One customer found: details, a match badge, and Choose. */
+.candidate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.candidate .itemMain {
+  flex: 1 1 14rem;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.6rem 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.facts dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.facts dd {
+  margin: 0.1rem 0 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.choices {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+}
+
+/* Each choice a whole-row tap target. */
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.choice input {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 560px) {
+  .searchRow {
+    grid-template-columns: 1fr;
+  }
+
+  .searchRow > button {
+    margin-top: 0;
+  }
+}

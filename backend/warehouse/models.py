@@ -254,6 +254,19 @@ class IntakeSheet(models.Model):
         blank=True,
         related_name="intake_sheets",
     )
+    # Whose goods these are: an EXISTING customer account, never a new one.
+    # Filled in from the linked shipment or booking when there is one, or by
+    # a worker who looked the customer up and confirmed them (warehouse/
+    # customers.py). Empty means nobody has identified the owner yet: the
+    # sheet is in the "Without a customer" queue. PROTECT: a customer with
+    # goods in the warehouse cannot be deleted out from under them.
+    customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="intake_sheets",
+    )
 
     # ------------------------------------------------------------------
     # Provenance
@@ -1059,6 +1072,57 @@ class PackageActivity(AppendOnlyModel):
 
     def __str__(self):
         return f"{self.package_id}: {self.get_action_display()}"
+
+
+class IntakeAssignment(AppendOnlyModel):
+    """Somebody tied an intake sheet's goods to a customer - or moved them to
+    another. Immutable: a correction is a new row, so the trail shows every
+    customer the goods were ever put under, by whom, and why.
+
+    Written by warehouse/customers.py in the same transaction as the change
+    to the sheet, and read by the manager's activity log.
+    """
+
+    class Kind(models.TextChoices):
+        ASSIGNED = "customer_assigned", "Customer assigned"
+        CHANGED = "customer_changed", "Customer assignment changed"
+
+    sheet = models.ForeignKey(IntakeSheet, on_delete=models.CASCADE, related_name="assignments")
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    # Before and after. PROTECT on both: the record must keep pointing at the
+    # accounts it names.
+    from_customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    to_customer = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+"
+    )
+    # The shipment or booking the goods were put with at the same time, if any.
+    package = models.ForeignKey(
+        "accounts.Package", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    booking = models.ForeignKey(
+        "bookings.Booking", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    # How the worker found the customer ("tracking number PLS-12") and, for a
+    # change, the reason - required then.
+    matched_by = models.CharField(max_length=200, blank=True)
+    reason = models.CharField(max_length=500, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="intake_assignments"
+    )
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["user", "-created_at"])]
+
+    def __str__(self):
+        return f"Sheet {self.sheet_id}: {self.get_kind_display()}"
 
 
 class WarehouseAccess(models.Model):
