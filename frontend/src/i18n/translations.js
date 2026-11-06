@@ -726,6 +726,17 @@ export const translations = {
         'Let op: dit scherm toont voorbeeldgegevens. Er is nog geen server gekoppeld, dus wijzigingen worden niet bewaard.',
       memberSince: 'Klant sinds',
       goToWarehouse: 'Naar het magazijn',
+      // "What to do next" banner for customers (pages/Profile/NextSteps.jsx).
+      nextSteps: {
+        title: 'Wat is de volgende stap?',
+        intro: 'Zo verstuurt u uw pakketten via ons, in drie stappen:',
+        bookButton: 'Maak een boeking',
+        steps: {
+          order: { title: 'Bestel in een webshop', text: 'Gebruik ons magazijnadres als factuur- en afleveradres.', link: 'Bekijk het adres' },
+          book: { title: 'Maak een boeking', text: 'Vul het boekingsformulier in, zodat wij weten wat er voor u komt en waar het heen moet.' },
+          follow: { title: 'Volg uw zending', text: 'Zodra uw pakketten binnen zijn, ziet u ze onder Mijn zendingen.', link: 'Naar mijn zendingen' },
+        },
+      },
       // A warehouse worker signed in with a password opening the warehouse.
       unlock: {
         title: 'Naar het magazijn',
@@ -3650,6 +3661,17 @@ export const translations = {
         'Note: this screen shows example data. No server is connected yet, so changes are not saved.',
       memberSince: 'Customer since',
       goToWarehouse: 'Go to the warehouse',
+      // "What to do next" banner for customers (pages/Profile/NextSteps.jsx).
+      nextSteps: {
+        title: 'What is the next step?',
+        intro: 'This is how you ship your parcels with us, in three steps:',
+        bookButton: 'Make a booking',
+        steps: {
+          order: { title: 'Order from a webshop', text: 'Use our warehouse address as both billing and delivery address.', link: 'See the address' },
+          book: { title: 'Make a booking', text: 'Fill in the booking form, so we know what is coming for you and where it has to go.' },
+          follow: { title: 'Follow your shipment', text: 'As soon as your parcels arrive, you will see them under My shipments.', link: 'Go to my shipments' },
+        },
+      },
       // A warehouse worker signed in with a password opening the warehouse.
       unlock: {
         title: 'Go to the warehouse',
@@ -6565,6 +6587,17 @@ export const translations = {
         'Atenshon: e pantaya aki ta mustra dato di ehèmpel. Ainda no tin server konektá, pues kambionan no ta wòrdu warda.',
       memberSince: 'Kliente for di',
       goToWarehouse: 'Bai na pakus',
+      // "What to do next" banner for customers (pages/Profile/NextSteps.jsx).
+      nextSteps: {
+        title: 'Kiko ta e siguiente paso?',
+        intro: 'Asina bo ta manda bo paketenan via nos, den tres paso:',
+        bookButton: 'Hasi un boeking',
+        steps: {
+          order: { title: 'Ordena na un webshop', text: 'Usa nos adres di pakus komo adres di faktura i di entrega.', link: 'Mira e adres' },
+          book: { title: 'Hasi un boeking', text: 'Yena e formulario di boeking, pa nos sa kiko ta bini pa bo i unda e mester bai.' },
+          follow: { title: 'Sigui bo envio', text: 'Ora bo paketenan yega, bo ta mira nan bou di Mi envionan.', link: 'Bai na mi envionan' },
+        },
+      },
       // A warehouse worker signed in with a password opening the warehouse.
       unlock: {
         title: 'Bai na pakus',

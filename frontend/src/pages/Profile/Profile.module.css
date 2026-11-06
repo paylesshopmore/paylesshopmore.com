@@ -1754,3 +1754,130 @@
   outline: 3px solid var(--cyan);
   outline-offset: 2px;
 }
+
+/* ----------------------------------------------------------- next steps */
+
+/* "What to do next" banner under the identity band (NextSteps.jsx). Tells a
+   new customer that a booking is the next step, so it has to stand out:
+   white card with a yellow top edge, the same yellow as the main buttons. */
+.nextStepsWrap {
+  max-width: 1100px;
+  margin: 1.5rem auto 0;
+  padding: 0 1.25rem;
+}
+
+.nextSteps {
+  padding: 1.5rem 1.6rem;
+  border: 1px solid var(--line);
+  border-top: 5px solid var(--brand-yellow);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.nextStepsTitle {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.3rem;
+}
+
+.nextStepsIntro {
+  margin: 0.35rem 0 1.1rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* Three steps side by side; stacked on narrow screens (see media query). */
+.nextStepsList {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.9rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+  /* A counter so each step gets its number in the circle drawn below. */
+  counter-reset: next-step;
+}
+
+.nextStep {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1rem 1rem 1rem 3.4rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--ground);
+  counter-increment: next-step;
+}
+
+/* The number circle: 1, 2, 3. */
+.nextStep::before {
+  content: counter(next-step);
+  position: absolute;
+  top: 0.95rem;
+  left: 0.9rem;
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: var(--navy);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* The booking step: highlighted, because it is the one people miss. */
+.nextStepMain {
+  border-color: var(--brand-yellow);
+  background: #fffbea;
+}
+
+.nextStepMain::before {
+  background: var(--brand-yellow);
+  color: var(--brand-ink);
+}
+
+.nextStepTitle {
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.nextStepText {
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.nextStepLink {
+  margin-top: 0.2rem;
+  color: var(--cyan-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.nextStepsActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* .submit is a <button> elsewhere; here it is a link, so no underline. */
+.nextStepsActions .submit {
+  display: inline-block;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .nextStepsList {
+    grid-template-columns: 1fr;
+  }
+
+  .nextSteps {
+    padding: 1.25rem 1rem;
+  }
+
+  .nextStepsWrap {
+    padding: 0 1rem;
+  }
+}

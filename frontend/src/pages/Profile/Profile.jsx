@@ -19,6 +19,7 @@ import {
 } from '../../api/profile';
 import { listInvoices } from '../../api/invoices';
 import MyBookings from './MyBookings';
+import NextSteps from './NextSteps';
 import WarehouseUnlock from './WarehouseUnlock';
 import Shipments from './Shipments';
 import { AUTH_ERRORS } from '../../api/auth';
@@ -601,6 +602,14 @@ export default function Profile() {
             }
             onCancel={() => setUnlocking(false)}
           />
+        </div>
+      )}
+
+      {/* "What to do next" - customers only. Staff and warehouse workers
+          land here too but never book shipments, so they skip it. */}
+      {!profile.isStaff && !profile.isWarehouse && (
+        <div className={styles.nextStepsWrap}>
+          <NextSteps />
         </div>
       )}
 
