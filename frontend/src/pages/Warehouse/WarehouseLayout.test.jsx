@@ -43,6 +43,7 @@ function renderAt(route) {
           <Route path="profile" element={<p>Profile page</p>} />
         </Route>
         <Route path="/login" element={<Here name="Login" />} />
+        <Route path="/warehouse/login" element={<Here name="Warehouse login" />} />
         <Route path="/" element={<Here name="Public home" />} />
       </Routes>
     </TutorialProvider>,
@@ -88,7 +89,7 @@ describe('warehouse access in the app', () => {
 });
 
 // A device the whole floor shares: whoever finishes has to be out in one tap,
-// and whoever is next has to land on the code form without hunting for it.
+// and whoever is next has to land on the sign-in page without hunting for it.
 describe('logging out on a shared floor device', () => {
   it('puts a one-tap Log out in the top bar for a floor account', async () => {
     const user = userEvent.setup();
@@ -99,8 +100,8 @@ describe('logging out on a shared floor device', () => {
     await user.click(button);
 
     expect(auth.signOut).toHaveBeenCalledTimes(1);
-    // Straight to the code form, not the public home page.
-    expect(await screen.findByText('Login: /login?method=code')).toBeInTheDocument();
+    // Straight to the warehouse's own sign-in page, not the public home page.
+    expect(await screen.findByText('Warehouse login: /warehouse/login')).toBeInTheDocument();
   });
 
   it('is not there for an office account, who has no queue behind them', () => {

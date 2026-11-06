@@ -8,6 +8,7 @@ from docreview.views import DocumentJobViewSet
 from ops import views as ops_views
 from shops.views import ShopViewSet
 from warehouse import access as warehouse_access
+from warehouse import manager as warehouse_manager
 from warehouse import records as warehouse_records
 from warehouse import shipments as warehouse_shipments
 from warehouse import views as warehouse_views
@@ -100,12 +101,30 @@ urlpatterns = [
         floor.WorkerPinResetView.as_view(),
         name="staff-worker-reset-pin",
     ),
+    # Generate a new PIN for a warehouse worker, shown once.
+    path(
+        "workers/<int:pk>/issue-pin/",
+        floor.WorkerPinIssueView.as_view(),
+        name="staff-worker-issue-pin",
+    ),
     path("floor-events/", floor.FloorEventListView.as_view(), name="staff-floor-events"),
     # What warehouse workers may see: read by the warehouse app, set by admins.
     path(
         "warehouse/access/",
         warehouse_access.WarehouseAccessView.as_view(),
         name="staff-warehouse-access",
+    ),
+    # The warehouse manager's dashboard (/warehouse/manager): the overview
+    # numbers and the activity log. Admins and warehouse managers.
+    path(
+        "warehouse/manager/stats/",
+        warehouse_manager.ManagerStatsView.as_view(),
+        name="staff-warehouse-manager-stats",
+    ),
+    path(
+        "warehouse/manager/activity/",
+        warehouse_manager.ManagerActivityView.as_view(),
+        name="staff-warehouse-manager-activity",
     ),
     path(
         "warehouse/report/",

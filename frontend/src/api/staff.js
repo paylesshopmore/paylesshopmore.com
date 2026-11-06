@@ -464,6 +464,26 @@ export async function resetWorkerPin(id) {
 }
 
 /**
+ * Generates a new PIN for a warehouse worker. The answer holds it in plain
+ * text, this ONE time: { pin, worker }. Show it, hand it over, forget it -
+ * it is stored hashed and can never be shown again. The old PIN stops
+ * working at once, and the worker must choose their own after signing in.
+ * Admins and warehouse managers.
+ */
+export async function issueWorkerPin(id) {
+  return request(`/staff/workers/${id}/issue-pin/`, { method: 'POST' });
+}
+
+/**
+ * Switches an account off (`active: false`) or on again. Off ends all its
+ * sessions at once. Admins, and warehouse managers for warehouse workers.
+ * Answers the updated row.
+ */
+export async function setWorkerActive(id, active) {
+  return request(`/staff/customers/${id}/active/`, { method: 'POST', body: { active } });
+}
+
+/**
  * Removes an admin's or office worker's authenticator app (a lost or new
  * phone); their next sign-in sets it up again. Admins only, never yourself.
  * Answers the updated row.

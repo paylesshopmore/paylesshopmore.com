@@ -78,6 +78,9 @@ function toProfile(data) {
     hasPin: Boolean(data.has_pin),
     canSetPin: Boolean(data.can_set_pin),
     pinLocked: Boolean(data.pin_locked),
+    // Signed in with a PIN a manager generated: must choose their own before
+    // the warehouse opens (the server refuses it until then).
+    mustChangePin: Boolean(data.pin_must_change),
     // Whether this session may open the warehouse. A warehouse worker who
     // signed in with a password has the customer profile only, until their
     // e-mail and PIN open it (see unlockWarehouse in api/auth.js).

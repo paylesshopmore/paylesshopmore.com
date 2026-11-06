@@ -80,6 +80,22 @@ export async function signInWithPin({ worker, pin }) {
 }
 
 /**
+ * Signs a warehouse worker in at /warehouse/login with their e-mail address
+ * and PIN - on a computer that is not a registered floor device, where the
+ * list of names is not shown. One 401 for every way it can be wrong; a 429
+ * when this address has tried too often.
+ *
+ * @param {{ email: string, pin: string }} credentials
+ */
+export async function signInWithEmailPin({ email, pin }) {
+  return request('/auth/warehouse-login/', {
+    method: 'POST',
+    body: { email, pin },
+    silentAuthFailure: true,
+  });
+}
+
+/**
  * Opens the warehouse for a warehouse worker who signed in with a password:
  * their own e-mail address and their PIN. One 401 for every way it can be
  * wrong, counted against the PIN's five tries.

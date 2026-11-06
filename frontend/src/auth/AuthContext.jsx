@@ -9,6 +9,7 @@ import {
   signIn as apiSignIn,
   signInWithCode as apiSignInWithCode,
   signInWithPin as apiSignInWithPin,
+  signInWithEmailPin as apiSignInWithEmailPin,
   unlockWarehouse as apiUnlockWarehouse,
   setupWarehousePin as apiSetupWarehousePin,
   signOut as apiSignOut,
@@ -128,6 +129,14 @@ export function AuthProvider({ children }) {
     return profile;
   }, []);
 
+  // /warehouse/login on a computer that is not a registered floor device.
+  const signInWithEmailPin = useCallback(async (credentials) => {
+    await apiSignInWithEmailPin(credentials);
+    const profile = await getProfile();
+    setUser(profile);
+    return profile;
+  }, []);
+
   const signUp = useCallback(async (details) => {
     await apiSignUp(details);
     const profile = await getProfile();
@@ -227,6 +236,7 @@ export function AuthProvider({ children }) {
       signIn,
       signInWithCode,
       signInWithPin,
+      signInWithEmailPin,
       unlockWarehouse,
       setupWarehousePin,
       signUp,
@@ -241,6 +251,7 @@ export function AuthProvider({ children }) {
       signIn,
       signInWithCode,
       signInWithPin,
+      signInWithEmailPin,
       unlockWarehouse,
       setupWarehousePin,
       signUp,

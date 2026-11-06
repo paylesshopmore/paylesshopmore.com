@@ -112,6 +112,10 @@ const WarehouseHome = lazy(() => import('./pages/Warehouse/WarehouseHome'));
 const WarehouseProfile = lazy(() => import('./pages/Warehouse/WarehouseProfile'));
 // A floor worker choosing their PIN, straight after an e-mailed code.
 const SetPinPage = lazy(() => import('./pages/Warehouse/SetPinPage'));
+const WarehouseLogin = lazy(() => import('./pages/Warehouse/WarehouseLogin'));
+const ManagerLayout = lazy(() => import('./pages/Warehouse/ManagerLayout'));
+const ManagerOverview = lazy(() => import('./pages/Warehouse/ManagerOverview'));
+const ManagerActivity = lazy(() => import('./pages/Warehouse/ManagerActivity'));
 const PackagePage = lazy(() => import('./pages/Warehouse/PackagePage'));
 const ShipmentLabel = lazy(() => import('./pages/Warehouse/ShipmentLabel'));
 
@@ -331,6 +335,11 @@ export default function App() {
             {/* The warehouse dashboard: warehouse workers, and office staff
                 who need it. Drivers and customers are sent away here and
                 refused by every API route behind it. */}
+            {/* The warehouse's own sign-in page: e-mail (or a tapped name on a
+                registered device) and PIN. Outside RequireWarehouse - it is
+                where RequireWarehouse sends people who are not signed in. */}
+            <Route path="/warehouse/login" element={<WarehouseLogin />} />
+
             <Route
               path="/warehouse"
               element={
@@ -356,6 +365,14 @@ export default function App() {
               <Route path="activity" element={<Navigate to="/warehouse" replace />} />
               <Route path="profile" element={<WarehouseProfile />} />
               <Route path="pin" element={<SetPinPage />} />
+              {/* Warehouse management: admins and warehouse managers only
+                  (ManagerLayout checks; the server refuses everyone else).
+                  The Workers tab is the same page as /dashboard/workers. */}
+              <Route path="manager" element={<ManagerLayout />}>
+                <Route index element={<ManagerOverview />} />
+                <Route path="workers" element={<Workers />} />
+                <Route path="activity" element={<ManagerActivity />} />
+              </Route>
               <Route path="intake" element={<Intake />} />
               <Route path="shipments" element={<MovedToPackages />} />
               <Route path="shipments/:id" element={<MovedToPackages />} />

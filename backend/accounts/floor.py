@@ -298,6 +298,13 @@ def set_pin(user, pin):
     if reason:
         raise PinRefused(reason)
 
+    # A worker replacing a PIN a manager generated must pick a different one:
+    # the generated PIN has been seen by somebody else, which is the whole
+    # reason it has to change.
+    current = WarehousePin.objects.filter(user=user).first()
+    if current and current.must_change and check_password(pin, current.pin_hash):
+        raise PinRefused("Choose a new PIN, not the one you were given.")
+
     WarehousePin.objects.update_or_create(
         user=user,
         defaults={
@@ -305,9 +312,62 @@ def set_pin(user, pin):
             "set_at": timezone.now(),
             "failed_attempts": 0,
             "locked_at": None,
+            "must_change": False,
         },
     )
     FloorEvent.objects.create(kind=FloorEvent.Kind.PIN_SET, user=user)
+
+
+def generate_pin():
+    """A random PIN that passes weak_pin_reason.
+
+    secrets, not random: random is predictable from its earlier output, and
+    this is a secret. Drawn again until it is not an easy one like 1111 or
+    1234 - a few hundred of the ten thousand, so this loops once or twice at
+    most.
+    """
+    while True:
+        pin = f"{secrets.randbelow(10 ** PIN_LENGTH):0{PIN_LENGTH}d}"
+        if weak_pin_reason(pin) is None:
+            return pin
+
+
+def issue_pin(user, issued_by):
+    """Give `user` a new random PIN and return it, in plain text, ONCE.
+
+    For a manager handing a worker their first PIN, or a replacement for one
+    that was forgotten, locked or seen by somebody else. The old PIN stops
+    working immediately (replaced in the same row), a lock is cleared, and
+    the new one is marked must_change: the worker chooses their own straight
+    after signing in with it.
+
+    The plain PIN exists only in the return value. Only its hash is stored,
+    it is never logged, and nothing can show it again - a lost one is
+    replaced by issuing another.
+    """
+    reason = refusal_reason(user)
+    if reason:
+        raise PinRefused(reason)
+
+    pin = generate_pin()
+    with transaction.atomic():
+        WarehousePin.objects.update_or_create(
+            user=user,
+            defaults={
+                "pin_hash": make_password(pin),
+                "set_at": timezone.now(),
+                "failed_attempts": 0,
+                "locked_at": None,
+                "must_change": True,
+            },
+        )
+        FloorEvent.objects.create(kind=FloorEvent.Kind.PIN_ISSUED, user=user, actor=issued_by)
+    return pin
+
+
+def must_change_pin(user):
+    """Whether `user` is still on a PIN a manager generated."""
+    return WarehousePin.objects.filter(user=user, must_change=True).exists()
 
 
 def reset_pin(user, reset_by):
@@ -348,6 +408,38 @@ def sign_in_with_pin(device, user_id, pin):
 
     user = User.objects.filter(pk=user_id).first() if str(user_id).isdigit() else None
     if user is None or refusal_reason(user):
+        return None
+
+    return user if pin_matches(user, pin, device) else None
+
+
+def sign_in_with_email(email, pin, device=None):
+    """The worker with this e-mail address if `pin` is theirs; None otherwise.
+
+    /warehouse/login on a computer that is not a registered floor device,
+    where the "Who is working?" list is not shown (it would hand anybody who
+    finds the page a list of whom to try). Typed e-mail instead of a tapped
+    name; everything else is the same as sign_in_with_pin - the same five
+    tries per PIN, the same 30-day ceiling, and one None for every way it
+    fails, so the answer never says whether an address works here.
+
+    `device` when there is one anyway, so its cooling-off applies too. The
+    view adds a per-address throttle on top (settings 'warehouse_login').
+    """
+    pin = (pin or "").strip()
+    email = (email or "").strip()
+    if len(pin) != PIN_LENGTH or not pin.isdigit() or not email:
+        return None
+
+    if device is not None and device_is_cooling_off(device):
+        raise DeviceCoolingOff()
+
+    user = User.objects.filter(email__iexact=email).first()
+    if user is None or refusal_reason(user):
+        # Hash something anyway, so an unknown address takes as long to
+        # refuse as a wrong PIN - otherwise the time taken would tell which
+        # addresses belong to a warehouse worker.
+        make_password(pin)
         return None
 
     return user if pin_matches(user, pin, device) else None

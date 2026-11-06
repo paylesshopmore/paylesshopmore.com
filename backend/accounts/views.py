@@ -260,6 +260,23 @@ def open_warehouse(request):
     request.session[floor.WAREHOUSE_UNLOCKED_KEY] = True
 
 
+def finish_pin_sign_in(request, user, device, kind):
+    """Everything after a right PIN, the same for every way of typing one.
+
+    Starts the floor session, records the sign-in (FloorEvent), and - when the
+    PIN is one a manager generated - lets this session choose a new PIN. That
+    session then stays out of the warehouse until it has
+    (IsWarehouseOrStaff), so the generated PIN, which somebody else has seen,
+    is used exactly once.
+    """
+    start_floor_session(request, user)
+    if floor.must_change_pin(user):
+        request.session[floor.MAY_SET_PIN_KEY] = True
+    FloorEvent.objects.create(kind=kind, user=user, device=device)
+    if device is not None:
+        floor.touch(device)
+
+
 class FloorDeviceThrottle(SimpleRateThrottle):
     """Counted per registered device rather than per IP address.
 
@@ -341,12 +358,54 @@ class PinLoginView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        start_floor_session(request, user)
-        FloorEvent.objects.create(kind=FloorEvent.Kind.PIN_SIGN_IN, user=user, device=device)
-        floor.touch(device)
+        finish_pin_sign_in(request, user, device, FloorEvent.Kind.PIN_SIGN_IN)
 
         response = Response(UserSerializer(user).data)
         floor.remember_device(response, request)
+        return response
+
+
+class WarehouseLoginView(APIView):
+    """POST {"email": ..., "pin": "1234"}: /warehouse/login on any computer.
+
+    The registered floor devices keep "tap your name" (PinLoginView); this is
+    the same sign-in for a computer that is not one of them, with the e-mail
+    address typed instead of a name tapped. One 401 with one sentence for
+    every way it fails, so it never says which addresses work here.
+
+    What bounds guessing: each PIN locks after five wrong tries (and ten in
+    30 days), every wrong try is on the record (FloorEvent), and this
+    address may only try so often (settings 'warehouse_login').
+    """
+
+    permission_classes = [AllowAny]
+    throttle_scope = "warehouse_login"
+    throttle_classes = [ScopedRateThrottle]
+
+    def post(self, request):
+        device = floor.device_for(request)
+        try:
+            user = floor.sign_in_with_email(
+                str(request.data.get("email") or ""),
+                str(request.data.get("pin") or ""),
+                device,
+            )
+        except floor.DeviceCoolingOff:
+            return Response(
+                {"detail": "Too many wrong PINs on this device. Wait a few minutes."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        if user is None:
+            return Response(
+                {"detail": "That e-mail address or PIN is not right."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        finish_pin_sign_in(request, user, device, FloorEvent.Kind.EMAIL_PIN_SIGN_IN)
+        response = Response(UserSerializer(user).data)
+        if device is not None:
+            floor.remember_device(response, request)
         return response
 
 
@@ -394,6 +453,9 @@ class WarehouseUnlockView(APIView):
         # same reason login() cycles it.
         request.session.cycle_key()
         open_warehouse(request)
+        # A generated PIN opens the way to choosing their own, as at sign-in.
+        if floor.must_change_pin(user):
+            request.session[floor.MAY_SET_PIN_KEY] = True
         FloorEvent.objects.create(kind=FloorEvent.Kind.PIN_UNLOCK, user=user, device=device)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -473,6 +535,14 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        user = request.user
+        # On the warehouse's record, next to the sign-ins: who was signed in
+        # on which device, and until when. Floor accounts only - a customer
+        # signing out is nobody's audit question.
+        if user.is_warehouse:
+            FloorEvent.objects.create(
+                kind=FloorEvent.Kind.SIGN_OUT, user=user, device=floor.device_for(request)
+            )
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -521,6 +591,9 @@ class ProfileView(generics.RetrieveUpdateAPIView):
             )
             response.data["has_pin"] = pin is not None
             response.data["pin_locked"] = bool(pin and pin.locked_at)
+            # Still on a PIN a manager generated: the app sends them to choose
+            # their own, and the warehouse API refuses them until they have.
+            response.data["pin_must_change"] = bool(pin and pin.must_change)
             # A warehouse manager needs no unlock (IsWarehouseOrStaff), so the
             # app should not ask them for one.
             response.data["warehouse_unlocked"] = bool(

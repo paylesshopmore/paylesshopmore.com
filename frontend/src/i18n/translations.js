@@ -276,6 +276,8 @@ export const translations = {
         saving: 'Opslaan…',
         later: 'Later',
         done: 'Je pincode is opgeslagen.',
+        mustChange:
+          'Je bent ingelogd met een pincode van je leidinggevende. Kies nu je eigen pincode - pas daarna gaat het magazijn open.',
         notAllowed:
           'Je kunt je pincode alleen instellen direct nadat je bent ingelogd met een gemailde code.',
         errors: {
@@ -286,6 +288,24 @@ export const translations = {
       },
       notImplemented:
         'Inloggen is nog niet gekoppeld: er is nog geen server om de gegevens naartoe te sturen.',
+    },
+    // The warehouse's own sign-in page (pages/Warehouse/WarehouseLogin.jsx).
+    warehouseLogin: {
+      title: 'Inloggen magazijn',
+      subtitle: 'Log in met je werk-e-mailadres en je pincode.',
+      email: 'E-mailadres',
+      pin: 'Pincode',
+      pinHint: 'Vier cijfers. Laat niemand meekijken.',
+      submit: 'Inloggen',
+      forgotten: 'Pincode vergeten of geblokkeerd? Vraag je leidinggevende om een nieuwe.',
+      office: 'Kantoor of beheer?',
+      officeLink: 'Inloggen met wachtwoord',
+      errors: {
+        failed: 'Dat e-mailadres of die pincode klopt niet.',
+        tooMany: 'Te veel pogingen. Wacht even en probeer het opnieuw.',
+        email: 'Vul je e-mailadres in.',
+        pin: 'Een pincode is precies vier cijfers.',
+      },
     },
     signup: {
       breadcrumb: 'Aanmelden',
@@ -3213,6 +3233,8 @@ export const translations = {
         saving: 'Saving…',
         later: 'Later',
         done: 'Your PIN is saved.',
+        mustChange:
+          'You signed in with a PIN from your manager. Choose your own PIN now - the warehouse opens once you have.',
         notAllowed:
           'You can only set your PIN straight after signing in with an e-mailed code.',
         errors: {
@@ -3223,6 +3245,24 @@ export const translations = {
       },
       notImplemented:
         'Log in is not connected yet: there is no server to send the details to.',
+    },
+    // The warehouse's own sign-in page (pages/Warehouse/WarehouseLogin.jsx).
+    warehouseLogin: {
+      title: 'Warehouse sign-in',
+      subtitle: 'Sign in with your work e-mail address and your PIN.',
+      email: 'E-mail address',
+      pin: 'PIN',
+      pinHint: 'Four digits. Do not let anybody watch.',
+      submit: 'Sign in',
+      forgotten: 'Forgotten your PIN, or is it locked? Ask your manager for a new one.',
+      office: 'Office or admin?',
+      officeLink: 'Sign in with a password',
+      errors: {
+        failed: 'That e-mail address or PIN is not right.',
+        tooMany: 'Too many tries. Wait a moment and try again.',
+        email: 'Enter your e-mail address.',
+        pin: 'A PIN is exactly four digits.',
+      },
     },
     signup: {
       breadcrumb: 'Sign up',
@@ -6141,6 +6181,8 @@ export const translations = {
         saving: 'Wardando…',
         later: 'Despues',
         done: 'Bo pin ta wardá.',
+        mustChange:
+          'Bo a drenta ku un PIN di bo gerente. Skohe bo mes PIN awor - e pakus ta habri despues.',
         notAllowed:
           'Bo por pone bo pin solamente mesora despues di drenta ku un kódigo manda pa e-mail.',
         errors: {
@@ -6151,6 +6193,24 @@ export const translations = {
       },
       notImplemented:
         'Log in ainda no ta konektá: no tin un server pa manda e datonan.',
+    },
+    // The warehouse's own sign-in page (pages/Warehouse/WarehouseLogin.jsx).
+    warehouseLogin: {
+      title: 'Drenta na pakus',
+      subtitle: 'Drenta ku bo e-mail di trabou i bo PIN.',
+      email: 'Adres di e-mail',
+      pin: 'PIN',
+      pinHint: 'Kuater number. No laga ningun hende wak.',
+      submit: 'Drenta',
+      forgotten: 'Bo a lubida bo PIN, òf e ta blokia? Puntra bo gerente pa un nobo.',
+      office: 'Ofisina òf atministrashon?',
+      officeLink: 'Drenta ku kontraseña',
+      errors: {
+        failed: 'E adres di e-mail òf PIN no ta korekto.',
+        tooMany: 'Muchu purba. Warda un ratu i purba atrobe.',
+        email: 'Yena bo adres di e-mail.',
+        pin: 'Un PIN ta eksaktamente kuater number.',
+      },
     },
     signup: {
       breadcrumb: 'Registrá',

@@ -26,11 +26,13 @@ import ConnectionError from '../../components/ConnectionError/ConnectionError';
 import {
   WORKER_ROLES,
   createCustomer,
+  issueWorkerPin,
   listWorkers,
   resetWorkerPin,
   resetWorkerTwoFactor,
   sendWarehouseSignInCode,
   setCustomerRole,
+  setWorkerActive,
   updateCustomer,
 } from '../../api/staff';
 import { useAuth } from '../../auth/useAuth';
@@ -231,6 +233,32 @@ function codeFailureMessage(caught, d) {
   return d('codeFailed');
 }
 
+/**
+ * A PIN just generated for a worker, shown ONCE (Generate PIN, below).
+ *
+ * The server keeps only a hash of it, so this box is the one place it ever
+ * appears: once Done is pressed it is gone, from this screen and for good.
+ * The handover steps are on the box itself, because the person reading them
+ * is the manager standing next to the worker.
+ */
+function ShownPin({ name, pin, onDone }) {
+  const d = usePageText('workers');
+  return (
+    <section className={styles.officeBox} role="status" aria-label={d('pinShownLabel')}>
+      <p className={styles.officeHead}>{d('pinShownHead', { name })}</p>
+      <p className={styles.shownCode}>{pin}</p>
+      <ol className={styles.officeNote}>
+        <li>{d('pinHandover1', { name })}</li>
+        <li>{d('pinHandover2')}</li>
+        <li>{d('pinHandover3')}</li>
+      </ol>
+      <button type="button" className={styles.rowButton} onClick={onDone}>
+        {d('pinShownDone')}
+      </button>
+    </section>
+  );
+}
+
 export default function Workers() {
   const [params] = useSearchParams();
   // `user` for two things: wording the greyed-out role, and noticing when the
@@ -276,6 +304,8 @@ export default function Workers() {
   // A code shown on screen rather than e-mailed, while the site has no mail
   // set up: { email, code, minutes }. See ShownCode below.
   const [shownCode, setShownCode] = useState(null);
+  // A PIN just generated: { name, pin }, until Done. See ShownPin.
+  const [shownPin, setShownPin] = useState(null);
 
   async function addWorker(draft, clear) {
     setCreatingBusy(true);
@@ -356,6 +386,50 @@ export default function Workers() {
           ? d('resetOnlyAdmin')
           : d('resetFailed'),
       );
+    } finally {
+      setCodeBusy(null);
+    }
+  }
+
+  // Generates a new PIN and shows it once. Replaces any PIN they had, at once,
+  // so it asks first when there is one (a working PIN is about to stop).
+  async function generatePin(worker) {
+    const replacing = worker.pin_status !== 'none';
+    if (replacing && !window.confirm(d('generateConfirm', { name: worker.name }))) {
+      return;
+    }
+    setCodeBusy(`issue-${worker.id}`);
+    setError('');
+    setCodeSent('');
+    setCreated('');
+    setShownCode(null);
+    try {
+      const result = await issueWorkerPin(worker.id);
+      setShownPin({ name: worker.name, pin: result.pin });
+      list.reload();
+    } catch (caught) {
+      const reason = caught?.fields?.detail;
+      setError(reason ? String(reason) : d('generateFailed'));
+    } finally {
+      setCodeBusy(null);
+    }
+  }
+
+  // Switching an account off ends every session it has, at once; on again
+  // lets it sign in as before. Nothing about the account is deleted.
+  async function setActive(worker, active) {
+    if (!active && !window.confirm(d('deactivateConfirm', { name: worker.name }))) {
+      return;
+    }
+    setCodeBusy(`active-${worker.id}`);
+    setError('');
+    setCodeSent('');
+    setCreated('');
+    try {
+      list.replaceRow(await setWorkerActive(worker.id, active));
+      setCodeSent(d(active ? 'activated' : 'deactivated', { name: worker.name }));
+    } catch (caught) {
+      setError(caught?.status === 403 ? d('activeRefused') : d('activeFailed'));
     } finally {
       setCodeBusy(null);
     }
@@ -516,6 +590,7 @@ export default function Workers() {
       <Banner tone="success">{created}</Banner>
       <Banner tone="success">{codeSent}</Banner>
       {shownCode && <ShownCode {...shownCode} onDone={() => setShownCode(null)} />}
+      {shownPin && <ShownPin {...shownPin} onDone={() => setShownPin(null)} />}
 
       {creating && (
         <NewWorkerFields onCreate={addWorker} busy={creatingBusy} errors={createErrors} roles={workerRoles} />
@@ -546,6 +621,7 @@ export default function Workers() {
                   <th scope="col">{d('colEmail')}</th>
                   <th scope="col">{d('colPhone')}</th>
                   <th scope="col">{d('colJoined')}</th>
+                  <th scope="col">{d('colLastLogin')}</th>
                   <th scope="col">{d('colRole')}</th>
                 </tr>
               </thead>
@@ -556,7 +632,7 @@ export default function Workers() {
               {groups.map((group) => (
                 <tbody key={group.value}>
                   <tr className={styles.groupRow}>
-                    <td colSpan={7}>
+                    <td colSpan={8}>
                       <span className={styles.groupLabel}>
                         {group.label}
                         <span className={styles.groupCount}>
@@ -600,6 +676,11 @@ export default function Workers() {
                               )}
                               {worker.pin_status === 'locked' && (
                                 <StatusBadge tone="off">{d('pinLocked')}</StatusBadge>
+                              )}
+                              {/* Generated by a manager; the worker has not yet
+                                  chosen their own. */}
+                              {worker.pin_status === 'issued' && (
+                                <StatusBadge tone="progress">{d('pinIssued')}</StatusBadge>
                               )}
                               {/* Whether their authenticator app (two-factor
                                   sign-in) is set up. "Not set up" only while
@@ -663,6 +744,48 @@ export default function Workers() {
                                   {codeBusy === `pin-${worker.id}` ? d('resetting') : d('resetPin')}
                                 </button>
                               )}
+                            {/* A new PIN, shown once, to hand over in person.
+                                Also how a locked, forgotten or seen PIN is
+                                replaced. Warehouse workers only (the server
+                                refuses everyone else). */}
+                            {canRunFloor &&
+                              worker.role === 'warehouse' &&
+                              worker.is_active &&
+                              !worker.is_erased && (
+                                <button
+                                  type="button"
+                                  className={styles.linkButton}
+                                  aria-label={d('generateLabel', { name: worker.name })}
+                                  disabled={codeBusy === `issue-${worker.id}`}
+                                  onClick={() => generatePin(worker)}
+                                >
+                                  {codeBusy === `issue-${worker.id}`
+                                    ? d('generating')
+                                    : worker.pin_status === 'none'
+                                      ? d('generatePin')
+                                      : d('generateNewPin')}
+                                </button>
+                              )}
+                            {/* Switch off / on. An admin for anybody but
+                                themselves and superusers; a manager for the
+                                warehouse workers they see. The server checks
+                                the same. */}
+                            {(user?.isAdmin || managerOnly) &&
+                              user?.id !== worker.id &&
+                              !worker.is_superuser &&
+                              !worker.is_erased && (
+                                <button
+                                  type="button"
+                                  className={styles.linkButton}
+                                  aria-label={d(worker.is_active ? 'deactivateLabel' : 'activateLabel', {
+                                    name: worker.name,
+                                  })}
+                                  disabled={codeBusy === `active-${worker.id}`}
+                                  onClick={() => setActive(worker, !worker.is_active)}
+                                >
+                                  {d(worker.is_active ? 'deactivate' : 'activate')}
+                                </button>
+                              )}
                             {/* A colleague with a lost or new phone: their
                                 next sign-in sets the app up again. Admins
                                 only, never their own (the server agrees). */}
@@ -706,6 +829,9 @@ export default function Workers() {
                       </td>
 
                       <td className={styles.dateCell}>{formatDate(worker.date_joined)}</td>
+                      <td className={styles.dateCell}>
+                        {worker.last_login ? formatDate(worker.last_login) : d('neverSignedIn')}
+                      </td>
 
                       <td>
                         {/* can_change_role comes from the server, which

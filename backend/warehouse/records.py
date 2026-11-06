@@ -20,7 +20,11 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from staff.permissions import IsStaff, IsWarehouseOrStaff, WarehouseRateThrottle
+from staff.permissions import (
+    IsStaffOrWarehouseManager,
+    IsWarehouseOrStaff,
+    WarehouseRateThrottle,
+)
 
 from . import operations, report
 from .access import SectionAllowed
@@ -357,11 +361,12 @@ class DamageReportViewSet(mixins.RetrieveModelMixin, _RecordViewSet):
 class WarehouseReportView(APIView):
     """GET /api/staff/warehouse/report/?date=YYYY-MM-DD[&export=csv]
 
-    The day's warehouse work per worker. Office only: it compares colleagues,
-    which is a manager's view rather than something for the floor.
+    The day's warehouse work per worker. The office and warehouse managers:
+    it compares colleagues, which is a manager's view rather than something
+    for the floor.
     """
 
-    permission_classes = [IsStaff]
+    permission_classes = [IsStaffOrWarehouseManager]
 
     def get(self, request):
         try:

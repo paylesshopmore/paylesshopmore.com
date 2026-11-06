@@ -254,6 +254,12 @@ class FloorEventAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
+    # The audit trail is only worth something if nobody can tidy it up
+    # afterwards - not even an admin. The warehouse manager's activity log
+    # (warehouse/manager.py) reads these rows.
+    def has_delete_permission(self, request, obj=None):
+        return False
+
 
 @admin.register(SiteSettings)
 class SiteSettingsAdmin(admin.ModelAdmin):

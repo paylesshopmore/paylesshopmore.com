@@ -3,7 +3,7 @@
 from rest_framework.permissions import BasePermission
 from rest_framework.throttling import UserRateThrottle
 
-from accounts.floor import WAREHOUSE_UNLOCKED_KEY
+from accounts.floor import WAREHOUSE_UNLOCKED_KEY, must_change_pin
 
 
 class WarehouseRateThrottle(UserRateThrottle):
@@ -127,6 +127,15 @@ class IsWarehouseOrStaff(BasePermission):
         # password on its own opens the customer profile and nothing here.
         # See accounts/floor.py.
         if user.is_warehouse:
-            return bool(request.session.get(WAREHOUSE_UNLOCKED_KEY))
+            if not request.session.get(WAREHOUSE_UNLOCKED_KEY):
+                return False
+            # Signed in with a PIN a manager generated: somebody else has
+            # seen it, so nothing opens until the worker has chosen their own
+            # (accounts PinView). Checked here, on the server, for every
+            # request - not only by the app sending them to the PIN page.
+            if must_change_pin(user):
+                self.message = "Choose your own PIN first."
+                return False
+            return True
 
         return False

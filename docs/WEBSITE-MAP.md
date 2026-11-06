@@ -177,13 +177,17 @@ sheets, Profile) and the "Guide" button for the warehouse tour.
 
 | Address | File | What it is | Backend |
 |---|---|---|---|
+| `/warehouse/login` | `Warehouse/WarehouseLogin.jsx` | The warehouse's own sign-in: e-mail + PIN, or "tap your name" on a registered device. Office staff are linked on to `/login` | `auth.js` |
 | `/warehouse` | `Warehouse/WarehouseHome.jsx` | Scan button, New intake sheet, the packages in the warehouse | `staff.js` |
 | `/warehouse/scan` | `Dashboard/Scan.jsx` | Camera scanner; opens the package or its intake sheet | `staff.js`, `warehouse.js` |
 | `/warehouse/packages/:id` | `Warehouse/PackagePage.jsx` | One package: verify, measure, pack, damage, photos, history | `staff.js`, `warehouse.js` |
 | `/warehouse/shipments/:id/label` | `Warehouse/ShipmentLabel.jsx` | The printable sticker (barcode + QR) | `staff.js` |
 | `/warehouse/intake` | `Dashboard/Intake.jsx` | Intake sheets: the form, label scanner, damage photos | `staff.js`, `profile.js` |
 | `/warehouse/profile` | `Warehouse/WarehouseProfile.jsx` | The worker's own page | `staff.js`, `profile.js` |
-| `/warehouse/pin` | `Warehouse/SetPinPage.jsx` | Choose a floor PIN after an e-mailed code | `profile.js` |
+| `/warehouse/pin` | `Warehouse/SetPinPage.jsx` | Choose a floor PIN after an e-mailed code, or (required) after signing in with a PIN a manager generated | `profile.js` |
+| `/warehouse/manager` | `Warehouse/ManagerOverview.jsx` (in `ManagerLayout.jsx`) | Warehouse management, admins and warehouse managers only: live numbers, who is signed in, today per worker, packages that need attention | `warehouse.js` (`getManagerStats`) |
+| `/warehouse/manager/workers` | `Dashboard/Workers.jsx` | The Workers page, inside warehouse management: add workers, generate PINs, switch accounts off/on | `staff.js` |
+| `/warehouse/manager/activity` | `Warehouse/ManagerActivity.jsx` | The whole warehouse's activity log (sign-ins, PINs, every package action), filterable by worker, action, tracking number and date | `warehouse.js` (`getManagerActivity`) |
 | `/warehouse/packages`, `/measurements`, `/packaging`, `/damage`, `/activity` | (redirect) | Old addresses; go to `/warehouse` | - |
 
 ### Driver (`/driver`)

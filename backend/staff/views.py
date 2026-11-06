@@ -45,6 +45,7 @@ from accounts import twofactor
 from accounts.emails import send_account_invite, send_email_changed_notice, send_sign_in_code
 from accounts.events import record_event
 from accounts.models import (
+    FloorEvent,
     InvalidShipmentTransition,
     Package,
     PackageDocument,
@@ -1691,6 +1692,59 @@ class CustomerViewSet(
         fresh = self.get_queryset().get(pk=target.pk)
         return Response(self.get_serializer(fresh).data)
 
+
+    @action(detail=True, methods=["post"])
+    def active(self, request, pk=None):
+        """Switch an account off or on again: POST {"active": false} / true.
+
+        Off takes effect immediately: every session the account has is ended
+        here, and a signed-out account cannot sign in again - by password,
+        code or PIN (they all refuse an inactive account). Nothing is deleted,
+        so their shipments, scans and history stay as they were, and switching
+        back on restores the account as it was.
+
+        Who may: an admin, for anybody but themselves and superusers; a
+        warehouse manager, for warehouse workers only - get_queryset already
+        hides everyone else from them, so another id is a 404. Office staff
+        who are not admins may not: switching colleagues off is not theirs.
+        """
+        target = self.get_object()
+        user = request.user
+
+        if not (user.is_admin or user.is_warehouse_manager):
+            raise PermissionDenied("Only an admin or a warehouse manager can do this.")
+        if target.pk == user.pk:
+            raise PermissionDenied("You cannot switch your own account off.")
+        if target.is_superuser:
+            raise PermissionDenied("Superuser accounts are managed in the Django admin.")
+        if target.anonymised_at is not None:
+            raise ValidationError("This account has been erased.")
+
+        raw = request.data.get("active")
+        if not isinstance(raw, bool):
+            raise ValidationError({"active": ["Send true or false."]})
+
+        if target.is_active != raw:
+            with transaction.atomic():
+                target.is_active = raw
+                target.save(update_fields=["is_active", "updated_at"])
+                if target.is_warehouse:
+                    FloorEvent.objects.create(
+                        kind=(
+                            FloorEvent.Kind.ACCOUNT_ACTIVATED
+                            if raw
+                            else FloorEvent.Kind.ACCOUNT_DEACTIVATED
+                        ),
+                        user=target,
+                        actor=user,
+                    )
+            if not raw:
+                # Out now, not at their next click: a device they left signed
+                # in on is closed too.
+                twofactor.sign_out_everywhere(target)
+
+        fresh = self.get_queryset().get(pk=target.pk)
+        return Response(self.get_serializer(fresh).data)
 
     @action(detail=True, methods=["post"], url_path="reset-two-factor")
     def reset_two_factor(self, request, pk=None):

@@ -469,10 +469,13 @@ class AdminTests(FloorTestCase):
 
         rows = self.client.get(EVENTS_URL).data
 
-        latest = rows[0]
-        self.assertEqual(latest["kind"], "pin_sign_in")
-        self.assertEqual(latest["device"], "Scanner 1")
-        self.assertEqual(latest["user"], str(self.worker))
+        # Newest first: signing out is on the record too, on the same device.
+        signed_out, signed_in = rows[0], rows[1]
+        self.assertEqual(signed_out["kind"], "sign_out")
+        self.assertEqual(signed_out["device"], "Scanner 1")
+        self.assertEqual(signed_in["kind"], "pin_sign_in")
+        self.assertEqual(signed_in["device"], "Scanner 1")
+        self.assertEqual(signed_in["user"], str(self.worker))
         self.assertNotIn(PIN, str(rows))
 
     def test_the_workers_list_shows_pin_status_not_the_pin(self):

@@ -1,0 +1,323 @@
+/* src/pages/Warehouse/Manager.module.css
+ *
+ * The warehouse manager's area (ManagerLayout, ManagerOverview,
+ * ManagerActivity). Everything else - headings, tables, badges, filters -
+ * comes from Dashboard.module.css, so this looks like the rest of the office
+ * and warehouse screens. The colour variables (--navy, --line, --muted...)
+ * are set by the dashboard shell that WarehouseLayout wraps every page in.
+ *
+ * Built for an iPad as much as a desk: touch targets of at least 44px, and
+ * nothing that needs hovering to be understood.
+ */
+
+.area {
+  display: grid;
+  gap: 1.25rem;
+}
+
+/* ---- tabs ---------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.75rem;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tab:hover {
+  border-color: var(--cyan);
+}
+
+.tabActive,
+.tabActive:hover {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: #ffffff;
+}
+
+.tab:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.footnote {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ---- overview: the numbers ----------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.updated {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.button {
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--cyan);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* Four across on a desk, two on an iPad held upright, one on a phone. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+/* A number somebody should act on: amber edge. Clear: green edge. */
+.cardWarn {
+  border-left-color: #f59e0b;
+}
+
+.cardOk {
+  border-left-color: #22c55e;
+}
+
+.cardLabel {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.cardValue {
+  color: var(--navy);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.cardNote {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.names {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+
+/* ---- overview: today, and needs attention -------------------------------- */
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.box {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.boxTitle {
+  margin: 0 0 0.75rem;
+  color: var(--navy);
+  font-size: 1.05rem;
+}
+
+.listTitle {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 1rem 0 0.4rem;
+  color: var(--ink);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.listTitle:first-of-type {
+  margin-top: 0;
+}
+
+.list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One row per package: a big tap target that opens it. */
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.item:hover {
+  border-color: var(--cyan);
+}
+
+.item:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.itemMain {
+  display: grid;
+  min-width: 0;
+}
+
+.itemTitle {
+  font-weight: 700;
+}
+
+.itemNote {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemOpen {
+  flex: none;
+  color: var(--cyan-text);
+  font-weight: 700;
+}
+
+.muted {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* ---- activity log -------------------------------------------------------- */
+
+.filters {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.fieldLabel {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.input:focus {
+  outline: 3px solid rgba(14, 165, 233, 0.35);
+  border-color: var(--cyan);
+}
+
+.changes {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.when {
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .cards,
+  .filters {
+    grid-template-columns: 1fr;
+  }
+}

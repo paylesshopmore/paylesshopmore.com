@@ -244,3 +244,32 @@ class WorkerPinResetView(APIView):
                 status=http_status.HTTP_400_BAD_REQUEST,
             )
         return Response(status=http_status.HTTP_204_NO_CONTENT)
+
+
+class WorkerPinIssueView(APIView):
+    """POST: generate a new PIN for a warehouse worker, shown ONCE.
+
+    For a worker's first PIN, or a replacement for one that was forgotten,
+    locked or seen by somebody else: the old PIN stops working at once. The
+    answer carries the new PIN in plain text, this one time only - it is
+    stored hashed, never logged, and cannot be shown again. The worker signs
+    in with it and must then choose their own (WarehousePin.must_change).
+
+    Warehouse workers only (floor.refusal_reason): a manager cannot give a PIN
+    to another manager, an admin or the office, who sign in with passwords.
+    """
+
+    permission_classes = [IsWarehouseManager]
+
+    def post(self, request, pk):
+        worker = get_object_or_404(User, pk=pk)
+        try:
+            pin = floor.issue_pin(worker, request.user)
+        except floor.PinRefused as refusal:
+            return Response({"detail": str(refusal)}, status=http_status.HTTP_400_BAD_REQUEST)
+
+        response = Response({"pin": pin, "worker": worker.get_full_name() or worker.email})
+        # Never kept by the browser or anything in between: the PIN is in
+        # this one answer and nowhere else.
+        response["Cache-Control"] = "no-store"
+        return response

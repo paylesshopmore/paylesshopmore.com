@@ -33,7 +33,8 @@ import dashboard from '../Dashboard/Dashboard.module.css';
 import AccountMenu from '../../components/AccountMenu/AccountMenu';
 import { tourForPath } from '../../components/Tutorial/tutorialSteps';
 import { useTutorial } from '../../components/Tutorial/useTutorial';
-import { HelpIcon, HomeIcon, LogOutIcon, MenuIcon, ScanIcon, SheetIcon, UserIcon } from './icons';
+import { ClockIcon, HelpIcon, HomeIcon, LogOutIcon, MenuIcon, ScanIcon, SheetIcon, UserIcon } from './icons';
+import { canManageWarehouse } from '../Dashboard/managerAccess';
 import styles from './Warehouse.module.css';
 
 const NAV = [
@@ -43,6 +44,8 @@ const NAV = [
   // (Dashboard -> Warehouse access); it is then left out of the menu.
   { to: '/warehouse/intake', labelKey: 'intake', icon: SheetIcon, section: 'intake', primary: true },
   { to: '/warehouse/profile', labelKey: 'profile', icon: UserIcon },
+  // Warehouse management (ManagerLayout): admins and warehouse managers only.
+  { to: '/warehouse/manager', labelKey: 'management', icon: ClockIcon, managers: true },
 ];
 
 /** The switched-off section the current address belongs to, if any. */
@@ -143,7 +146,10 @@ export default function WarehouseLayout() {
     };
   }, []);
   const access = useMemo(() => ({ can: (section) => mine?.[section] ?? true }), [mine]);
-  const nav = NAV.filter((item) => !item.section || access.can(item.section));
+  const nav = NAV.filter(
+    (item) =>
+      (!item.section || access.can(item.section)) && (!item.managers || canManageWarehouse(user)),
+  );
   const blocked = blockedSection(pathname, access.can);
 
   // A warehouse account without the office: somebody on the floor, on a device
@@ -154,10 +160,11 @@ export default function WarehouseLayout() {
   async function handleSignOut() {
     await signOut();
     // The next person to touch a floor device is a colleague about to sign in,
-    // so it goes straight to the code form - not the public home page, which
-    // is a hunt for the login link with somebody waiting behind them. Office
-    // accounts, who use this app from their own computer, still go home.
-    navigate(isFloorOnly ? '/login?method=code' : '/', { replace: true });
+    // so it goes straight to the warehouse's own sign-in page - not the public
+    // home page, which is a hunt for the login link with somebody waiting
+    // behind them. Office accounts, who use this app from their own computer,
+    // still go home.
+    navigate(isFloorOnly ? '/warehouse/login' : '/', { replace: true });
   }
 
   return (

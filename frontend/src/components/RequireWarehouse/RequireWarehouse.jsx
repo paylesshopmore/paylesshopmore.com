@@ -23,7 +23,9 @@ export default function RequireWarehouse({ children }) {
   if (!isAuthenticated) {
     return (
       <Navigate
-        to="/login"
+        // The warehouse's own sign-in page (e-mail and PIN); it links on to
+        // the ordinary /login for office staff, who use a password.
+        to="/warehouse/login"
         replace
         // The query string too: /warehouse/intake?sheet=41 from the handover
         // e-mail should still open that sheet after signing in.
@@ -49,6 +51,19 @@ export default function RequireWarehouse({ children }) {
         to="/profile"
         replace
         state={{ openWarehouse: true, from: `${location.pathname}${location.search}` }}
+      />
+    );
+  }
+
+  // Signed in with a PIN a manager generated: their own PIN first. The
+  // server refuses every warehouse request until then anyway; this just
+  // takes them to the page that fixes it instead of a page full of errors.
+  if (user?.mustChangePin && location.pathname !== '/warehouse/pin') {
+    return (
+      <Navigate
+        to="/warehouse/pin"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
       />
     );
   }

@@ -209,3 +209,26 @@ export function errorMessage(error, fallback, t) {
   }
   return fallback ?? (t ? t('dashboard.flow.errors.generic') : 'That did not save. Check the connection and try again.');
 }
+
+// ---- The warehouse manager's dashboard (/warehouse/manager) ----------------
+// Admins and warehouse managers only; the server refuses everyone else.
+
+/**
+ * The overview: counts, who is signed in now, today's work per worker, and
+ * the packages that need somebody. See backend warehouse/manager.py.
+ */
+export async function getManagerStats() {
+  return request('/staff/warehouse/manager/stats/');
+}
+
+/**
+ * One page of the warehouse activity log, newest first.
+ * @param {{ worker?: number|string, action?: string, tracking?: string,
+ *           package?: number|string, date_from?: string, date_to?: string,
+ *           page?: number, options?: boolean }} params
+ *   `options: true` also returns the people and actions for the filters.
+ */
+export async function getManagerActivity(params = {}) {
+  const { options, ...rest } = params;
+  return request(`/staff/warehouse/manager/activity/${query({ ...rest, options: options ? 1 : '' })}`);
+}

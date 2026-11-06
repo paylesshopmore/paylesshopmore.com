@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getOverview, lookupWarehouseShipment } from '../../api/staff';
 import { useAuth } from '../../auth/useAuth';
-import { MANAGER_HOME, isManagerOnly, mayOpen } from './managerAccess';
+import { MANAGER_HOME, canManageWarehouse, isManagerOnly, mayOpen } from './managerAccess';
 import { usePageText } from './usePageText';
 import AccountMenu from '../../components/AccountMenu/AccountMenu';
 import LanguageMenu from '../../components/LanguageSwitcher/LanguageMenu';
@@ -151,6 +151,14 @@ const GROUPS = [
       { to: '/warehouse', labelKey: 'dashboard.office.nav.warehouseDashboard', icon: HouseIcon, end: true },
       { to: '/warehouse/scan', labelKey: 'dashboard.office.nav.scan', icon: BoxIcon },
       { to: '/warehouse/intake', labelKey: 'dashboard.office.nav.intake', icon: FileIcon },
+      // Warehouse management: the floor's numbers, workers and activity log.
+      // Admins and warehouse managers (`floorManagers`).
+      {
+        to: '/warehouse/manager',
+        labelKey: 'dashboard.office.nav.warehouseManagement',
+        icon: ShieldIcon,
+        floorManagers: true,
+      },
     ],
   },
 ];
@@ -239,7 +247,9 @@ export default function DashboardLayout() {
     ...group,
     links: group.links.filter(
       (link) =>
-        (!link.adminOnly || user?.isAdmin) && (link.to.startsWith('/warehouse') || mayOpen(user, link.to)),
+        (!link.adminOnly || user?.isAdmin) &&
+        (!link.floorManagers || canManageWarehouse(user)) &&
+        (link.to.startsWith('/warehouse') || mayOpen(user, link.to)),
     ),
   })).filter((group) => group.links.length > 0);
 

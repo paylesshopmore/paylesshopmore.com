@@ -44,6 +44,8 @@ urlpatterns = [
     # and signing in from it with a PIN. Refused from any other device.
     path("auth/floor/", views.FloorRosterView.as_view(), name="floor-roster"),
     path("auth/pin-login/", views.PinLoginView.as_view(), name="pin-login"),
+    # /warehouse/login on a computer that is not a registered floor device.
+    path("auth/warehouse-login/", views.WarehouseLoginView.as_view(), name="warehouse-login"),
     # A warehouse worker signed in with a password: e-mail and PIN open the
     # warehouse from the profile page.
     path(

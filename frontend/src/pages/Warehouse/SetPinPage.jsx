@@ -90,7 +90,10 @@ export default function SetPinPage() {
     <main className={styles.page}>
       <div className={styles.card}>
         <h1 className={styles.title}>{t('login.setPin.title')}</h1>
-        <p className={styles.subtitle}>{t('login.setPin.subtitle')}</p>
+        <p className={styles.subtitle}>
+          {/* After a PIN a manager generated: say why they are here. */}
+          {user.mustChangePin ? t('login.setPin.mustChange') : t('login.setPin.subtitle')}
+        </p>
 
         {message && (
           <p className={styles.failure} role="alert">
@@ -153,11 +156,15 @@ export default function SetPinPage() {
           </button>
         </form>
 
-        <p className={styles.footer}>
-          <Link to={next} replace className={styles.footerLink}>
-            {t('login.setPin.later')}
-          </Link>
-        </p>
+        {/* No "Later" after a generated PIN: the warehouse stays closed
+            until they have chosen their own, so there is nowhere to go. */}
+        {!user.mustChangePin && (
+          <p className={styles.footer}>
+            <Link to={next} replace className={styles.footerLink}>
+              {t('login.setPin.later')}
+            </Link>
+          </p>
+        )}
       </div>
     </main>
   );

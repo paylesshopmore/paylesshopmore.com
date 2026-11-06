@@ -484,6 +484,13 @@ REST_FRAMEWORK = {
         # e-mail and PIN, per account. The PIN's own five-try lock is what
         # bounds guessing; this is a ceiling on the noise.
         'warehouse_unlock': '30/hour',
+        # /warehouse/login with an e-mail address and PIN, on a computer that is
+        # not a registered floor device. Per IP address, so it cannot be
+        # spread across accounts the way the per-account limits can. A
+        # warehouse is one public address, so not tighter than a shift's
+        # sign-ins; each PIN still locks after five wrong tries
+        # (accounts/floor.py), which is what really bounds guessing.
+        'warehouse_login': '60/hour',
         # Typing an authenticator code, per account. Wrong codes also pause
         # the account after five (accounts/twofactor.py); this is the ceiling.
         'two_factor': '30/hour',
