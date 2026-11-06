@@ -63,6 +63,25 @@
   animation: rise 220ms ease-out;
 }
 
+/* Phones: the sheet slides up from the bottom edge. */
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -230,18 +249,95 @@
   color: #111827;
 }
 
-/* Phones: the language rail lies across the bottom-right, so both the button
-   and the panel sit above it. */
+/* The dimmed page behind the open panel. Phones only (see below): on a
+   computer the panel is a small card in the corner and the page stays usable
+   beside it. */
+.sheetBackdrop {
+  display: none;
+}
+
+/* Phones: the panel becomes a "bottom sheet" - full width, stuck to the bottom
+   edge, rounded top corners, the page dimmed behind it. It used to float as a
+   card above the language rail, which on a phone left odd gaps on every side
+   and let the language flag poke into its bottom corner. */
 @media (max-width: 720px) {
-  .launcher,
-  .panel {
+  /* The closed robot button still sits above the language rail. */
+  .launcher {
     bottom: 4.5rem;
+  }
+
+  .sheetBackdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    /* Above the language rail (80), below the header (100). */
+    z-index: 89;
+    border: 0;
+    padding: 0;
+    background: rgba(11, 37, 69, 0.4);
+    animation: fadeIn 200ms ease-out;
   }
 
   .panel {
     --guide-header: 72px;
-    max-height: calc(100vh - var(--guide-header) - 5.5rem);
-    max-height: calc(100dvh - var(--guide-header) - 5.5rem);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 90;
+    width: 100%;
+    /* Never under the header: it can grow up to just below it. */
+    max-height: calc(100vh - var(--guide-header) - 0.75rem);
+    max-height: calc(100dvh - var(--guide-header) - 0.75rem);
+    padding: 0.5rem 1rem 1rem;
+    /* Room for the iPhone home bar, where there is one. */
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    border: 0;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 30px rgba(11, 37, 69, 0.18);
+    overscroll-behavior: contain;
+    animation: sheetUp 240ms ease-out;
+  }
+
+  /* The little grey "handle" bar at the top, which is how phone users
+     recognise a sheet that slid up from the bottom. Decoration only. */
+  .panel::before {
+    content: '';
+    display: block;
+    flex: none;
+    width: 40px;
+    height: 4px;
+    margin: 0 auto 0.6rem;
+    border-radius: 999px;
+    background: #cbd5e1;
+  }
+
+  /* The chat: full width too, and nearly the full height of the screen, so
+     the conversation has room. */
+  .chatMode {
+    width: 100%;
+    height: calc(100vh - var(--guide-header) - 0.75rem);
+    height: calc(100dvh - var(--guide-header) - 0.75rem);
+  }
+
+  .head {
+    margin-bottom: 0.75rem;
+  }
+
+  .panelRobot {
+    width: 42px;
+  }
+
+  .greeting {
+    font-size: 1.1rem;
+  }
+
+  /* Bigger, easier to tap than the small underlined link on a computer. */
+  .dismiss {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.6rem 0;
+    text-align: center;
   }
 
   .launcher {
@@ -256,7 +352,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel {
+  .panel,
+  .sheetBackdrop {
     animation: none;
   }
 
@@ -417,7 +514,8 @@
    names on the "Who is working?" list. */
 :global(html[data-floor-device]) .launcher,
 :global(html[data-floor-device]) .panel,
-:global(html[data-floor-device]) .hint {
+:global(html[data-floor-device]) .hint,
+:global(html[data-floor-device]) .sheetBackdrop {
   display: none;
 }
 

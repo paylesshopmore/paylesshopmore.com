@@ -333,8 +333,34 @@
 
   .inner {
     padding: 0 1rem;
-    /* The sheet is positioned against this row */
-    flex-wrap: wrap;
+    /* One row, always. This used to be `wrap`, and on a phone with larger
+       text (an Android font-size setting) the logo and name no longer fit
+       beside the bell and the menu button, so those two dropped onto a second
+       row and left a big empty white band under the logo. The menu sheet is
+       position: absolute, so it never needed wrapping to sit below the bar. */
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+  }
+
+  /* The logo gives up room first; the bell and menu button never shrink. */
+  .logo {
+    min-width: 0;
+    gap: 0.4rem;
+  }
+
+  .logoMark {
+    height: 38px;
+  }
+
+  /* If it still does not fit, the name ends in "..." instead of pushing the
+     buttons off the row. */
+  .logo > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .barEnd {
+    flex: none;
   }
 
   .menuButton {
@@ -469,7 +495,11 @@
 /* Very small phones: the wordmark needs to give up some size */
 @media (max-width: 420px) {
   .logo {
-    font-size: 1.05rem;
+    font-size: 1rem;
+  }
+
+  .logoMark {
+    height: 34px;
   }
 }
 

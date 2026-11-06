@@ -289,38 +289,44 @@ export default function PageGuide() {
   // the conversation (ChatPanel) filling the rest of the panel.
   if (chat.chatOpen) {
     return (
-      <aside
-        className={`${styles.panel} ${styles.chatMode}`}
-        aria-label={t('chat.title')}
-        data-tour="help"
-      >
-        <div className={styles.head}>
-          <button
-            type="button"
-            className={styles.iconButton}
-            onClick={() => setChatOpen(false)}
-            aria-label={t('chat.back')}
-            title={t('chat.back')}
-          >
-            <ChevronRightIcon size={18} className={styles.backIcon} />
-          </button>
-          <RobotGuide className={styles.chatRobot} speaking={chat.busy} />
-          <div className={styles.chatHeading}>
-            <h2 className={styles.greeting}>{t('chat.title')}</h2>
-            <p className={styles.chatSubtitle}>{t('chat.subtitle')}</p>
+      <>
+        {/* Phones only (CSS hides it elsewhere): dims the page behind the
+            sheet, and tapping it closes the panel, as people expect. Hidden
+            from screen readers - the × button is the real way to close. */}
+        <div className={styles.sheetBackdrop} onClick={close} aria-hidden="true" />
+        <aside
+          className={`${styles.panel} ${styles.chatMode}`}
+          aria-label={t('chat.title')}
+          data-tour="help"
+        >
+          <div className={styles.head}>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={() => setChatOpen(false)}
+              aria-label={t('chat.back')}
+              title={t('chat.back')}
+            >
+              <ChevronRightIcon size={18} className={styles.backIcon} />
+            </button>
+            <RobotGuide className={styles.chatRobot} speaking={chat.busy} />
+            <div className={styles.chatHeading}>
+              <h2 className={styles.greeting}>{t('chat.title')}</h2>
+              <p className={styles.chatSubtitle}>{t('chat.subtitle')}</p>
+            </div>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={close}
+              aria-label={t('guide.close')}
+              title={t('guide.close')}
+            >
+              <CloseIcon size={18} />
+            </button>
           </div>
-          <button
-            type="button"
-            className={styles.iconButton}
-            onClick={close}
-            aria-label={t('guide.close')}
-            title={t('guide.close')}
-          >
-            <CloseIcon size={18} />
-          </button>
-        </div>
-        <ChatPanel />
-      </aside>
+          <ChatPanel />
+        </aside>
+      </>
     );
   }
 
@@ -333,96 +339,102 @@ export default function PageGuide() {
   //   4. "Stop showing this automatically", small, at the bottom.
   // Pages without an explanation show only 1 and 3.
   return (
-    <aside
-      className={styles.panel}
-      aria-label={t('guide.panelLabel')}
-      data-tour="help"
-    >
-      <div className={styles.head}>
-        <RobotGuide className={styles.panelRobot} speaking={speaking} />
-        <h2 className={styles.greeting}>{t('guide.greeting')}</h2>
+    <>
+      {/* Phones only (CSS hides it elsewhere): dims the page behind the
+          sheet, and tapping it closes the panel, as people expect. Hidden
+          from screen readers - the × button is the real way to close. */}
+      <div className={styles.sheetBackdrop} onClick={close} aria-hidden="true" />
+      <aside
+        className={styles.panel}
+        aria-label={t('guide.panelLabel')}
+        data-tour="help"
+      >
+        <div className={styles.head}>
+          <RobotGuide className={styles.panelRobot} speaking={speaking} />
+          <h2 className={styles.greeting}>{t('guide.greeting')}</h2>
 
-        {/* Read aloud, as an icon: the label is in aria-label and the
-            tooltip. Only where there is a page explanation to read. */}
-        {pageKey && supported && (
-          <button
-            type="button"
-            className={`${styles.iconButton} ${speaking ? styles.listening : ''}`}
-            onClick={toggleVoice}
-            aria-pressed={speaking}
-            aria-label={speaking ? t('guide.stop') : t('guide.listen')}
-            title={speaking ? t('guide.stop') : t('guide.listen')}
-          >
-            {speaking ? <StopIcon size={18} /> : <SpeakerIcon size={18} />}
-          </button>
-        )}
-
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={close}
-          aria-label={t('guide.close')}
-          title={t('guide.close')}
-        >
-          <CloseIcon size={18} />
-        </button>
-      </div>
-
-      {chat.enabled && (
-        <button type="button" className={styles.askButton} onClick={openChat}>
-          <span className={styles.askIcon}>
-            <ChatIcon size={20} />
-          </span>
-          <span className={styles.askText}>
-            <strong>{t('chat.ask')}</strong>
-            <span>{t('chat.subtitle')}</span>
-          </span>
-          <ChevronRightIcon size={18} />
-        </button>
-      )}
-
-      {pageKey && (
-        <section className={styles.page}>
-          <p className={styles.eyebrow}>{t('guide.onThisPage')}</p>
-          <h3 className={styles.title}>{title}</h3>
-          {/* Cut to three lines until "Read more" (see .clamped). The full
-              text is always in the page, so screen readers read all of it. */}
-          <p className={`${styles.body} ${expanded ? '' : styles.clamped}`}>{body}</p>
-
-          {expanded && bullets.length > 0 && (
-            <ul className={styles.bullets}>
-              {bullets.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
+          {/* Read aloud, as an icon: the label is in aria-label and the
+              tooltip. Only where there is a page explanation to read. */}
+          {pageKey && supported && (
+            <button
+              type="button"
+              className={`${styles.iconButton} ${speaking ? styles.listening : ''}`}
+              onClick={toggleVoice}
+              aria-pressed={speaking}
+              aria-label={speaking ? t('guide.stop') : t('guide.listen')}
+              title={speaking ? t('guide.stop') : t('guide.listen')}
+            >
+              {speaking ? <StopIcon size={18} /> : <SpeakerIcon size={18} />}
+            </button>
           )}
 
           <button
             type="button"
-            className={styles.more}
-            onClick={() => setExpanded((value) => !value)}
-            aria-expanded={expanded}
+            className={styles.iconButton}
+            onClick={close}
+            aria-label={t('guide.close')}
+            title={t('guide.close')}
           >
-            {expanded ? t('guide.less') : t('guide.more')}
-            <ChevronRightIcon
-              size={16}
-              className={expanded ? styles.moreIconOpen : styles.moreIcon}
-            />
+            <CloseIcon size={18} />
           </button>
-        </section>
-      )}
+        </div>
 
-      {/* The help options. "How to order" goes to the tutorial page.
-          Choosing anything closes this panel first. */}
-      <TutorialHelpMenu onChoose={close} />
+        {chat.enabled && (
+          <button type="button" className={styles.askButton} onClick={openChat}>
+            <span className={styles.askIcon}>
+              <ChatIcon size={20} />
+            </span>
+            <span className={styles.askText}>
+              <strong>{t('chat.ask')}</strong>
+              <span>{t('chat.subtitle')}</span>
+            </span>
+            <ChevronRightIcon size={18} />
+          </button>
+        )}
 
-      {/* Only where the panel opens by itself, i.e. where there is a page
-          explanation. */}
-      {pageKey && (
-        <button type="button" className={styles.dismiss} onClick={silence}>
-          {t('guide.dontShow')}
-        </button>
-      )}
-    </aside>
+        {pageKey && (
+          <section className={styles.page}>
+            <p className={styles.eyebrow}>{t('guide.onThisPage')}</p>
+            <h3 className={styles.title}>{title}</h3>
+            {/* Cut to three lines until "Read more" (see .clamped). The full
+                text is always in the page, so screen readers read all of it. */}
+            <p className={`${styles.body} ${expanded ? '' : styles.clamped}`}>{body}</p>
+
+            {expanded && bullets.length > 0 && (
+              <ul className={styles.bullets}>
+                {bullets.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            )}
+
+            <button
+              type="button"
+              className={styles.more}
+              onClick={() => setExpanded((value) => !value)}
+              aria-expanded={expanded}
+            >
+              {expanded ? t('guide.less') : t('guide.more')}
+              <ChevronRightIcon
+                size={16}
+                className={expanded ? styles.moreIconOpen : styles.moreIcon}
+              />
+            </button>
+          </section>
+        )}
+
+        {/* The help options. "How to order" goes to the tutorial page.
+            Choosing anything closes this panel first. */}
+        <TutorialHelpMenu onChoose={close} />
+
+        {/* Only where the panel opens by itself, i.e. where there is a page
+            explanation. */}
+        {pageKey && (
+          <button type="button" className={styles.dismiss} onClick={silence}>
+            {t('guide.dontShow')}
+          </button>
+        )}
+      </aside>
+    </>
   );
 }
