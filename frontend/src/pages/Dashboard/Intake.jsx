@@ -38,6 +38,7 @@ import {
   INTAKE_STATUSES,
   assignIntakeFreight,
   createIntakeSheet,
+  deleteIntakeSheet,
   getIntakeRecipients,
   getIntakeSheet,
   listIntakeSheets,
@@ -379,8 +380,18 @@ function SheetCustomer({ sheet, locked }) {
   );
 }
 
+// The review badge's colour per status (warehouse/review.py).
+const REVIEW_TONES = {
+  awaiting_review: 'attention',
+  needs_correction: 'off',
+  approved: 'done',
+  completed: 'neutral',
+};
+
 function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
   const d = usePageText('intake');
+  const r = usePageText('warehouseReview');
+  const n = usePageText('warehouseIntakes');
   const c = usePageText('common');
   // The label reader's words, for the tracking-number line in Notes.
   const dc = usePageText('intakeCamera');
@@ -393,7 +404,14 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
   // Step by step, or the whole form at once (the switch above the form).
   const [mode, setMode] = useState(readMode);
 
-  const locked = sheet.released;
+  // What the server says this person may do with the sheet (absent on an
+  // answer from an older server: then everything, as before).
+  const allowed = sheet.permissions ?? {};
+  // Read-only when it was handed over, when a manager archived it, or when
+  // another worker started it (a worker corrects their own drafts only).
+  // The server refuses the change in each case anyway.
+  const notYours = !sheet.released && !sheet.archived && allowed.edit === false;
+  const locked = sheet.released || Boolean(sheet.archived) || notYours;
   // The wizard is for filling in. A released sheet is read, not filled in,
   // so it always shows every part at once - as does the "whole form" mode.
   const wizard = mode === 'wizard' && !locked;
@@ -749,6 +767,10 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
     <div>
       {/* The pop-up around it (Intake, below) carries the title and Close. */}
       <div className={styles.intakeHead}>
+        {/* The intake number the floor calls it by: "Intake 007". */}
+        {sheet.number_display && (
+          <StatusBadge tone="neutral">{n('number', { number: sheet.number_display })}</StatusBadge>
+        )}
         <StatusBadge tone={TONES[sheet.status]}>
           {labelFor(c, 'intakeStatus', sheet.status, sheet.status_display)}
         </StatusBadge>
@@ -761,6 +783,12 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
         <FreightControl sheet={sheet} onSaved={onSaved} />
         {/* Whose goods: the customer, or a way to find them. */}
         <SheetCustomer sheet={sheet} locked={locked} />
+        {/* The manager's review (warehouse/review.py), once there is one. */}
+        {['awaiting_review', 'needs_correction', 'approved', 'completed'].includes(sheet.quality_status) && (
+          <StatusBadge tone={REVIEW_TONES[sheet.quality_status]}>
+            {r(`status.${sheet.quality_status}`)}
+          </StatusBadge>
+        )}
         {/* Step by step or the whole form: the worker's choice. */}
         {!locked && (
           <div className={styles.modeSwitch} role="group" aria-label={d('modeLabel')}>
@@ -779,7 +807,20 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
         )}
       </div>
 
-      {locked && (
+      {/* Sent back by a manager: what to fix, in their words. */}
+      {sheet.quality_status === 'needs_correction' && sheet.review_note && (
+        <Banner tone="error">
+          {r('sentBackBy', { name: sheet.reviewed_by_name || d('somebody'), note: sheet.review_note })}{' '}
+          {r('sentBackHint')}
+        </Banner>
+      )}
+
+      {sheet.archived && (
+        <Banner tone="info">{n('archivedNote', { reason: sheet.archive_reason || '-' })}</Banner>
+      )}
+      {notYours && <Banner tone="info">{n('notYours')}</Banner>}
+
+      {sheet.released && (
         <>
           <Banner tone="info">
             {d('releasedBy', {
@@ -796,17 +837,22 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
               a plain Edit button: reopening is a decision, because the people
               who were already e-mailed are working from the version this is
               about to replace. */}
-          <div className={styles.intakeActions}>
-            <button
-              type="button"
-              className={styles.rowButton}
-              disabled={busy !== ''}
-              onClick={reopen}
-            >
-              {busy === 'reopen' ? d('reopening') : d('reopen')}
-            </button>
-            <p className={styles.intakeHint}>{d('reopenHint')}</p>
-          </div>
+          {/* Reopening: managers and the office. A worker is told to ask. */}
+          {allowed.reopen === false ? (
+            !sheet.archived && <p className={styles.intakeHint}>{n('askManager')}</p>
+          ) : (
+            <div className={styles.intakeActions}>
+              <button
+                type="button"
+                className={styles.rowButton}
+                disabled={busy !== ''}
+                onClick={reopen}
+              >
+                {busy === 'reopen' ? d('reopening') : d('reopen')}
+              </button>
+              <p className={styles.intakeHint}>{d('reopenHint')}</p>
+            </div>
+          )}
         </>
       )}
 
@@ -1237,12 +1283,20 @@ export default function Intake() {
   const [params, setParams] = useSearchParams();
   const d = usePageText('intake');
   const c = usePageText('common');
+  // The review filter and badges (warehouse/review.py).
+  const r = usePageText('warehouseReview');
+  // Intake numbers and deleting empty intakes (warehouse/intake_numbers.py).
+  const n = usePageText('warehouseIntakes');
+  // "Intake 027 was deleted" after a manager deletes one from the list.
+  const [deleted, setDeleted] = useState('');
 
   const list = useCollection(
     listIntakeSheets,
     {
       status: params.get('status') ?? '',
       freight: params.get('freight') ?? '',
+      // Sheets a manager sent back, or released ones awaiting review.
+      review: params.get('review') ?? '',
     },
     params.get('search') ?? '',
   );
@@ -1326,6 +1380,23 @@ export default function Intake() {
 
   const sheet = list.rows.find((row) => row.id === openId) ?? null;
 
+  // Delete an EMPTY intake (admins and warehouse managers only: the button
+  // shows only when the server says `permissions.delete`). Its number is
+  // then free for the next new intake. The server checks again.
+  async function removeSheet(row) {
+    const number = row.number_display || row.label;
+    if (!window.confirm(n('deleteConfirm', { number }))) return;
+    setError('');
+    setDeleted('');
+    try {
+      await deleteIntakeSheet(row.id);
+      setDeleted(n('deleted', { number }));
+      list.reload();
+    } catch (caught) {
+      setError(caught?.status === 409 ? n('notEmpty') : n('failed'));
+    }
+  }
+
   // Whether the open sheet has typing nobody saved yet (SheetForm says).
   const dirtyRef = useRef(false);
   const setSheetDirty = useCallback((dirty) => {
@@ -1359,6 +1430,16 @@ export default function Intake() {
           allLabel={c('anyStatus')}
         />
         <FilterSelect
+          label={r('reviewFilter')}
+          value={list.filters.review}
+          onChange={(value) => list.setFilter('review', value)}
+          options={['needs_correction', 'awaiting_review'].map((value) => ({
+            value,
+            label: r(`status.${value}`),
+          }))}
+          allLabel={r('anyReview')}
+        />
+        <FilterSelect
           label={d('field.freight')}
           value={list.filters.freight}
           onChange={(value) => list.setFilter('freight', value)}
@@ -1376,6 +1457,7 @@ export default function Intake() {
       </Toolbar>
 
       <Banner tone="error">{error}</Banner>
+      <Banner tone="success">{deleted}</Banner>
 
       {/* Sits above the list rather than inside a sheet: it is a standing
           preference about every future handover, not a choice about this one.
@@ -1417,7 +1499,9 @@ export default function Intake() {
                     className={row.status === 'draft' ? styles.rowUnhandled : undefined}
                   >
                     <td>
-                      <div className={styles.primaryCell}>{row.label}</div>
+                      <div className={styles.primaryCell}>
+                        {row.number_display ? `${row.number_display} · ${row.label}` : row.label}
+                      </div>
                       <div className={styles.mutedCell}>
                         {row.created_by_name || d('unknown')}
                       </div>
@@ -1429,6 +1513,20 @@ export default function Intake() {
                       >
                         {d('openSheet')}
                       </button>
+                      {/* Only on an empty intake, only for a manager or admin. */}
+                      {row.permissions?.delete && (
+                        <>
+                          {' · '}
+                          <button
+                            type="button"
+                            className={styles.linkButton}
+                            onClick={() => removeSheet(row)}
+                            aria-label={n('deleteLabel', { number: row.number_display || row.label })}
+                          >
+                            {n('delete')}
+                          </button>
+                        </>
+                      )}
                     </td>
 
                     <td className={styles.dateCell}>{formatDate(row.received_on)}</td>
@@ -1468,6 +1566,11 @@ export default function Intake() {
                       <StatusBadge tone={TONES[row.status]}>
                         {labelFor(c, 'intakeStatus', row.status, row.status_display)}
                       </StatusBadge>
+                      {row.quality_status === 'needs_correction' && (
+                        <div>
+                          <StatusBadge tone="off">{r('status.needs_correction')}</StatusBadge>
+                        </div>
+                      )}
                       {row.status === 'draft' && row.missing?.length > 0 && (
                         <div className={styles.mutedCell}>
                           {d('stillToFillCount', { count: row.missing.length })}

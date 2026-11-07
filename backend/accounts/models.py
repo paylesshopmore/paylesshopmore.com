@@ -1663,13 +1663,41 @@ class WarehousePin(models.Model):
         return f"PIN for {self.user_id}"
 
 
+class AuditRecordImmutable(Exception):
+    """Somebody tried to change or delete a row of the audit trail."""
+
+
+class FloorEventQuerySet(models.QuerySet):
+    """Refuses bulk update() and delete(): they skip FloorEvent.save/delete.
+
+    (A user or device being deleted still sets their columns to empty: Django
+    does that with its own SQL, not through this queryset, so the row - what
+    happened, and when - stays.)
+    """
+
+    def update(self, **kwargs):
+        raise AuditRecordImmutable("Floor audit records cannot be changed.")
+
+    def delete(self):
+        raise AuditRecordImmutable("Floor audit records cannot be deleted.")
+
+    def bulk_update(self, *args, **kwargs):
+        raise AuditRecordImmutable("Floor audit records cannot be changed.")
+
+
 class FloorEvent(models.Model):
-    """Who signed in on which floor device, and what happened to their PIN.
+    """Who signed in on which floor device, what happened to their PIN, and
+    who opened, switched off or changed a warehouse account.
 
     The audit trail an admin reads when a scan or a damage report is disputed:
     the system records the signed-in worker against everything they do, so
     which worker was signed in on which device, and when, is the question.
     Never holds a PIN, right or wrong.
+
+    APPEND-ONLY: a row is written once and never changed or deleted - not by
+    the code (save/delete below refuse), not in bulk (FloorEventQuerySet),
+    not in Django's admin (FloorEventAdmin). An audit trail somebody can tidy
+    up afterwards proves nothing.
     """
 
     class Kind(models.TextChoices):
@@ -1690,6 +1718,13 @@ class FloorEvent(models.Model):
         ACCOUNT_ACTIVATED = "account_activated", "Account switched on"
         ACCESS_GRANTED = "access_granted", "Location access granted"
         ACCESS_REVOKED = "access_revoked", "Location access revoked"
+        # Account management (staff CustomerViewSet). `actor` is the admin or
+        # manager who did it; `details` says which role.
+        ACCOUNT_CREATED = "account_created", "Account created"
+        ROLE_CHANGED = "role_changed", "Role changed"
+        SESSIONS_REVOKED = "sessions_revoked", "Signed out everywhere"
+
+    objects = FloorEventQuerySet.as_manager()
 
     kind = models.CharField(max_length=20, choices=Kind.choices)
     user = models.ForeignKey(
@@ -1726,6 +1761,11 @@ class FloorEvent(models.Model):
         related_name="+",
     )
     location_name = models.CharField(max_length=80, blank=True)
+    # Extra facts for some kinds, as before/after pairs the activity log
+    # shows ("Role: warehouse -> manager"): for a role change
+    # {"from_role": "warehouse", "to_role": "manager"}, for a new account
+    # {"role": "warehouse"}. Never a PIN or a password.
+    details = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1738,6 +1778,15 @@ class FloorEvent(models.Model):
 
     def __str__(self):
         return f"{self.get_kind_display()} ({self.created_at:%Y-%m-%d %H:%M})"
+
+    def save(self, *args, **kwargs):
+        # Only the first save (the INSERT). Any later one would be an edit.
+        if not self._state.adding:
+            raise AuditRecordImmutable("Floor audit records cannot be changed.")
+        return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise AuditRecordImmutable("Floor audit records cannot be deleted.")
 
 
 class SiteSettings(models.Model):
@@ -1811,7 +1860,7 @@ class TwoFactorPolicy(models.Model):
         # In order from least to most strict; twofactor.STRICTNESS relies on it.
         DISABLED = "disabled", "Disabled"
         OPTIONAL = "optional", "Optional"
-        REQUIRED_ADMINS = "required_admins", "Required for administrators"
+        REQUIRED_ADMINS = "required_admins", "Required for administrators and warehouse managers"
         REQUIRED_ALL = "required_all", "Required for everyone"
 
     mode = models.CharField(max_length=20, choices=Mode.choices, default=Mode.DISABLED)

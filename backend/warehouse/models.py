@@ -305,6 +305,61 @@ class IntakeSheet(models.Model):
     # with no way to tell which is the later one.
     revision = models.PositiveIntegerField(default=1)
 
+    # ------------------------------------------------------------------
+    # The manager's quality review (warehouse/review.py)
+    # ------------------------------------------------------------------
+    #
+    # After a sheet is released, a warehouse manager checks it: approved, or
+    # sent back to the floor with a note saying what to fix. Releasing does
+    # not wait for this - the office gets the sheet at once, as always - so a
+    # manager being away never holds the floor up.
+    class Review(models.TextChoices):
+        # Blank: not released yet, so nothing to review.
+        NONE = "", "Not reviewed"
+        AWAITING = "awaiting_review", "Awaiting review"
+        APPROVED = "approved", "Approved"
+        NEEDS_CORRECTION = "needs_correction", "Needs correction"
+
+    review_status = models.CharField(
+        max_length=20, choices=Review.choices, blank=True, default="", db_index=True
+    )
+    # What the manager said, for the worker to read on the sheet. The full
+    # history of every review is IntakeReview.
+    review_note = models.CharField(max_length=500, blank=True)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    # ------------------------------------------------------------------
+    # The intake number: 001, 002, 003 ...
+    # ------------------------------------------------------------------
+
+    # The short number the floor calls a sheet by ("intake 002"). Separate
+    # from `id`, which never changes and is what every link and record uses.
+    # Given by warehouse/intake_numbers.py (allocate) and never typed. Unique,
+    # so two sheets can never hold the same number - even if two workers
+    # press "New intake" in the same second. A number comes free again only
+    # when a manager deletes an EMPTY sheet (see intake_numbers.py).
+    number = models.PositiveIntegerField(null=True, blank=True, unique=True)
+
+    # Put away by a manager: a sheet that holds real information but should
+    # not have been started (a double, a delivery that never came). Kept,
+    # never deleted - an archived sheet just leaves the everyday lists.
+    archived_at = models.DateTimeField(null=True, blank=True)
+    archived_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    archive_reason = models.CharField(max_length=500, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -318,6 +373,15 @@ class IntakeSheet(models.Model):
 
     def __str__(self):
         return f"Intake sheet {self.label}"
+
+    @property
+    def number_display(self):
+        """The intake number as the floor says it: 7 -> "007"."""
+        return f"{self.number:03d}" if self.number else ""
+
+    @property
+    def archived(self):
+        return self.archived_at is not None
 
     @property
     def label(self):
@@ -353,6 +417,9 @@ class IntakeSheet(models.Model):
             released_at=now,
             released_by=by,
             updated_at=now,
+            # Every release - the first, and every one after a correction -
+            # goes to the manager's review queue.
+            review_status=self.Review.AWAITING,
             # A sheet started before the date was filled in automatically has
             # none: it gets the day it is handed over. One that has a date
             # keeps it.
@@ -367,6 +434,7 @@ class IntakeSheet(models.Model):
         self.status = self.Status.RELEASED
         self.released_at = now
         self.released_by = by
+        self.review_status = self.Review.AWAITING
         if self.received_on is None:
             self.received_on = timezone.localdate()
         return self
@@ -1125,6 +1193,37 @@ class IntakeAssignment(AppendOnlyModel):
         return f"Sheet {self.sheet_id}: {self.get_kind_display()}"
 
 
+class IntakeReview(AppendOnlyModel):
+    """A manager's verdict on a released sheet. Immutable: the sheet holds the
+    latest verdict, these rows hold every one, so a sheet sent back twice
+    shows both notes, who wrote them and when.
+    """
+
+    class Decision(models.TextChoices):
+        APPROVED = "review_approved", "Review: approved"
+        CORRECTION = "review_correction", "Review: sent back for correction"
+
+    sheet = models.ForeignKey(IntakeSheet, on_delete=models.CASCADE, related_name="reviews")
+    decision = models.CharField(max_length=20, choices=Decision.choices)
+    note = models.CharField(max_length=500, blank=True)
+    # The problems the checks found at the moment of the review (review.py
+    # issues()), so the record says what the manager was looking at.
+    issues = models.JSONField(default=list, blank=True)
+    # Which version of the sheet was reviewed (IntakeSheet.revision).
+    revision = models.PositiveIntegerField(default=1)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="intake_reviews"
+    )
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        indexes = [models.Index(fields=["user", "-created_at"])]
+
+    def __str__(self):
+        return f"Sheet {self.sheet_id}: {self.get_decision_display()}"
+
+
 class WarehouseAccess(models.Model):
     """What warehouse workers may see and use - one setting for all of them.
 
@@ -1204,3 +1303,89 @@ class WarehouseAccess(models.Model):
     def as_dict(self):
         """Every section with its on/off value, unknown keys left out."""
         return {key: self.allows(key) for key in self.SECTIONS}
+
+
+class IntakeNumber(models.Model):
+    """The register of intake numbers: which are in use, which are free.
+
+    One row per number ever handed out. A number is IN_USE from the moment a
+    sheet gets it. It becomes AVAILABLE again in exactly one case: a manager
+    deleted the sheet holding it, and that sheet was empty and never released
+    (intake_numbers.delete_empty checks). Nothing else frees a number, so a
+    number that was ever on a released sheet, a package, a customer or an
+    e-mail is never given to a second sheet.
+
+    The number is the primary key: the database itself refuses two rows for
+    one number, which is what makes handing them out safe when two workers
+    start a sheet at the same moment.
+    """
+
+    class State(models.TextChoices):
+        IN_USE = "in_use", "In use"
+        AVAILABLE = "available", "Free to use again"
+
+    number = models.PositiveIntegerField(primary_key=True)
+    state = models.CharField(max_length=10, choices=State.choices, default=State.IN_USE)
+    # The sheet holding it now. SET_NULL so that a sheet removed some other
+    # way (Django admin) leaves the number IN_USE with no sheet: retired,
+    # never handed out again. Only delete_empty marks a number AVAILABLE.
+    sheet = models.OneToOneField(
+        IntakeSheet,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="number_entry",
+    )
+    # How many sheets have held it (1 for most numbers).
+    times_used = models.PositiveIntegerField(default=1)
+    # The last time it was freed, and by whom.
+    released_at = models.DateTimeField(null=True, blank=True)
+    released_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["number"]
+        indexes = [models.Index(fields=["state", "number"])]
+
+    def __str__(self):
+        return f"Intake number {self.number:03d} ({self.get_state_display()})"
+
+
+class IntakeDeletion(AppendOnlyModel):
+    """The record that an empty intake sheet was deleted. Never edited.
+
+    The sheet itself is gone, so this keeps what there was to know about it:
+    its number and id, who started it and when, and who deleted it and when.
+    """
+
+    number = models.PositiveIntegerField(null=True, blank=True)
+    # A plain number, not a link: the sheet no longer exists.
+    sheet_id_was = models.PositiveIntegerField()
+    reference = models.CharField(max_length=50, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    sheet_created_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="+",
+    )
+    deleted_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-deleted_at"]
+
+    def __str__(self):
+        return f"Intake {self.number or '?'} deleted"

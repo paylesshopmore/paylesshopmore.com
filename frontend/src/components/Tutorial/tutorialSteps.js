@@ -239,8 +239,9 @@ export const pageTours = {
     { id: 'package', target: null },
     { id: 'newSheet', target: '[data-tour="wh-new-sheet"]' },
     { id: 'intake', target: null },
-    { id: 'list', target: '[data-tour="wh-list"]' },
+    // The number tiles (which choose what the list shows), then the list.
     { id: 'filters', target: '[data-tour="wh-filters"]' },
+    { id: 'list', target: '[data-tour="wh-list"]' },
     // The sidebar on a wide screen; the bottom bar on a phone.
     { id: 'menu', target: ['[data-tour="wh-menu"]', '[data-tour="wh-tabs"]'] },
     { id: 'help', target: '[data-tour="wh-help"]' },

@@ -118,6 +118,8 @@ const ManagerOverview = lazy(() => import('./pages/Warehouse/ManagerOverview'));
 const ManagerActivity = lazy(() => import('./pages/Warehouse/ManagerActivity'));
 const UnassignedQueue = lazy(() => import('./pages/Warehouse/UnassignedQueue'));
 const AssignCustomer = lazy(() => import('./pages/Warehouse/AssignCustomer'));
+const ManagerReview = lazy(() => import('./pages/Warehouse/ManagerReview'));
+const ManagerIntakes = lazy(() => import('./pages/Warehouse/ManagerIntakes'));
 const PackagePage = lazy(() => import('./pages/Warehouse/PackagePage'));
 const ShipmentLabel = lazy(() => import('./pages/Warehouse/ShipmentLabel'));
 
@@ -377,6 +379,10 @@ export default function App() {
                 <Route index element={<ManagerOverview />} />
                 <Route path="workers" element={<Workers />} />
                 <Route path="activity" element={<ManagerActivity />} />
+                {/* Quality control: approve released sheets or send them back. */}
+                <Route path="packages" element={<ManagerReview />} />
+                {/* Every intake with its number; delete empty ones, archive others. */}
+                <Route path="intakes" element={<ManagerIntakes />} />
               </Route>
               <Route path="intake" element={<Intake />} />
               <Route path="shipments" element={<MovedToPackages />} />

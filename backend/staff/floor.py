@@ -238,6 +238,13 @@ class WorkerPinResetView(APIView):
 
     def post(self, request, pk):
         worker = get_object_or_404(User, pk=pk)
+        # A manager looks after warehouse workers and nobody else: another
+        # manager's (or an office account's) PIN is not theirs to touch.
+        if not request.user.is_admin and worker.role != User.Role.WAREHOUSE:
+            return Response(
+                {"detail": "A warehouse manager can only reset the PINs of warehouse workers."},
+                status=http_status.HTTP_403_FORBIDDEN,
+            )
         if not floor.reset_pin(worker, request.user):
             return Response(
                 {"detail": "That worker has no PIN to reset."},

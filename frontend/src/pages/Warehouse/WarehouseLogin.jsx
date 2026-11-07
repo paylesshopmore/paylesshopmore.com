@@ -24,14 +24,20 @@
 //   Address:      /warehouse/login
 //   Who can open: anyone (it is a login page)
 //   Links to:     /warehouse, /warehouse/pin, /login
-//   Linked from:  RequireWarehouse (anyone not signed in who opens /warehouse)
+//   Linked from:  RequireWarehouse (anyone not signed in who opens /warehouse),
+//                 the site header's account menu "Warehouse" (?choose=1)
+//
+// ALREADY SIGNED IN? Normally straight on to the warehouse. But from the
+// header's "Warehouse" link (?choose=1) the page asks first: continue as
+// yourself, or sign out and let a worker sign in with e-mail and PIN.
 //   Backend:      api/auth.js (getFloorRoster, signInWithPin, signInWithEmailPin)
 
 import { useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { AUTH_ERRORS, getFloorRoster } from '../../api/auth';
 import { useAuth } from '../../auth/useAuth';
 import { useLanguage } from '../../i18n/useLanguage';
+import { fill } from '../../i18n/fill';
 import FloorSignIn from '../Login/FloorSignIn';
 import Loading from '../../components/Loading/Loading';
 import styles from '../Login/Login.module.css';
@@ -57,9 +63,13 @@ function destination(profile, from) {
 
 export default function WarehouseLogin() {
   const { t } = useLanguage();
-  const { user, isAuthenticated, isChecking, signInWithEmailPin } = useAuth();
+  const { user, isAuthenticated, isChecking, signInWithEmailPin, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  // Came from the header's "Warehouse" link: ask before going on.
+  const [params] = useSearchParams();
+  const choose = params.get('choose') === '1';
+  const [switching, setSwitching] = useState(false);
   // Where they were going before RequireWarehouse sent them here.
   const from = location.state?.from;
 
@@ -97,9 +107,53 @@ export default function WarehouseLogin() {
 
   if (isChecking || roster === 'checking') return <Loading />;
 
-  // Already in (a refresh, or the back button): straight on.
-  if (isAuthenticated && (user?.isStaff || user?.warehouseUnlocked)) {
+  const canGoIn = isAuthenticated && (user?.isStaff || user?.warehouseUnlocked);
+
+  // Already in (a refresh, or the back button): straight on - unless they
+  // came from the header link, then they choose below.
+  if (canGoIn && !choose) {
     return <Navigate to={destination(user, from)} replace />;
+  }
+
+  // Signed out first, so the next worker never works in this account's
+  // session; then the e-mail + PIN form shows (isAuthenticated is false).
+  async function switchToWorker() {
+    setSwitching(true);
+    try {
+      await signOut();
+    } finally {
+      setSwitching(false);
+    }
+  }
+
+  if (canGoIn) {
+    return (
+      <main className={styles.page}>
+        <div className={styles.card}>
+          <h1 className={styles.title}>{t('warehouseLogin.title')}</h1>
+          <p className={styles.subtitle}>
+            {fill(t('warehouseLogin.signedInAs'), { name: user?.name || user?.email || '' })}
+          </p>
+          <div className={styles.form}>
+            <button
+              type="button"
+              className={styles.submit}
+              onClick={() => navigate(destination(user, from), { replace: true })}
+            >
+              {t('warehouseLogin.continueAs')}
+            </button>
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={switchToWorker}
+              disabled={switching}
+            >
+              {t('warehouseLogin.switchToWorker')}
+            </button>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   function signedIn(profile) {

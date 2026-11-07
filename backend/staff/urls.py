@@ -10,6 +10,7 @@ from shops.views import ShopViewSet
 from warehouse import access as warehouse_access
 from warehouse import manager as warehouse_manager
 from warehouse import records as warehouse_records
+from warehouse import review as warehouse_review
 from warehouse import shipments as warehouse_shipments
 from warehouse import views as warehouse_views
 
@@ -126,6 +127,12 @@ urlpatterns = [
         "warehouse/manager/stats/",
         warehouse_manager.ManagerStatsView.as_view(),
         name="staff-warehouse-manager-stats",
+    ),
+    # Released sheets for the manager to approve or send back.
+    path(
+        "warehouse/manager/review/",
+        warehouse_review.ReviewQueueView.as_view(),
+        name="staff-warehouse-manager-review",
     ),
     path(
         "warehouse/manager/activity/",

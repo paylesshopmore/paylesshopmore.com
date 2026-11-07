@@ -16,9 +16,10 @@ answered in one file rather than invented here.
 """
 
 import logging
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import mixins
@@ -33,7 +34,7 @@ from staff.permissions import IsWarehouseOrStaff, WarehouseRateThrottle
 from staff.views import StaffViewSet
 from tracking.matching import confirm_arrival, find_by_courier_number, scan_summary
 
-from . import customers, operations, scanning, shipments
+from . import customers, intake_numbers, operations, review, scanning, shipments
 from .access import SectionAllowed
 from .models import AlreadyReleased, IntakeSheet, IntakeSheetPhoto, NotReleased
 from .recipients import handover_recipients
@@ -64,6 +65,23 @@ class SheetLocked(APIException):
     default_detail = (
         "This intake sheet has been released and can no longer be changed."
     )
+
+
+class NotYourDraft(PermissionDenied):
+    """A warehouse worker changing a sheet somebody else started.
+
+    Workers correct their own drafts; anybody else's is for its author, or for
+    an admin or warehouse manager. See intake_numbers.may_edit.
+    """
+
+    default_detail = "Only the worker who started this intake, or a manager, can change it."
+
+
+class SheetArchived(APIException):
+    """A change to a sheet a manager archived (409). Unarchive it first."""
+
+    status_code = http_status.HTTP_409_CONFLICT
+    default_detail = "This intake is archived. A manager has to bring it back first."
 
 
 class FreightRefused(PermissionDenied):
@@ -102,8 +120,9 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
     staff, about goods they are looking at, and there is nowhere else it could
     come from.
 
-    Still no delete. A sheet is the record that a delivery was received, and a
-    mistaken one is better corrected while it is a draft than removed.
+    Delete only for an EMPTY sheet, and only by an admin or a warehouse
+    manager (warehouse/intake_numbers.py): a sheet with anything on it is the
+    record that a delivery was received - it can be archived, never deleted.
     """
 
     # The one route under /api/staff/ that is not office-only. A warehouse
@@ -118,7 +137,7 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
     serializer_class = IntakeSheetSerializer
 
     queryset = IntakeSheet.objects.select_related(
-        "created_by", "released_by", "booking", "package", "customer"
+        "created_by", "released_by", "booking", "package", "customer", "reviewed_by"
     ).prefetch_related("measurements")
 
     search_fields = (
@@ -136,6 +155,13 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         "created_at", "updated_at", "received_on", "released_at", "status"
     )
 
+    def get_queryset(self):
+        # Each sheet carries `is_empty_sheet` (nothing on it at all - see
+        # intake_numbers.empty_sheets), worked out by the database in the same
+        # query, so the list can show "Delete" on exactly the sheets a manager
+        # may delete without asking the database once per row.
+        return intake_numbers.with_empty_flag(super().get_queryset())
+
     def get_throttles(self):
         throttles = super().get_throttles()
         if self.action == "read_label":
@@ -144,6 +170,24 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
             self.throttle_scope = "label_read"
             throttles.append(ScopedRateThrottle())
         return throttles
+
+    @action(detail=True, methods=["post"], url_path="review-decision")
+    def review_decision(self, request, pk=None):
+        """POST {"decision": "approve" | "correction", "note": "..."}.
+
+        A warehouse manager's verdict on a released sheet. "correction"
+        reopens it (a new version) with the note for the worker, and needs a
+        note. Admins and warehouse managers only - the floor gets a 403. Every
+        verdict is recorded (IntakeReview). See warehouse/review.py.
+        """
+        sheet = review.decide(
+            self.get_object(),
+            request.user,
+            str(request.data.get("decision") or ""),
+            request.data.get("note", ""),
+        )
+        fresh = self.get_queryset().get(pk=sheet.pk)
+        return Response(self.get_serializer(fresh).data)
 
     @action(detail=True, methods=["post"], url_path="assign-customer")
     def assign_customer(self, request, pk=None):
@@ -226,6 +270,76 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         if self.request.query_params.get("mine") == "true":
             queryset = queryset.filter(created_by=self.request.user)
 
+        # `?review=needs_correction`: sheets a manager sent back to the floor
+        # (oldest verdict first); `?review=awaiting_review`: released, not
+        # yet looked at. See warehouse/review.py.
+        wanted = self.request.query_params.get("review")
+        if wanted == "needs_correction":
+            queryset = queryset.filter(
+                status=IntakeSheet.Status.DRAFT,
+                review_status=IntakeSheet.Review.NEEDS_CORRECTION,
+            ).order_by("reviewed_at")
+        elif wanted == "awaiting_review":
+            queryset = queryset.filter(
+                status=IntakeSheet.Status.RELEASED,
+                review_status=IntakeSheet.Review.AWAITING,
+            ).order_by("released_at")
+
+        # Archived sheets (a manager put them away) leave the lists:
+        # `?archived=true` shows only those, `?archived=all` everything.
+        # Reading one sheet by its id still works.
+        params = self.request.query_params
+        if self.action == "list":
+            archived = params.get("archived")
+            if archived == "true":
+                queryset = queryset.filter(archived_at__isnull=False)
+            elif archived != "all":
+                queryset = queryset.filter(archived_at__isnull=True)
+
+        # `?empty=true`: sheets with nothing on them (intake_numbers.py) -
+        # the ones a manager may delete.
+        if params.get("empty") == "true":
+            queryset = intake_numbers.empty_sheets(queryset)
+
+        # The manager's filters: who started it, whose goods, and when.
+        for param, field in (("created_by", "created_by_id"), ("customer", "customer_id")):
+            value = params.get(param)
+            if value:
+                if not value.isdigit():
+                    raise ValidationError({param: ["Expected a number."]})
+                queryset = queryset.filter(**{field: int(value)})
+        for param, lookup in (
+            ("created_from", "created_at__date__gte"),
+            ("created_to", "created_at__date__lte"),
+        ):
+            value = params.get(param)
+            if value:
+                try:
+                    day = date.fromisoformat(value)
+                except ValueError:
+                    raise ValidationError({param: ["Use a date like 2026-11-07."]}) from None
+                queryset = queryset.filter(**{lookup: day})
+        # `?customer_q=klaas`: whose goods, by name, e-mail or customer
+        # number (PLSM-C00012 or just 12).
+        customer_q = params.get("customer_q", "").strip()
+        if customer_q:
+            match = (
+                Q(customer__first_name__icontains=customer_q)
+                | Q(customer__last_name__icontains=customer_q)
+                | Q(customer__email__icontains=customer_q)
+            )
+            digits = customer_q.upper().removeprefix("PLSM-C").lstrip("0")
+            if digits.isdigit():
+                match |= Q(customer__customer_number=int(digits))
+            queryset = queryset.filter(match)
+
+        # `?number=2` or `?number=002`: one intake number.
+        number = params.get("number", "").strip().lstrip("0")
+        if number:
+            if not number.isdigit():
+                raise ValidationError({"number": ["Expected a number."]})
+            queryset = queryset.filter(number=int(number))
+
         # `?unassigned=true`: the "Without a customer" queue - goods nobody
         # has tied to a customer, shipment or booking yet. Oldest first, so
         # what has waited longest is at the top.
@@ -262,6 +376,8 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
             employee_name=user.get_full_name() or user.get_username(),
         )
 
+        # The intake number (001, 002 ...): see warehouse/intake_numbers.py.
+        intake_numbers.allocate(sheet)
         self._prefill_from_link(sheet)
         # Started from a scan of a known shipment or booking: whose goods
         # these are is known already (warehouse/customers.py).
@@ -349,6 +465,7 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         """
         if serializer.instance.released:
             raise SheetLocked()
+        self._check_may_edit(serializer.instance)
 
         # Sea or air: the office's call. Sending back the value already
         # stored is not a change (an older page does that on every save); a
@@ -392,6 +509,35 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         else:
             self._share_freight(sheet)
         operations.measure_from_intake(sheet, self.request.user)
+
+    def _check_may_edit(self, sheet):
+        """Refuse a change to an archived sheet, or to another worker's draft."""
+        if sheet.archived:
+            raise SheetArchived()
+        if not intake_numbers.may_edit(self.request.user, sheet):
+            raise NotYourDraft()
+
+    def destroy(self, request, pk=None):
+        """DELETE: remove an EMPTY sheet and free its intake number.
+
+        403 for anybody but an admin or warehouse manager; 409 when the sheet
+        holds anything at all (archive it instead). The deletion is recorded
+        (IntakeDeletion). See warehouse/intake_numbers.py.
+        """
+        intake_numbers.delete_empty(self.get_object(), request.user)
+        return Response(status=http_status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"])
+    def archive(self, request, pk=None):
+        """POST {"reason": "..."}: a manager puts a sheet away. Nothing is deleted."""
+        sheet = intake_numbers.archive(self.get_object(), request.user, request.data.get("reason"))
+        return Response(self.get_serializer(sheet).data)
+
+    @action(detail=True, methods=["post"])
+    def unarchive(self, request, pk=None):
+        """POST: a manager brings an archived sheet back."""
+        sheet = intake_numbers.unarchive(self.get_object(), request.user)
+        return Response(self.get_serializer(sheet).data)
 
     def _share_freight(self, sheet):
         """Give the linked shipment the sheet's freight, if it has none yet.
@@ -462,6 +608,8 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         has actually committed.
         """
         sheet = self.get_object()
+        if not sheet.released:
+            self._check_may_edit(sheet)
 
         missing = missing_for_release(sheet)
         if missing:
@@ -497,6 +645,12 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         first, and nothing needs doing.
         """
         sheet = self.get_object()
+        # Correcting a sheet that was handed over: admins and warehouse
+        # managers only - not the office, not the floor (they ask a manager).
+        if not intake_numbers.may_correct(request.user):
+            raise PermissionDenied("Only a manager can reopen an intake that was handed over.")
+        if sheet.archived:
+            raise SheetArchived()
 
         try:
             sheet.reopen()
@@ -516,6 +670,7 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         if request.method == "POST":
             if sheet.released:
                 raise SheetLocked()
+            self._check_may_edit(sheet)
             operations.add_intake_photos(sheet, request.user, request.FILES.getlist("photos"))
             status_code = http_status.HTTP_201_CREATED
         else:
@@ -536,6 +691,7 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
         if request.method == "DELETE":
             if sheet.released:
                 raise SheetLocked()
+            self._check_may_edit(sheet)
             operations.remove_intake_photo(photo)
             return Response(status=http_status.HTTP_204_NO_CONTENT)
         return stream_photo(photo)

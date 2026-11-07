@@ -235,11 +235,29 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
     # the rule either way.
     can_assign_freight = serializers.SerializerMethodField()
     customer = serializers.SerializerMethodField()
+    quality_status = serializers.SerializerMethodField()
+    reviewed_by_name = serializers.SerializerMethodField()
+    # Set by a manager's review only (review-decision), never by a form save.
+    review_status = serializers.CharField(read_only=True)
+    review_note = serializers.CharField(read_only=True)
+    reviewed_at = serializers.DateTimeField(read_only=True)
+    # The intake number (7, shown as "007"): given by the server, never typed.
+    number = serializers.IntegerField(read_only=True)
+    number_display = serializers.CharField(read_only=True)
+    # Put away by a manager (warehouse/intake_numbers.py archive).
+    archived = serializers.BooleanField(read_only=True)
+    archived_at = serializers.DateTimeField(read_only=True)
+    archive_reason = serializers.CharField(read_only=True)
+    # What the person asking may do with this sheet, so the page only shows
+    # buttons that will work. The server checks again on every request.
+    permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = IntakeSheet
         fields = [
             "id",
+            "number",
+            "number_display",
             "status",
             "status_display",
             "label",
@@ -288,6 +306,18 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
             # Whose goods: {id, name, customer_code} or null (see
             # warehouse/customers.py). Set through assign-customer only.
             "customer",
+            # The manager's review (warehouse/review.py): the one status the
+            # sheet shows, and the manager's note when it was sent back.
+            "quality_status",
+            "review_status",
+            "review_note",
+            "reviewed_by_name",
+            "reviewed_at",
+            # Archived by a manager
+            "archived",
+            "archived_at",
+            "archive_reason",
+            "permissions",
             # Provenance
             "created_by_name",
             "released_by_name",
@@ -311,6 +341,34 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
             # once, on create, by the viewset.
             "employee_name",
         ]
+
+    def get_permissions(self, obj):
+        from .intake_numbers import is_empty, may_correct, may_edit
+
+        request = self.context.get("request")
+        user = request.user if request else None
+        manager = bool(getattr(user, "can_manage_warehouse", False))
+        return {
+            # Change the boxes (a draft that is not archived).
+            "edit": bool(user) and not obj.released and not obj.archived and may_edit(user, obj),
+            # Reopen a released sheet.
+            "reopen": bool(user) and obj.released and not obj.archived and may_correct(user),
+            # Delete: managers only, and only an EMPTY sheet (nothing on it).
+            # The server checks again at the moment of deleting.
+            "delete": manager and not obj.released and not obj.archived and is_empty(obj),
+            "archive": manager and not obj.archived,
+            "unarchive": manager and obj.archived,
+        }
+
+    def get_quality_status(self, obj):
+        # Imported here: review.py imports this module.
+        from .review import quality_status
+
+        return quality_status(obj)
+
+    def get_reviewed_by_name(self, obj):
+        user = obj.reviewed_by
+        return (user.get_full_name() or user.email) if user else ""
 
     def get_customer(self, obj):
         customer = obj.customer

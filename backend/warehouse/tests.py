@@ -186,13 +186,16 @@ class AccessTests(IntakeSheetTestCase):
         self.sheet.refresh_from_db()
         self.assertNotEqual(self.sheet.employee_name, "Iemand Anders")
 
-    def test_a_sheet_cannot_be_deleted(self):
+    def test_a_sheet_with_something_on_it_cannot_be_deleted(self):
+        # Only EMPTY sheets can be deleted (warehouse/intake_numbers.py);
+        # this one has a supplier and a measured line. 409, and it stays.
         self.client.force_authenticate(self.warehouse)
 
         self.assertEqual(
             self.client.delete(self.detail_url).status_code,
-            status.HTTP_405_METHOD_NOT_ALLOWED,
+            status.HTTP_409_CONFLICT,
         )
+        self.assertTrue(IntakeSheet.objects.filter(pk=self.sheet.pk).exists())
 
 
 class WarehouseRoleTests(IntakeSheetTestCase):
@@ -214,6 +217,9 @@ class WarehouseRoleTests(IntakeSheetTestCase):
             last_name="Medewerker",
             is_warehouse=True,
         )
+        # A worker works on the sheets they started themselves.
+        self.sheet.created_by = self.floor
+        self.sheet.save(update_fields=["created_by"])
 
     def test_the_floor_can_work_on_intake_sheets(self):
         self.client.force_authenticate(self.floor)

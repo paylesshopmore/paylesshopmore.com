@@ -12,6 +12,8 @@ rather than a form does not stop applying because the URL changed.
 from django.contrib import admin
 
 from .models import (
+    IntakeDeletion,
+    IntakeNumber,
     IntakeSheet,
     Measurement,
     PackageActivity,
@@ -111,6 +113,7 @@ class IntakeSheetAdmin(admin.ModelAdmin):
     inlines = [MeasurementInline]
 
     list_display = (
+        "number",
         "label",
         "status",
         "destination",
@@ -124,7 +127,10 @@ class IntakeSheetAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
     readonly_fields = (
+        "number",
         "status",
+        "archived_at",
+        "archived_by",
         "created_by",
         "released_by",
         "released_at",
@@ -137,3 +143,20 @@ class IntakeSheetAdmin(admin.ModelAdmin):
         if obj is not None and obj.released:
             return False
         return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        # Deleting goes through the warehouse's own "Delete" (empty sheets
+        # only, recorded, number freed) - never through here.
+        return False
+
+
+# The intake number register and the deletions: to read, never to edit.
+@admin.register(IntakeNumber)
+class IntakeNumberAdmin(ReadOnlyAdmin):
+    list_display = ("number", "state", "sheet", "times_used", "released_at", "released_by")
+    list_filter = ("state",)
+
+
+@admin.register(IntakeDeletion)
+class IntakeDeletionAdmin(ReadOnlyAdmin):
+    list_display = ("number", "sheet_id_was", "reference", "created_by", "deleted_by", "deleted_at")

@@ -37,9 +37,11 @@ from accounts.models import FloorEvent, Package
 from accounts.signin_codes import idle_seconds
 from staff.permissions import IsWarehouseManager
 
-from . import report
+from . import intake_numbers, report
+from . import review as quality
 from .models import (
     IntakeAssignment,
+    IntakeReview,
     IntakeSheet,
     PackageActivity,
     PackageDamageReport,
@@ -175,9 +177,21 @@ def build_stats():
     # Goods that arrived with nothing to say whose they are: an intake sheet
     # with no customer, shipment or booking - the "Without a customer" queue
     # (IntakeSheetViewSet ?unassigned=true).
-    unassigned = IntakeSheet.objects.filter(
+    # Archived sheets (a manager put them away) are left out everywhere here.
+    sheets = IntakeSheet.objects.filter(archived_at__isnull=True)
+    unassigned = sheets.filter(
         customer__isnull=True, package__isnull=True, booking__isnull=True
     )
+
+    # The intake sheets themselves (warehouse/intake_numbers.py):
+    #   started today; still a draft (pending); empty (nothing on them - a
+    #   manager may delete those); handed over and approved (completed).
+    intakes_today = sheets.filter(created_at__date=today).count()
+    pending_intakes = sheets.filter(status=IntakeSheet.Status.DRAFT).count()
+    empty_intakes = intake_numbers.empty_sheets(sheets).count()
+    completed_intakes = sheets.filter(
+        status=IntakeSheet.Status.RELEASED, review_status=IntakeSheet.Review.APPROVED
+    ).count()
 
     missing = _missing_measurements()
 
@@ -195,6 +209,8 @@ def build_stats():
 
     problem_count = problems.count()
     damage_count = open_damage.count()
+    # Quality review (warehouse/review.py).
+    reviews = quality.counts()
 
     return {
         "date": today.isoformat(),
@@ -207,6 +223,12 @@ def build_stats():
             "unassigned": unassigned.count(),
             "missing_measurements": len(missing),
             "problems": problem_count + damage_count,
+            "awaiting_review": reviews["awaiting_review"],
+            "needs_correction": reviews["needs_correction"],
+            "intakes_today": intakes_today,
+            "pending_intakes": pending_intakes,
+            "empty_intakes": empty_intakes,
+            "completed_intakes": completed_intakes,
         },
         # The full size of each "needs attention" list, which shows only the
         # first ATTENTION_LIMIT rows.
@@ -240,6 +262,7 @@ def build_stats():
             "unassigned": [
                 {
                     "id": sheet.pk,
+                    "number": sheet.number_display,
                     "reference": sheet.reference,
                     "supplier": sheet.supplier,
                     "recipient": sheet.recipient,
@@ -266,6 +289,7 @@ class ManagerStatsView(APIView):
 FLOOR_KINDS = dict(FloorEvent.Kind.choices)
 PACKAGE_ACTIONS = dict(PackageActivity.Action.choices)
 CUSTOMER_KINDS = dict(IntakeAssignment.Kind.choices)
+REVIEW_DECISIONS = dict(IntakeReview.Decision.choices)
 
 
 def _parse_day(value, field):
@@ -308,7 +332,9 @@ def _floor_row(event):
         "package": None,
         "device": event.device.name if event.device else None,
         "description": "",
-        "changes": {},
+        # A role change: {"from_role": ..., "to_role": ...}, shown as
+        # "Role: before -> after". A new account: {"role": ...}.
+        "changes": dict(event.details or {}),
     }
 
 
@@ -391,6 +417,26 @@ def _assignment_row(assignment):
     }
 
 
+def _review_row(verdict):
+    sheet = verdict.sheet
+    return {
+        "id": f"review-{verdict.pk}",
+        "source": "review",
+        "at": verdict.created_at,
+        "worker": _person(verdict.user),
+        "subject": None,
+        "action": verdict.decision,
+        "action_display": REVIEW_DECISIONS.get(verdict.decision, verdict.decision),
+        "package": None,
+        "sheet": {"id": sheet.pk, "reference": sheet.reference},
+        "device": None,
+        "description": verdict.note,
+        # What the checks found when the manager looked.
+        "changes": {},
+        "issues": verdict.issues,
+    }
+
+
 def build_activity(params):
     """One page of the merged log, newest first, and what it was filtered by."""
     worker = _positive_int(params.get("worker"), "worker")
@@ -411,7 +457,9 @@ def build_activity(params):
         if package is None:
             package = 0  # matches nothing: an unknown number shows no rows
 
-    if action and not any(action in kinds for kinds in (FLOOR_KINDS, PACKAGE_ACTIONS, CUSTOMER_KINDS)):
+    if action and not any(
+        action in kinds for kinds in (FLOOR_KINDS, PACKAGE_ACTIONS, CUSTOMER_KINDS, REVIEW_DECISIONS)
+    ):
         raise ValidationError({"action": ["Not an action the log knows."]})
     if date_from and date_to and date_from > date_to:
         raise ValidationError({"date_to": ["The end is before the start."]})
@@ -424,6 +472,9 @@ def build_activity(params):
     want_floor = package is None and not tracking and (not action or action in FLOOR_KINDS)
     want_package = not action or action in PACKAGE_ACTIONS
     want_customer = not action or action in CUSTOMER_KINDS
+    # Reviews are about a sheet, not a shipment: left out of a package
+    # filter, found by the sheet's own number with a tracking filter.
+    want_review = (not action or action in REVIEW_DECISIONS) and (package is None or bool(tracking))
 
     floor_events = FloorEvent.objects.none()
     if want_floor:
@@ -475,9 +526,24 @@ def build_activity(params):
             assignments = assignments.filter(created_at__lt=end)
         assignments = assignments.order_by("-created_at", "-pk")
 
-    total = floor_events.count() + activities.count() + assignments.count()
+    verdicts = IntakeReview.objects.none()
+    if want_review:
+        verdicts = IntakeReview.objects.select_related("sheet", "user")
+        if worker:
+            verdicts = verdicts.filter(user_id=worker)
+        if tracking:
+            verdicts = verdicts.filter(sheet__reference__iexact=tracking)
+        if action:
+            verdicts = verdicts.filter(decision=action)
+        if start:
+            verdicts = verdicts.filter(created_at__gte=start)
+        if end:
+            verdicts = verdicts.filter(created_at__lt=end)
+        verdicts = verdicts.order_by("-created_at", "-pk")
 
-    # Merge the three newest-first lists. Each can contribute at most
+    total = floor_events.count() + activities.count() + assignments.count() + verdicts.count()
+
+    # Merge the four newest-first lists. Each can contribute at most
     # page * PAGE_SIZE rows to the first `page` pages, so that is all that is
     # read from either.
     upto = page * PAGE_SIZE
@@ -485,6 +551,7 @@ def build_activity(params):
         (_floor_row(event) for event in floor_events[:upto]),
         (_package_row(activity) for activity in activities[:upto]),
         (_assignment_row(assignment) for assignment in assignments[:upto]),
+        (_review_row(verdict) for verdict in verdicts[:upto]),
         key=lambda row: row["at"],
         reverse=True,
     )
@@ -526,6 +593,10 @@ def filter_options():
         + [
             {"value": value, "label": label, "group": "customer"}
             for value, label in IntakeAssignment.Kind.choices
+        ]
+        + [
+            {"value": value, "label": label, "group": "review"}
+            for value, label in IntakeReview.Decision.choices
         ],
     }
 

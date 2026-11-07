@@ -8,7 +8,8 @@ READ THIS FIRST
        disabled         nobody is asked. The sign-in works exactly as before.
        optional         people MAY turn it on (profile page). Those who did are
                         asked for a code; everybody else signs in as before.
-       required_admins  every administrator (role "admin", and superusers) MUST
+       required_admins  every administrator (role "admin", and superusers) AND
+                        every warehouse manager (role "manager") MUST
                         use it. Everybody else: as "optional".
        required_all     everybody who signs in with a password MUST use it.
 
@@ -144,7 +145,12 @@ def effective_mode():
 
 
 def is_admin_account(user):
-    return bool(user.is_superuser or getattr(user, "role", None) == "admin")
+    """A management account: an admin, a superuser, or a warehouse manager.
+
+    These accounts can open, switch off and hand PINs to other accounts, so
+    "required for administrators" asks all of them for a second factor.
+    """
+    return bool(user.is_superuser or getattr(user, "role", None) in ("admin", "manager"))
 
 
 def is_floor_session(request):
@@ -429,7 +435,7 @@ def accounts_affected(mode):
 
     people = User.objects.filter(is_active=True, anonymised_at__isnull=True)
     if mode == Mode.REQUIRED_ADMINS:
-        people = people.filter(Q(is_superuser=True) | Q(role=User.Role.ADMIN))
+        people = people.filter(Q(is_superuser=True) | Q(role__in=[User.Role.ADMIN, User.Role.MANAGER]))
     elif mode != Mode.REQUIRED_ALL:
         return []
     enabled = set(

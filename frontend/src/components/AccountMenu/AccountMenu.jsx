@@ -28,13 +28,17 @@ function initialsOf(user) {
 }
 
 /**
- * @param {{ links?: { to: string, label: string }[], signOutLabel: string,
+ * @param {{ links?: { to: string, label: string }[],
+ *   actions?: { label: string, onClick: () => void }[], signOutLabel: string,
  *   onSignOut: () => void, onNavigate?: () => void, inSheet?: boolean }} props
+ *   actions     extra buttons above Sign out (not links: they do something,
+ *               like "Sign in as a worker", which signs out first)
  *   onNavigate  called when any item is chosen, e.g. to close a mobile menu
  *   inSheet     the website header's layout (see the note at the top)
  */
 export default function AccountMenu({
   links = [],
+  actions = [],
   signOutLabel,
   onSignOut,
   onNavigate,
@@ -90,6 +94,19 @@ export default function AccountMenu({
             <Link key={link.to} to={link.to} className={styles.accountMenuItem} onClick={chosen}>
               {link.label}
             </Link>
+          ))}
+          {actions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              className={styles.accountMenuItem}
+              onClick={() => {
+                chosen();
+                action.onClick();
+              }}
+            >
+              {action.label}
+            </button>
           ))}
           <button
             type="button"

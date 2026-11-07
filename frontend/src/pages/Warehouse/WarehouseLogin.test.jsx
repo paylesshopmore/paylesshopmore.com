@@ -30,6 +30,7 @@ const auth = {
   isChecking: false,
   signInWithEmailPin: vi.fn(),
   signInWithPin: vi.fn(),
+  signOut: vi.fn(),
 };
 vi.mock('../../auth/useAuth', () => ({ useAuth: () => auth }));
 
@@ -194,5 +195,51 @@ describe('the guard in front of /warehouse', () => {
     auth.isAuthenticated = true;
     renderAt('/warehouse/intake');
     expect(await screen.findByText('Intake')).toBeInTheDocument();
+  });
+});
+
+describe('from the header "Warehouse" link (?choose=1), already signed in', () => {
+  const ADMIN = { name: 'Christopher Molina', email: 'c@example.com', role: 'admin', isStaff: true };
+
+  beforeEach(() => {
+    auth.user = ADMIN;
+    auth.isAuthenticated = true;
+    auth.signOut.mockReset().mockImplementation(async () => {
+      auth.user = null;
+      auth.isAuthenticated = false;
+    });
+  });
+
+  it('asks first instead of going straight in', async () => {
+    renderAt('/warehouse/login?choose=1');
+
+    expect(await screen.findByText('You are already signed in as Christopher Molina.')).toBeInTheDocument();
+    expect(screen.queryByText('Warehouse home')).toBeNull();
+  });
+
+  it('continues to the warehouse as yourself', async () => {
+    const user = userEvent.setup();
+    renderAt('/warehouse/login?choose=1');
+
+    await user.click(await screen.findByRole('button', { name: 'Continue to the warehouse' }));
+
+    expect(await screen.findByText('Warehouse home')).toBeInTheDocument();
+    expect(auth.signOut).not.toHaveBeenCalled();
+  });
+
+  it('or signs out and shows the e-mail and PIN form for a worker', async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderAt('/warehouse/login?choose=1');
+
+    await user.click(await screen.findByRole('button', { name: 'Sign in as a worker' }));
+
+    expect(auth.signOut).toHaveBeenCalled();
+    rerender(<WarehouseLogin />);
+    expect(await screen.findByLabelText('E-mail address')).toBeInTheDocument();
+  });
+
+  it('without ?choose=1 still goes straight in', async () => {
+    renderAt();
+    expect(await screen.findByText('Warehouse home')).toBeInTheDocument();
   });
 });

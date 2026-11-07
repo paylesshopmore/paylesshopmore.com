@@ -1,0 +1,504 @@
+/* src/pages/Warehouse/Home.module.css
+ *
+ * The warehouse home page (WarehouseHome.jsx). Built for gloved thumbs on a
+ * tablet and a PC across a counter: every control is at least 3rem tall.
+ *
+ * Palette variables (--navy, --cyan, --ink, --muted, --line, --ground,
+ * --shadow) come from Dashboard.module.css's .app on the layout.
+ */
+
+.page {
+  font-size: 1.05rem;
+}
+
+/* ------------------------------------------------------------- heading */
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.date {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+/* first letter up: "donderdag 7 november" -> "Donderdag 7 november" */
+.date::first-letter {
+  text-transform: uppercase;
+}
+
+.freshness {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.refresh {
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--navy);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.refresh:hover {
+  border-color: var(--navy);
+}
+
+.refresh:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------- the two buttons */
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  /* Padding and border inside the 100% width; without this the card is
+     wider than its column and slides under the card next to it. */
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 6rem;
+  padding: 1.1rem 1.4rem;
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  color: var(--navy);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.action:hover {
+  border-color: var(--navy);
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-1px);
+}
+
+.action:focus-visible {
+  outline: 4px solid var(--cyan);
+  outline-offset: 3px;
+}
+
+.action:disabled {
+  cursor: progress;
+  opacity: 0.7;
+  transform: none;
+}
+
+/* Scan: the one button the whole page is built around. */
+.actionPrimary {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--navy), #13497f);
+  box-shadow: 0 12px 30px rgba(11, 37, 69, 0.25);
+  color: #ffffff;
+}
+
+.actionPrimary:hover {
+  border-color: transparent;
+  filter: brightness(1.08);
+}
+
+.actionIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 16px;
+  background: #e0f2fe;
+  color: var(--navy);
+}
+
+.actionPrimary .actionIcon {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+.actionIcon svg {
+  width: 1.9rem;
+  height: 1.9rem;
+}
+
+.actionText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.actionTitle {
+  font-size: clamp(1.3rem, 3vw, 1.6rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.actionHint {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.actionPrimary .actionHint {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* --------------------------------------------- the numbers / the views */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-height: 6.25rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tile:hover {
+  border-color: var(--line);
+}
+
+.tile:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* The view the list is showing. */
+.tileOn,
+.tileOn:hover {
+  border-color: var(--navy);
+}
+
+.tileTop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tileIcon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  background: var(--ground);
+  color: var(--navy);
+}
+
+.tileIcon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.tileLabel {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.tileValue {
+  color: var(--navy);
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Something needs a look (more than 0 requiring attention). */
+.tile_warn .tileIcon {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tile_warn .tileValue {
+  color: #b45309;
+}
+
+/* Something is ready to go out. */
+.tile_good .tileIcon {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.tile_good .tileValue {
+  color: #15803d;
+}
+
+/* ------------------------------------------------------------ the list */
+
+.card {
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: var(--shadow);
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.cardCount {
+  min-width: 2rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  background: var(--ground);
+  color: var(--navy);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.search {
+  flex: 0 1 22rem;
+}
+
+.searchInput {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--ground);
+  color: var(--ink);
+  font: inherit;
+}
+
+.searchInput:focus {
+  border-color: var(--cyan);
+  outline: 3px solid rgba(14, 165, 233, 0.25);
+  background: #ffffff;
+}
+
+.hint {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rows > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.25rem;
+  margin: 0 -0.6rem;
+  padding: 0.75rem 0.6rem;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.row:hover {
+  background: var(--ground);
+}
+
+.row:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: -3px;
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.rowTitle {
+  color: var(--navy);
+  font-size: 1.1rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.rowDetail {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.flag {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.flag_bad {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.flag_warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.rowSide {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.chevron {
+  color: var(--muted);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.empty {
+  margin: 0;
+  padding: 2.5rem 1rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.more {
+  margin: 0.75rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* For screen readers only: a label that is not shown. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------- small screens */
+
+@media (max-width: 900px) {
+  .tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .action {
+    min-height: 5rem;
+    padding: 0.9rem 1rem;
+  }
+
+  .tile {
+    min-height: 5.5rem;
+  }
+
+  .tileValue {
+    font-size: 1.7rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .search {
+    flex-basis: 100%;
+  }
+
+  /* The stage moves under the number; the chevron goes (the row is a link). */
+  .row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .chevron {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action {
+    transition: none;
+  }
+
+  .action:hover {
+    transform: none;
+  }
+}

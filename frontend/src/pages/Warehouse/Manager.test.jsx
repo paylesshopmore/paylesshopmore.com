@@ -155,11 +155,13 @@ describe('who gets in', () => {
     expect(await screen.findByRole('heading', { name: 'Warehouse management' })).toBeInTheDocument();
   });
 
-  it('shows the three tabs', async () => {
+  it('shows the five tabs', async () => {
     renderAt('/warehouse/manager');
     const tabs = await screen.findByRole('navigation', { name: 'Warehouse management sections' });
     expect(within(tabs).getAllByRole('link').map((link) => link.textContent)).toEqual([
       'Overview',
+      'Package review',
+      'Intakes',
       'Workers',
       'Activity log',
     ]);
@@ -244,6 +246,37 @@ describe('the activity log', () => {
     const issued = rows.find((row) => row.textContent.includes('Mila Chef'));
     expect(issued).toHaveTextContent('PIN generated');
     expect(issued).toHaveTextContent('for Wim Tromp');
+  });
+
+  it('names the roles in a role change and a new account', async () => {
+    getManagerActivity.mockResolvedValue({
+      ...ACTIVITY,
+      results: [
+        {
+          ...ACTIVITY.results[1],
+          id: 'floor-4',
+          action: 'role_changed',
+          action_display: 'Role changed',
+          changes: { from_role: 'warehouse', to_role: 'manager' },
+        },
+        {
+          ...ACTIVITY.results[1],
+          id: 'floor-5',
+          subject: { id: 9, name: 'Nina Nieuw' },
+          action: 'account_created',
+          action_display: 'Account created',
+          changes: { role: 'warehouse' },
+        },
+      ],
+    });
+    renderAt('/warehouse/manager/activity');
+
+    const rows = await screen.findAllByRole('row');
+    const changed = rows.find((row) => row.textContent.includes('Role changed'));
+    expect(changed).toHaveTextContent('Role: Warehouse worker → Warehouse manager');
+    const created = rows.find((row) => row.textContent.includes('Account created'));
+    expect(created).toHaveTextContent('for Nina Nieuw');
+    expect(created).toHaveTextContent('Role: Warehouse worker');
   });
 
   it('asks for the filter options once, with the first page', async () => {

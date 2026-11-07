@@ -121,6 +121,26 @@ describe('logging out on a shared floor device', () => {
 
     expect(await screen.findByText('Public home: /')).toBeInTheDocument();
   });
+
+  it('lets an office account sign out and go to the worker sign-in page', async () => {
+    const user = userEvent.setup();
+    auth.user = { name: 'Office', isWarehouse: true, isStaff: true };
+    renderAt('/warehouse');
+
+    // The account menu (the button with the person's name).
+    await user.click(screen.getByRole('button', { name: /Office/ }));
+    await user.click(screen.getByRole('button', { name: 'Sign in as a worker' }));
+
+    expect(auth.signOut).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Warehouse login: /warehouse/login')).toBeInTheDocument();
+  });
+
+  it('does not offer it to a floor account (their Log out already goes there)', async () => {
+    const user = userEvent.setup();
+    renderAt('/warehouse');
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.queryByRole('button', { name: 'Sign in as a worker' })).toBeNull();
+  });
 });
 
 describe('the warehouse tour', () => {

@@ -98,7 +98,7 @@ describe('the header account area', () => {
 
     await user.click(screen.getByRole('button', { name: /Christopher Molina/ }));
     expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard');
-    expect(screen.getByRole('link', { name: 'Warehouse' })).toHaveAttribute('href', '/warehouse');
+    expect(screen.getByRole('link', { name: 'Warehouse' })).toHaveAttribute('href', '/warehouse/login?choose=1');
     expect(screen.queryByRole('link', { name: 'My account' })).toBeNull();
   });
 });

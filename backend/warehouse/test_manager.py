@@ -12,6 +12,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -206,12 +207,14 @@ class ActivityTests(ManagerTestCase):
             at=now - timedelta(hours=1),
             **{"from": "A1", "to": "B4"},
         )
+        # Back-dated for the test with a plain QuerySet: FloorEvent's own
+        # manager refuses changes (the audit trail is append-only).
         self.sign_in = FloorEvent.objects.create(kind=FloorEvent.Kind.EMAIL_PIN_SIGN_IN, user=self.worker)
-        FloorEvent.objects.filter(pk=self.sign_in.pk).update(created_at=now - timedelta(hours=4))
+        models.QuerySet(FloorEvent).filter(pk=self.sign_in.pk).update(created_at=now - timedelta(hours=4))
         self.reset = FloorEvent.objects.create(
             kind=FloorEvent.Kind.PIN_RESET, user=self.other, actor=self.manager
         )
-        FloorEvent.objects.filter(pk=self.reset.pk).update(created_at=now - timedelta(hours=2))
+        models.QuerySet(FloorEvent).filter(pk=self.reset.pk).update(created_at=now - timedelta(hours=2))
 
     def get(self, **params):
         response = self.client.get(ACTIVITY_URL, params)

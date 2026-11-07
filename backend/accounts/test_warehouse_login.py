@@ -101,6 +101,32 @@ class EmailPinLoginTests(WarehouseLoginTestCase):
         self.assertEqual(self.email_login().status_code, status.HTTP_401_UNAUTHORIZED)
 
 
+class SwitchingWorkersTests(WarehouseLoginTestCase):
+    """A shared tablet: one worker after another, on one browser."""
+
+    def test_the_next_worker_gets_a_fresh_session_not_the_last_ones(self):
+        from django.contrib.sessions.models import Session
+
+        floor.set_pin(self.other, "8642")
+        self.on_device()
+        self.assertEqual(self.pin_login().status_code, 200)
+        first_key = self.client.cookies["sessionid"].value
+
+        self.assertEqual(self.pin_login(worker=self.other, pin="8642").status_code, 200)
+        second_key = self.client.cookies["sessionid"].value
+
+        # A new session for Ana; Wim's is gone, not taken over.
+        self.assertNotEqual(first_key, second_key)
+        self.assertFalse(Session.objects.filter(session_key=first_key).exists())
+        self.assertEqual(self.client.get(PROFILE_URL).data["email"], "ana@example.com")
+
+    def test_the_same_on_a_personal_phone_with_e_mail_and_pin(self):
+        floor.set_pin(self.other, "8642")
+        self.assertEqual(self.email_login().status_code, 200)
+        self.assertEqual(self.email_login("ana@example.com", "8642").status_code, 200)
+        self.assertEqual(self.client.get(PROFILE_URL).data["email"], "ana@example.com")
+
+
 class IssuedPinTests(WarehouseLoginTestCase):
     def test_a_manager_gets_a_new_pin_once_and_only_its_hash_is_kept(self):
         self.sign_in_as(self.manager)

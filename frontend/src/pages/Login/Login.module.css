@@ -386,3 +386,31 @@
     transition: none;
   }
 }
+
+/* The second choice on the warehouse sign-in page ("Sign in as a worker"
+   when already signed in): same size as .submit, outlined, not yellow. */
+.secondary {
+  padding: 0.85rem 1.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.secondary:hover:not(:disabled) {
+  border-color: var(--brand-ink);
+}
+
+.secondary:focus-visible {
+  outline: 3px solid var(--brand-yellow);
+  outline-offset: 2px;
+}
+
+.secondary:disabled {
+  color: #5b6b80;
+  cursor: not-allowed;
+}

@@ -300,6 +300,9 @@ export const translations = {
       forgotten: 'Pincode vergeten of geblokkeerd? Vraag je leidinggevende om een nieuwe.',
       office: 'Kantoor of beheer?',
       officeLink: 'Inloggen met wachtwoord',
+      signedInAs: 'Je bent al ingelogd als {name}.',
+      continueAs: 'Doorgaan naar het magazijn',
+      switchToWorker: 'Inloggen als medewerker',
       errors: {
         failed: 'Dat e-mailadres of die pincode klopt niet.',
         tooMany: 'Te veel pogingen. Wacht even en probeer het opnieuw.',
@@ -2232,11 +2235,11 @@ export const translations = {
           },
           list: {
             title: 'Pakketten in het magazijn',
-            text: 'Elk pakket dat nu hier is, oudste eerst. Tik op een pakket om de pagina te openen. Een rode regel zegt waarom een pakket aandacht nodig heeft.',
+            text: 'De pakketten van het gekozen vak, oudste eerst. Tik op een pakket om de pagina te openen; een gekleurd label zegt waarom het aandacht nodig heeft. Het zoekvak zoekt in alle pakketten, ook die al vertrokken zijn.',
           },
           filters: {
-            title: 'Zoeken en filteren',
-            text: 'Zoek op trackingnummer, klant of locatie - ook pakketten die al vertrokken zijn. "Aandacht nodig" laat alleen schade, problemen en pakketten die te lang wachten zien.',
+            title: 'De cijfers',
+            text: 'Hoeveel pakketten er in het magazijn zijn, hoeveel aandacht nodig hebben, klaar zijn voor verzending en onderweg zijn. Tik op een vak om die pakketten in de lijst eronder te zien.',
           },
           menu: {
             title: 'Het menu',
@@ -3257,6 +3260,9 @@ export const translations = {
       forgotten: 'Forgotten your PIN, or is it locked? Ask your manager for a new one.',
       office: 'Office or admin?',
       officeLink: 'Sign in with a password',
+      signedInAs: 'You are already signed in as {name}.',
+      continueAs: 'Continue to the warehouse',
+      switchToWorker: 'Sign in as a worker',
       errors: {
         failed: 'That e-mail address or PIN is not right.',
         tooMany: 'Too many tries. Wait a moment and try again.',
@@ -5178,11 +5184,11 @@ export const translations = {
           },
           list: {
             title: 'Packages in the warehouse',
-            text: 'Every package that is here now, oldest first. Tap one to open its page. A red line says why a package needs attention.',
+            text: 'The packages of the tile you chose, oldest first. Tap one to open its page; a coloured label says why it needs attention. The search box looks through every package, also ones that have already left.',
           },
           filters: {
-            title: 'Search and filter',
-            text: 'Search by tracking number, customer or location - also packages that have already left. "Requiring attention" shows only damage, problems and packages waiting too long.',
+            title: 'The numbers',
+            text: 'How many packages are in the warehouse, how many need attention, are ready to ship and are on the way. Tap a tile to see those packages in the list below.',
           },
           menu: {
             title: 'The menu',
@@ -6205,6 +6211,9 @@ export const translations = {
       forgotten: 'Bo a lubida bo PIN, òf e ta blokia? Puntra bo gerente pa un nobo.',
       office: 'Ofisina òf atministrashon?',
       officeLink: 'Drenta ku kontraseña',
+      signedInAs: 'Bo ta drenta kaba komo {name}.',
+      continueAs: 'Sigui pa pakus',
+      switchToWorker: 'Drenta komo trahadó',
       errors: {
         failed: 'E adres di e-mail òf PIN no ta korekto.',
         tooMany: 'Muchu purba. Warda un ratu i purba atrobe.',
@@ -8130,11 +8139,11 @@ export const translations = {
           },
           list: {
             title: 'Paketenan den pakus',
-            text: 'Tur pakete ku ta aki awor, e di mas bieu prome. Tòk riba un pa habri su página. Un liña kòrá ta bisa pakiko un pakete mester atenshon.',
+            text: 'E paketenan di e blòki ku bo a skohe, e di mas bieu promé. Tòk riba un pa habri su página; un etiketa di koló ta bisa pakiko e mester atenshon. E kashi di búsketa ta buska den tur pakete, tambe esnan ku a sali kaba.',
           },
           filters: {
-            title: 'Buska i filtra',
-            text: 'Buska riba number di tracking, kliente òf lugá - tambe paketenan ku a sali kaba. "Mester atenshon" ta mustra solamente daño, problema i paketenan ku ta warda muchu largu.',
+            title: 'E sifranan',
+            text: 'Kuantu pakete tin den pakus, kuantu mester atenshon, ta kla pa manda i ta na kaminda. Tòk riba un blòki pa mira e paketenan ei den e lista abou.',
           },
           menu: {
             title: 'E menú',

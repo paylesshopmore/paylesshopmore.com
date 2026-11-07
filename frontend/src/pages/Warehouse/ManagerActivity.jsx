@@ -67,6 +67,9 @@ function changeLines(changes) {
 
 export default function ManagerActivity() {
   const m = usePageText('warehouseManager');
+  const c = usePageText('common');
+  // A value as shown: a role by its name ("manager" -> "Warehouse manager").
+  const shownValue = (field, value) => (field === 'role' && value ? c(`role.${value}`) : value);
   const actionLabel = useActionLabel();
   // A changed field's name in the page's language ("weight_kg" -> "Weight (kg)").
   const fieldLabel = (field) => {
@@ -136,6 +139,7 @@ export default function ManagerActivity() {
   const floorActions = options?.actions.filter((action) => action.group === 'floor') ?? [];
   const packageActions = options?.actions.filter((action) => action.group === 'package') ?? [];
   const customerActions = options?.actions.filter((action) => action.group === 'customer') ?? [];
+  const reviewActions = options?.actions.filter((action) => action.group === 'review') ?? [];
 
   return (
     <section aria-labelledby="manager-activity">
@@ -191,6 +195,13 @@ export default function ManagerActivity() {
             </optgroup>
             <optgroup label={m('groupCustomer')}>
               {customerActions.map((action) => (
+                <option key={action.value} value={action.value}>
+                  {actionLabel(action.value, action.label)}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label={m('groupReview')}>
+              {reviewActions.map((action) => (
                 <option key={action.value} value={action.value}>
                   {actionLabel(action.value, action.label)}
                 </option>
@@ -296,6 +307,10 @@ export default function ManagerActivity() {
                       </td>
                       <td>
                         {row.description}
+                        {/* A new account: which role it was opened with. */}
+                        {row.action === 'account_created' && row.changes?.role && (
+                          <div>{`${fieldLabel('role')}: ${shownValue('role', row.changes.role)}`}</div>
+                        )}
                         {row.device && <div className={own.muted}>{m('onDevice', { device: row.device })}</div>}
                         {changeLines(row.changes).length > 0 && (
                           <ul className={own.changes}>
@@ -303,8 +318,8 @@ export default function ManagerActivity() {
                               <li key={`${line.field}-${line.from}-${line.to}`}>
                                 {m('changeLine', {
                                   field: fieldLabel(line.field),
-                                  from: line.from ?? '—',
-                                  to: line.to ?? '—',
+                                  from: shownValue(line.field, line.from) ?? '—',
+                                  to: shownValue(line.field, line.to) ?? '—',
                                 })}
                               </li>
                             ))}

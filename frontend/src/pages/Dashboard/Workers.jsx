@@ -33,6 +33,7 @@ import {
   sendWarehouseSignInCode,
   setCustomerRole,
   setWorkerActive,
+  signOutWorkerEverywhere,
   updateCustomer,
 } from '../../api/staff';
 import { useAuth } from '../../auth/useAuth';
@@ -321,6 +322,11 @@ export default function Workers() {
       setCreated(
         d('created', { name: row.name || row.email, role: c(`role.${row.role}`).toLowerCase(), email: row.email }),
       );
+      // A new warehouse worker comes with their first PIN, in this one answer
+      // only (the server never sends it again): shown once, to hand over.
+      if (row.initial_pin) {
+        setShownPin({ name: row.name || row.email, pin: row.initial_pin });
+      }
       // Refetched rather than spliced in: the list is sorted and paged by the
       // server, and a row pushed onto the front of page three would sit
       // somewhere it does not belong.
@@ -428,6 +434,26 @@ export default function Workers() {
     try {
       list.replaceRow(await setWorkerActive(worker.id, active));
       setCodeSent(d(active ? 'activated' : 'deactivated', { name: worker.name }));
+    } catch (caught) {
+      setError(caught?.status === 403 ? d('activeRefused') : d('activeFailed'));
+    } finally {
+      setCodeBusy(null);
+    }
+  }
+
+  // Ends every session the account has (a lost phone, a computer left signed
+  // in). The account stays switched on; its owner simply signs in again.
+  async function signOutEverywhere(worker) {
+    if (!window.confirm(d('signOutConfirm', { name: worker.name }))) {
+      return;
+    }
+    setCodeBusy(`out-${worker.id}`);
+    setError('');
+    setCodeSent('');
+    setCreated('');
+    try {
+      list.replaceRow(await signOutWorkerEverywhere(worker.id));
+      setCodeSent(d('signedOut', { name: worker.name }));
     } catch (caught) {
       setError(caught?.status === 403 ? d('activeRefused') : d('activeFailed'));
     } finally {
@@ -692,7 +718,7 @@ export default function Workers() {
                               )}
                               {worker.two_factor === 'off' &&
                                 user?.twoFactorMode !== 'disabled' &&
-                                ['admin', 'office'].includes(worker.role) && (
+                                ['admin', 'office', 'manager'].includes(worker.role) && (
                                   <StatusBadge tone="progress">{d('twoFactorOff')}</StatusBadge>
                                 )}
                               {/* An account that still holds a role but can no
@@ -784,6 +810,23 @@ export default function Workers() {
                                   onClick={() => setActive(worker, !worker.is_active)}
                                 >
                                   {d(worker.is_active ? 'deactivate' : 'activate')}
+                                </button>
+                              )}
+                            {/* Sign out everywhere: same people as the switch
+                                above, while the account is on. */}
+                            {(user?.isAdmin || managerOnly) &&
+                              user?.id !== worker.id &&
+                              !worker.is_superuser &&
+                              !worker.is_erased &&
+                              worker.is_active && (
+                                <button
+                                  type="button"
+                                  className={styles.linkButton}
+                                  aria-label={d('signOutLabel', { name: worker.name })}
+                                  disabled={codeBusy === `out-${worker.id}`}
+                                  onClick={() => signOutEverywhere(worker)}
+                                >
+                                  {d('signOutEverywhere')}
                                 </button>
                               )}
                             {/* A colleague with a lost or new phone: their

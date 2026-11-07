@@ -5,7 +5,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { assignIntakeFreight, listIntakeSheets, updateIntakeSheet } from '../../api/staff';
+import { assignIntakeFreight, deleteIntakeSheet, listIntakeSheets, updateIntakeSheet } from '../../api/staff';
 import { renderWithProviders } from '../../test/utils';
 import Intake from './Intake';
 
@@ -16,6 +16,7 @@ vi.mock('../../api/staff', async (importOriginal) => ({
   listIntakePhotos: vi.fn().mockResolvedValue([]),
   updateIntakeSheet: vi.fn(),
   assignIntakeFreight: vi.fn(),
+  deleteIntakeSheet: vi.fn(),
   getIntakeSheet: vi.fn().mockResolvedValue(null),
 }));
 const auth = { user: { id: 1, role: 'office', notifications: { warehouse: true } }, refreshUser: vi.fn() };
@@ -187,5 +188,80 @@ describe('Intake sheets', () => {
 
     expect(updateIntakeSheet).toHaveBeenCalled();
     expect(updateIntakeSheet.mock.calls[0][1]).not.toHaveProperty('freight');
+  });
+
+  it('shows the intake number on the list and the sheet', async () => {
+    listIntakeSheets.mockResolvedValue({
+      results: [{ ...SHEET, number: 7, number_display: '007' }],
+      count: 1,
+      hasNext: false,
+      hasPrevious: false,
+    });
+    const user = userEvent.setup();
+    renderIntake();
+
+    expect(await screen.findByText('007 · PLSM-00001')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Open sheet' }));
+    expect(within(screen.getByRole('dialog')).getByText('Intake 007')).toBeInTheDocument();
+  });
+
+  it('shows another worker’s draft read-only, saying why', async () => {
+    auth.user = { id: 5, role: 'warehouse', isWarehouse: true };
+    listIntakeSheets.mockResolvedValue({
+      results: [{ ...SHEET, created_by_name: 'Wanda', permissions: { edit: false, reopen: false } }],
+      count: 1,
+      hasNext: false,
+      hasPrevious: false,
+    });
+    const user = userEvent.setup();
+    renderIntake();
+    await user.click(await screen.findByRole('button', { name: 'Open sheet' }));
+    const dialog = screen.getByRole('dialog');
+
+    expect(within(dialog).getByText(/Another worker started this intake/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: 'Save draft' })).toBeNull();
+  });
+
+  it('tells a worker to ask a manager instead of offering Reopen', async () => {
+    auth.user = { id: 5, role: 'warehouse', isWarehouse: true };
+    listIntakeSheets.mockResolvedValue({
+      results: [{ ...SHEET, status: 'released', released: true, permissions: { edit: false, reopen: false } }],
+      count: 1,
+      hasNext: false,
+      hasPrevious: false,
+    });
+    const user = userEvent.setup();
+    renderIntake();
+    await user.click(await screen.findByRole('button', { name: 'Open sheet' }));
+    const dialog = screen.getByRole('dialog');
+
+    expect(within(dialog).getByText(/Only a manager can reopen it/)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: /Reopen/ })).toBeNull();
+  });
+
+  it('lets a manager delete an empty intake from the list, after confirming', async () => {
+    auth.user = { id: 2, role: 'manager', isWarehouseManager: true, canManageWarehouse: true };
+    deleteIntakeSheet.mockReset().mockResolvedValue(null);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    listIntakeSheets.mockResolvedValue({
+      results: [{ ...SHEET, number_display: '027', permissions: { edit: true, delete: true } }],
+      count: 1,
+      hasNext: false,
+      hasPrevious: false,
+    });
+    const user = userEvent.setup();
+    renderIntake();
+
+    await user.click(await screen.findByRole('button', { name: 'Delete intake 027' }));
+
+    expect(deleteIntakeSheet).toHaveBeenCalledWith(11);
+    expect(await screen.findByText('Intake 027 was deleted. Its number is free again.')).toBeInTheDocument();
+    window.confirm.mockRestore();
+  });
+
+  it('shows no Delete on an intake that is not empty', async () => {
+    renderIntake();
+    await screen.findByRole('button', { name: 'Open sheet' });
+    expect(screen.queryByRole('button', { name: /Delete intake/ })).toBeNull();
   });
 });

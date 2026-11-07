@@ -12,8 +12,8 @@
 // which is what actually keeps a warehouse worker out.
 //
 // CONNECTED PAGES  (the whole map: docs/WEBSITE-MAP.md)
-//   Address:      /warehouse/manager, /warehouse/manager/workers,
-//                 /warehouse/manager/activity
+//   Address:      /warehouse/manager, /warehouse/manager/packages,
+//                 /warehouse/manager/workers, /warehouse/manager/activity
 //   Who can open: admins and warehouse managers
 //   Links to:     /dashboard/floor-devices, /dashboard/warehouse-access
 //   Linked from:  the warehouse menu ("Management"), the office dashboard
@@ -27,6 +27,8 @@ import own from './Manager.module.css';
 
 const TABS = [
   { to: '/warehouse/manager', key: 'overview', end: true },
+  { to: '/warehouse/manager/packages', key: 'packages' },
+  { to: '/warehouse/manager/intakes', key: 'intakes' },
   { to: '/warehouse/manager/workers', key: 'workers' },
   { to: '/warehouse/manager/activity', key: 'activity' },
 ];

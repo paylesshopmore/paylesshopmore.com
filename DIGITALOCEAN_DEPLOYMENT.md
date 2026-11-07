@@ -45,6 +45,9 @@ matters).
    them. `backend/.env.example` describes every variable.
 5. **Deploy**, then open `https://<your-app>.ondigitalocean.app/api/health/`.
    It should say `{"status": "ok"}`. `/api/ready/` also checks the database.
+   If you set up a Space, check it from the `api` component's *Console* tab:
+   `python manage.py check_storage` should end with "OK". If it warns that
+   uploads go to the container's own disk, the `AWS_*` settings are missing.
 6. **Create the first admin** from the `api` component's *Console* tab:
    `python manage.py createsuperuser`.
 

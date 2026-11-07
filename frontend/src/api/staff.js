@@ -484,6 +484,16 @@ export async function setWorkerActive(id, active) {
 }
 
 /**
+ * Ends every session of this account, on every device (a lost phone, a
+ * computer left signed in). The account stays on: its owner signs in again.
+ * Admins for anybody but themselves; managers for warehouse workers.
+ * Answers with the whole row.
+ */
+export async function signOutWorkerEverywhere(id) {
+  return request(`/staff/customers/${id}/sign-out-everywhere/`, { method: 'POST' });
+}
+
+/**
  * Removes an admin's or office worker's authenticator app (a lost or new
  * phone); their next sign-in sets it up again. Admins only, never yourself.
  * Answers the updated row.
@@ -842,6 +852,19 @@ export async function lookupCustomers(q) {
 }
 
 /**
+ * A warehouse manager's verdict on a released sheet: 'approve', or
+ * 'correction' with a note (required) - which reopens the sheet for the floor
+ * as a new version. Admins and warehouse managers. Answers the updated sheet.
+ *
+ * @param {number} id
+ * @param {'approve' | 'correction'} decision
+ * @param {string} [note]
+ */
+export async function reviewIntakeSheet(id, decision, note = '') {
+  return request(`/staff/intake/${id}/review-decision/`, { method: 'POST', body: { decision, note } });
+}
+
+/**
  * Puts the goods on an intake sheet under an existing customer, optionally
  * with one of their open shipments or bookings. Changing a customer that is
  * already set is for managers and needs `reason`. Answers the updated sheet.
@@ -971,6 +994,34 @@ export async function assignIntakeFreight(id, freight) {
  */
 export async function reopenIntakeSheet(id) {
   return request(`/staff/intake/${id}/reopen/`, { method: 'POST' });
+}
+
+/**
+ * Deletes an EMPTY intake sheet and frees its intake number (001, 002 ...)
+ * for the next new sheet. Admins and warehouse managers only (403 for
+ * anybody else); 409 when the sheet holds anything - archive it instead.
+ * See backend warehouse/intake_numbers.py.
+ *
+ * @param {number} id
+ */
+export async function deleteIntakeSheet(id) {
+  return request(`/staff/intake/${id}/`, { method: 'DELETE' });
+}
+
+/**
+ * Puts a sheet away (a manager's decision, with a reason). Nothing is
+ * deleted; it just leaves the everyday lists. Answers the sheet.
+ *
+ * @param {number} id
+ * @param {string} reason
+ */
+export async function archiveIntakeSheet(id, reason) {
+  return request(`/staff/intake/${id}/archive/`, { method: 'POST', body: { reason } });
+}
+
+/** Brings an archived sheet back to the everyday lists. Answers the sheet. */
+export async function unarchiveIntakeSheet(id) {
+  return request(`/staff/intake/${id}/unarchive/`, { method: 'POST' });
 }
 
 /** The photos on an intake sheet (see pages/Dashboard/IntakePhotos.jsx). */

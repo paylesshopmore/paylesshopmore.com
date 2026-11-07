@@ -41,6 +41,7 @@ from rest_framework.settings import api_settings
 from rest_framework.throttling import BaseThrottle, ScopedRateThrottle
 from rest_framework.views import APIView
 
+from accounts import floor as floor_pins
 from accounts import twofactor
 from accounts.emails import send_account_invite, send_email_changed_notice, send_sign_in_code
 from accounts.events import record_event
@@ -52,6 +53,7 @@ from accounts.models import (
     PackageEvent,
     ShipmentLocked,
     TwoFactorAuditEvent,
+    WarehousePin,
 )
 from accounts.reauth import require_recent_reauth
 from accounts.signin_codes import CodeNotAllowed, code_goes_on_screen, issue_code
@@ -94,6 +96,13 @@ from .serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+# The warehouse's own accounts: what happens to them is written to the
+# warehouse audit trail (FloorEvent), which managers read in the activity log.
+WAREHOUSE_ROLES = ("warehouse", "manager")
+# Roles that can manage other people or the office. Opening an account with
+# one of these asks the admin to confirm their password first.
+POWER_ROLES = ("admin", "office", "manager")
 
 User = get_user_model()
 
@@ -1325,13 +1334,45 @@ class CustomerViewSet(
         elif role != User.Role.CUSTOMER and not request.user.is_admin:
             raise PermissionDenied("Only an admin can create accounts with a staff role.")
 
-        self.perform_create(writer)
+        # Opening an account that can itself manage people or the office
+        # (admin, office, warehouse manager) is handing out power: the admin
+        # types their password again first (accounts/reauth.py). The app
+        # shows the "Confirm it's you" box by itself and retries.
+        if role in POWER_ROLES:
+            require_recent_reauth(request)
 
-        row = self.get_queryset().get(pk=writer.instance.pk)
-        return Response(
-            StaffCustomerSerializer(row, context=self.get_serializer_context()).data,
-            status=http_status.HTTP_201_CREATED,
-        )
+        initial_pin = None
+        with transaction.atomic():
+            self.perform_create(writer)
+            new_user = writer.instance
+            if role in WAREHOUSE_ROLES:
+                # In the warehouse's own audit trail: who opened it, as what.
+                FloorEvent.objects.create(
+                    kind=FloorEvent.Kind.ACCOUNT_CREATED,
+                    user=new_user,
+                    actor=request.user,
+                    details={"role": role},
+                )
+            if role == User.Role.WAREHOUSE:
+                # A warehouse worker gets their first PIN straight away:
+                # random (secrets), stored only as an Argon2id hash, shown
+                # ONCE in this answer for the manager to hand over in person.
+                # The worker must choose their own at the first sign-in.
+                initial_pin = floor_pins.issue_pin(new_user, request.user)
+            else:
+                logger.info(
+                    "User %s created account %s with role %s.", request.user.pk, new_user.pk, role
+                )
+
+        row = self.get_queryset().get(pk=new_user.pk)
+        data = StaffCustomerSerializer(row, context=self.get_serializer_context()).data
+        if initial_pin is not None:
+            data = {**data, "initial_pin": initial_pin}
+        response = Response(data, status=http_status.HTTP_201_CREATED)
+        if initial_pin is not None:
+            # The PIN is in this one answer and nowhere else: never cached.
+            response["Cache-Control"] = "no-store"
+        return response
 
     def perform_create(self, serializer):
         """Create the account, and invite its owner into it once it is real.
@@ -1683,9 +1724,32 @@ class CustomerViewSet(
         # together - setting one and leaving the other is how an account ends
         # up being both, or neither. A repeated press changes nothing.
         role = body.validated_data["role"]
-        if target.role != role:
-            target.role = role
-            target.save(update_fields=["role", "is_staff", "is_warehouse", "updated_at"])
+        old_role = target.role
+        if old_role != role:
+            with transaction.atomic():
+                target.role = role
+                target.save(update_fields=["role", "is_staff", "is_warehouse", "updated_at"])
+                if old_role == User.Role.WAREHOUSE:
+                    # A floor PIN belongs to the warehouse worker role only;
+                    # one left behind would be a way in for nobody's benefit.
+                    WarehousePin.objects.filter(user=target).delete()
+                if old_role in WAREHOUSE_ROLES or role in WAREHOUSE_ROLES:
+                    FloorEvent.objects.create(
+                        kind=FloorEvent.Kind.ROLE_CHANGED,
+                        user=target,
+                        actor=request.user,
+                        details={"from_role": old_role, "to_role": role},
+                    )
+            logger.warning(
+                "Admin %s changed the role of user %s from %s to %s.",
+                request.user.pk,
+                target.pk,
+                old_role,
+                role,
+            )
+            # New powers (or fewer) start with a fresh sign-in: every session
+            # the account had is ended, so nothing carries over from before.
+            twofactor.sign_out_everywhere(target)
 
         # Back through the list queryset, so the row the table swaps in carries
         # the same package_count and addresses the rest of them do.
@@ -1745,6 +1809,34 @@ class CustomerViewSet(
 
         fresh = self.get_queryset().get(pk=target.pk)
         return Response(self.get_serializer(fresh).data)
+
+    @action(detail=True, methods=["post"], url_path="sign-out-everywhere")
+    def sign_out_everywhere(self, request, pk=None):
+        """End every session this account has, on every device. POST, no body.
+
+        For a phone or computer that was lost, or left signed in somewhere.
+        The account stays switched on: its owner simply signs in again.
+
+        Who may: an admin, for anybody but themselves and superusers; a
+        warehouse manager, for warehouse workers only (get_queryset hides
+        everybody else from them, so another id is a 404). Not office staff.
+        """
+        target = self.get_object()
+        user = request.user
+
+        if not (user.is_admin or user.is_warehouse_manager):
+            raise PermissionDenied("Only an admin or a warehouse manager can do this.")
+        if target.pk == user.pk:
+            raise PermissionDenied("Use Sign out on your own account instead.")
+        if target.is_superuser and not user.is_superuser:
+            raise PermissionDenied("Superuser accounts are managed in the Django admin.")
+
+        twofactor.sign_out_everywhere(target)
+        if target.is_warehouse or target.role in WAREHOUSE_ROLES:
+            FloorEvent.objects.create(kind=FloorEvent.Kind.SESSIONS_REVOKED, user=target, actor=user)
+        else:
+            logger.warning("User %s signed user %s out everywhere.", user.pk, target.pk)
+        return self._row(target)
 
     @action(detail=True, methods=["post"], url_path="reset-two-factor")
     def reset_two_factor(self, request, pk=None):

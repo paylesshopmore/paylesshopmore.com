@@ -1,12 +1,12 @@
-// The warehouse home page: Scan, New intake sheet, and the packages in the
-// warehouse.
+// The warehouse home page: Scan, New intake sheet, four number tiles that
+// are also the list's views, and the list itself.
 //
 // It refreshes itself every minute, and it is the page a shared floor device
 // gets left on. Those refreshes must not count as somebody working, or the
 // device never goes idle and stays signed in as the last worker for as long
 // as the screen is on.
 
-import { act, screen } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -77,7 +77,28 @@ describe('the warehouse home page', () => {
     );
   });
 
+  it('shows a number on each tile', async () => {
+    listWarehouseShipments.mockImplementation((filters) => {
+      const counts = { awaiting_pickup: 15, ready: 4 };
+      const count = filters.attention ? 3 : (counts[filters.stage] ?? 31);
+      return Promise.resolve({ results: [ROW], count });
+    });
+    renderHome();
+
+    const tiles = screen.getByRole('group', { name: 'Show' });
+    expect(await within(tiles).findByRole('button', { name: /In the warehouse\s*31/ })).toBeInTheDocument();
+    expect(within(tiles).getByRole('button', { name: /Requiring attention\s*3/ })).toBeInTheDocument();
+    expect(within(tiles).getByRole('button', { name: /Ready to ship\s*4/ })).toBeInTheDocument();
+    expect(within(tiles).getByRole('button', { name: /On the way\s*15/ })).toBeInTheDocument();
+    // Counts are asked for with page_size 1: only the number is read.
+    expect(listWarehouseShipments).toHaveBeenCalledWith(
+      { page_size: 1, stage: IN_WAREHOUSE, attention: 'true' },
+      { background: false },
+    );
+  });
+
   it('shows the new packages the office has sent, on the way in', async () => {
+    const user = userEvent.setup();
     const expected = { ...ROW, id: 9, tracking_number: 'CI-1234', warehouse_stage: 'awaiting_pickup', has_open_damage: false };
     listWarehouseShipments.mockImplementation((filters) =>
       Promise.resolve(
@@ -85,16 +106,14 @@ describe('the warehouse home page', () => {
       ),
     );
     renderHome();
-
-    expect(await screen.findByText('New packages on the way (1)')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /CI-1234/ })).toHaveAttribute('href', '/warehouse/packages/9');
-    expect(listWarehouseShipments).toHaveBeenCalledWith({ page_size: 50, stage: 'awaiting_pickup' }, { background: false });
-  });
-
-  it('hides the on-the-way list when nothing is coming', async () => {
-    renderHome();
     await screen.findByText('PLSM-0007');
-    expect(screen.queryByText(/New packages on the way/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /On the way/ }));
+
+    expect(await screen.findByRole('link', { name: /CI-1234/ })).toHaveAttribute('href', '/warehouse/packages/9');
+    expect(screen.getByRole('heading', { name: /On the way/ })).toBeInTheDocument();
+    expect(screen.getByText(/Open one when it arrives/)).toBeInTheDocument();
+    expect(listWarehouseShipments).toHaveBeenCalledWith({ page_size: 50, stage: 'awaiting_pickup' }, { background: false });
   });
 
   it('narrows the list to problems', async () => {
@@ -102,12 +121,24 @@ describe('the warehouse home page', () => {
     renderHome();
     await screen.findByText('PLSM-0007');
 
-    await user.click(screen.getByRole('button', { name: 'Requiring attention' }));
+    await user.click(screen.getByRole('button', { name: /Requiring attention/ }));
 
-    expect(listWarehouseShipments).toHaveBeenLastCalledWith(
+    expect(screen.getByRole('button', { name: /Requiring attention/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(listWarehouseShipments).toHaveBeenCalledWith(
       { page_size: 50, stage: IN_WAREHOUSE, attention: 'true' },
       { background: false },
     );
+  });
+
+  it('searches every package', async () => {
+    const user = userEvent.setup();
+    renderHome();
+    await screen.findByText('PLSM-0007');
+
+    await user.type(screen.getByRole('searchbox'), 'PLSM-0007');
+
+    expect(await screen.findByRole('heading', { name: /Search results/ })).toBeInTheDocument();
+    expect(listWarehouseShipments).toHaveBeenCalledWith({ page_size: 50, search: 'PLSM-0007' }, { background: false });
   });
 
   it('starts a new intake sheet and opens it', async () => {
@@ -115,7 +146,7 @@ describe('the warehouse home page', () => {
     createIntakeSheet.mockResolvedValue({ id: 41 });
     renderHome();
 
-    await user.click(screen.getByRole('button', { name: 'New intake sheet' }));
+    await user.click(screen.getByRole('button', { name: /New intake sheet/ }));
 
     expect(createIntakeSheet).toHaveBeenCalled();
     expect(await screen.findByText('At /warehouse/intake?sheet=41')).toBeInTheDocument();

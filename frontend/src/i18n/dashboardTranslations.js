@@ -196,6 +196,7 @@ export const dashboardTranslations = {
       office: 'Kantoor',
       manage: 'Beheren',
       signOut: 'Uitloggen',
+      signInAsWorker: 'Inloggen als medewerker',
       closeMenu: 'Menu sluiten',
       // Opens the warehouse tour again (WarehouseLayout.jsx).
       guide: 'Uitleg',
@@ -226,6 +227,22 @@ export const dashboardTranslations = {
         attentionTitle: 'Vereist aandacht',
         seeAll: 'Alles bekijken',
         nothingAttention: 'Er vraagt nu niets om aandacht.',
+        // The redesigned home page (WarehouseHome.jsx).
+        scanHint: 'Scan een code om het pakket te openen',
+        sheetHint: 'Voor goederen die zonder code binnenkomen',
+        updated: 'Bijgewerkt {time}',
+        refresh: 'Vernieuwen',
+        views: {
+          all: 'In het magazijn',
+          attention: 'Vereist aandacht',
+          ready: 'Klaar voor verzending',
+          expected: 'Onderweg',
+        },
+        searchResults: 'Zoekresultaten',
+        searchingAll: 'Zoekt in alle pakketten, ook in die al verzonden zijn.',
+        nothingReady: 'Er is nog niets klaar voor verzending.',
+        nothingExpected: 'Er is nu niets onderweg.',
+        showingFirst: 'De eerste {shown} van {count}. Zoek om een bepaald pakket te vinden.',
         reasons: {
           damage: 'Schade gemeld',
           problem: 'Probleem: {note}',
@@ -452,6 +469,7 @@ export const dashboardTranslations = {
       office: 'Office',
       manage: 'Manage',
       signOut: 'Log out',
+      signInAsWorker: 'Sign in as a worker',
       closeMenu: 'Close menu',
       // Opens the warehouse tour again (WarehouseLayout.jsx).
       guide: 'Guide',
@@ -482,6 +500,22 @@ export const dashboardTranslations = {
         attentionTitle: 'Requiring attention',
         seeAll: 'See all',
         nothingAttention: 'Nothing needs attention right now.',
+        // The redesigned home page (WarehouseHome.jsx).
+        scanHint: 'Scan a code to open its package',
+        sheetHint: 'For goods that arrive without a code',
+        updated: 'Updated {time}',
+        refresh: 'Refresh',
+        views: {
+          all: 'In the warehouse',
+          attention: 'Requiring attention',
+          ready: 'Ready to ship',
+          expected: 'On the way',
+        },
+        searchResults: 'Search results',
+        searchingAll: 'Searching every package, also ones already shipped.',
+        nothingReady: 'Nothing is ready to ship yet.',
+        nothingExpected: 'Nothing is on the way right now.',
+        showingFirst: 'Showing the first {shown} of {count}. Search to find a specific package.',
         reasons: {
           damage: 'Damage reported',
           problem: 'Problem: {note}',
@@ -708,6 +742,7 @@ export const dashboardTranslations = {
       office: 'Ofisina',
       manage: 'Maneha',
       signOut: 'Sali',
+      signInAsWorker: 'Drenta komo trahadó',
       closeMenu: 'Sera menu',
       // Opens the warehouse tour again (WarehouseLayout.jsx).
       guide: 'Gia',
@@ -738,6 +773,22 @@ export const dashboardTranslations = {
         attentionTitle: 'Mester atenshon',
         seeAll: 'Mira tur',
         nothingAttention: 'Nada no mester atenshon awor aki.',
+        // The redesigned home page (WarehouseHome.jsx).
+        scanHint: 'Skan un kódigo pa habri su pakete',
+        sheetHint: 'Pa merkansia ku ta yega sin kódigo',
+        updated: 'Aktualisá {time}',
+        refresh: 'Refresk',
+        views: {
+          all: 'Den pakus',
+          attention: 'Mester atenshon',
+          ready: 'Kla pa manda',
+          expected: 'Na kaminda',
+        },
+        searchResults: 'Resultado di búsketa',
+        searchingAll: 'Ta buska den tur pakete, tambe esnan ku a wordu mandá kaba.',
+        nothingReady: 'Nada no ta kla pa manda ainda.',
+        nothingExpected: 'Nada no ta na kaminda awor.',
+        showingFirst: 'Ta mustra e promé {shown} di {count}. Buska pa haña un pakete spesífiko.',
         reasons: {
           damage: 'Daño reportá',
           problem: 'Problema: {note}',

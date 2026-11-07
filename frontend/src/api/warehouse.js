@@ -232,3 +232,12 @@ export async function getManagerActivity(params = {}) {
   const { options, ...rest } = params;
   return request(`/staff/warehouse/manager/activity/${query({ ...rest, options: options ? 1 : '' })}`);
 }
+
+/**
+ * One page of the manager's review list (warehouse/review.py).
+ * @param {{ status?: 'awaiting_review'|'needs_correction'|'approved'|'completed'|'all',
+ *           issue?: string, page?: number }} params
+ */
+export async function getReviewQueue(params = {}) {
+  return request(`/staff/warehouse/manager/review/${query(params)}`);
+}

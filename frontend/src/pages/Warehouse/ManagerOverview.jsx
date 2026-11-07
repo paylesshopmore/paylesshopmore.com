@@ -46,16 +46,37 @@ const CARDS = [
   { key: 'unassigned', note: true, watch: true },
   { key: 'missing_measurements', watch: true },
   { key: 'problems', watch: true },
+  // Quality review (ManagerReview): released sheets nobody has checked, and
+  // sheets sent back that the floor has not fixed yet.
+  { key: 'awaiting_review', watch: true, to: '/warehouse/manager/packages' },
+  { key: 'needs_correction', watch: true, to: '/warehouse/manager/packages?status=needs_correction' },
+  // The intake sheets themselves (ManagerIntakes). Empty ones can be deleted.
+  { key: 'intakes_today', to: '/warehouse/manager/intakes' },
+  { key: 'pending_intakes', to: '/warehouse/manager/intakes?view=draft' },
+  { key: 'empty_intakes', watch: true, to: '/warehouse/manager/intakes?view=empty' },
+  { key: 'completed_intakes', to: '/warehouse/manager/intakes?view=released' },
 ];
 
-function StatCard({ name, value, note, watch }) {
+function StatCard({ name, value, note, watch, to }) {
   const m = usePageText('warehouseManager');
   const tone = watch ? (value > 0 ? own.cardWarn : own.cardOk) : '';
-  return (
-    <li className={`${own.card} ${tone}`}>
+  const body = (
+    <>
       <span className={own.cardLabel}>{m(`stats.${name}`)}</span>
       <span className={own.cardValue}>{value}</span>
       {note && <span className={own.cardNote}>{m(`statNotes.${name}`)}</span>}
+    </>
+  );
+  // A card with somewhere to go is a link to it.
+  return (
+    <li className={`${own.card} ${tone}`}>
+      {to ? (
+        <Link to={to} className={own.cardLink}>
+          {body}
+        </Link>
+      ) : (
+        body
+      )}
     </li>
   );
 }
@@ -158,6 +179,7 @@ export default function ManagerOverview() {
             value={counts[card.key] ?? 0}
             note={card.note}
             watch={card.watch}
+            to={card.to}
           />
         ))}
       </ul>

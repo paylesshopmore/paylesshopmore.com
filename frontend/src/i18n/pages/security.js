@@ -42,7 +42,7 @@ export const security = {
     mode: {
       disabled: { label: 'Disabled', effect: 'Nobody is asked for a code. Signing in works as before.' },
       optional: { label: 'Optional', effect: 'People can turn it on from their profile. Only they are asked for a code.' },
-      required_admins: { label: 'Required for administrators', effect: 'Every administrator must use it. Everybody else: optional.' },
+      required_admins: { label: 'Required for administrators and managers', effect: 'Every administrator and warehouse manager must use it. Everybody else: optional.' },
       required_all: { label: 'Required for everyone', effect: 'Everybody who signs in with a password must use it. Warehouse sign-ins with a code or PIN are not asked.' },
     },
     event: {
@@ -96,7 +96,7 @@ export const security = {
     mode: {
       disabled: { label: 'Uit', effect: 'Niemand wordt om een code gevraagd. Inloggen werkt zoals altijd.' },
       optional: { label: 'Optioneel', effect: 'Iedereen kan het aanzetten op het eigen profiel. Alleen zij krijgen een code.' },
-      required_admins: { label: 'Verplicht voor beheerders', effect: 'Elke beheerder moet het gebruiken. Alle anderen: optioneel.' },
+      required_admins: { label: 'Verplicht voor beheerders en managers', effect: 'Elke beheerder en magazijnmanager moet het gebruiken. Alle anderen: optioneel.' },
       required_all: { label: 'Verplicht voor iedereen', effect: 'Iedereen die met een wachtwoord inlogt moet het gebruiken. Magazijnlogins met een code of pincode niet.' },
     },
     event: {
@@ -150,7 +150,7 @@ export const security = {
     mode: {
       disabled: { label: 'Pagá', effect: 'Ningun hende no ta wòrdu pidí un kódigo. Drenta ta funshoná manera semper.' },
       optional: { label: 'Opshonal', effect: 'Hende por sende’é riba nan perfil. Solamente nan ta wòrdu pidí un kódigo.' },
-      required_admins: { label: 'Obligatorio pa atministradó', effect: 'Tur atministradó mester us’é. Tur otro: opshonal.' },
+      required_admins: { label: 'Obligatorio pa atministradó i manager', effect: 'Tur atministradó i manager di pakus mester us’é. Tur otro: opshonal.' },
       required_all: { label: 'Obligatorio pa tur hende', effect: 'Tur hende ku ta drenta ku kontraseña mester us’é. Drenta den pakus ku kódigo òf pin no.' },
     },
     event: {

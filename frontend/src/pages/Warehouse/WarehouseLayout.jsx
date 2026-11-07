@@ -170,6 +170,19 @@ export default function WarehouseLayout() {
     navigate(isFloorOnly ? '/warehouse/login' : '/', { replace: true });
   }
 
+  /**
+   * "Sign in as a worker": for office, admin and manager accounts. Signs this
+   * account out and opens the warehouse's own sign-in page (the worker list
+   * or email + PIN), so somebody can sign in with their PIN - for instance
+   * to try out what a worker sees. Floor accounts don't need it: their
+   * normal Sign out already goes there.
+   */
+  async function handleSwitchToWorker() {
+    setMoreOpen(false);
+    await signOut();
+    navigate('/warehouse/login', { replace: true });
+  }
+
   return (
     <div className={`${dashboard.app} ${styles.shell}`}>
       <header className={styles.topbar}>
@@ -232,6 +245,11 @@ export default function WarehouseLayout() {
                   : []),
               { to: '/', label: t('dashboard.office.backToSite') },
             ]}
+            actions={
+              isFloorOnly
+                ? []
+                : [{ label: t('dashboard.warehouse.signInAsWorker'), onClick: handleSwitchToWorker }]
+            }
             signOutLabel={t('dashboard.warehouse.signOut')}
             onSignOut={handleSignOut}
           />
@@ -302,6 +320,13 @@ export default function WarehouseLayout() {
                   {t(user?.isStaff ? 'dashboard.warehouse.nav.officeDashboard' : 'dashboard.warehouse.nav.manage')}
                 </span>
               </Link>
+            )}
+            {/* Phones: the same "Sign in as a worker" as the account menu. */}
+            {!isFloorOnly && (
+              <button type="button" className={styles.navItem} onClick={handleSwitchToWorker}>
+                <UserIcon />
+                <span>{t('dashboard.warehouse.signInAsWorker')}</span>
+              </button>
             )}
             <button
               type="button"

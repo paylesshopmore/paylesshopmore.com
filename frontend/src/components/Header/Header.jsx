@@ -112,8 +112,10 @@ export default function Header() {
   const accountLinks = [
     ...(isStaffish ? [{ to: dashboardPath, label: 'Dashboard' }] : []),
     // The office can open the warehouse app too; for a warehouse account
-    // "Dashboard" above already is the warehouse.
-    ...(user?.isStaff ? [{ to: '/warehouse', label: 'Warehouse' }] : []),
+    // "Dashboard" above already is the warehouse. It goes to the warehouse
+    // sign-in page first (?choose=1): continue as yourself, or let a worker
+    // sign in with their e-mail and PIN (WarehouseLogin.jsx).
+    ...(user?.isStaff ? [{ to: '/warehouse/login?choose=1', label: 'Warehouse' }] : []),
     // A warehouse manager's side of the dashboard: workers, devices, access.
     ...(!user?.isStaff && user?.isWarehouseManager ? [{ to: '/dashboard', label: 'Manage' }] : []),
     // Not for the office and admins: they reach their profile from the
