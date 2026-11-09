@@ -23,7 +23,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { listAddresses } from '../../api/profile';
 import { createPrealert, readPrealertScreenshot } from '../../api/prealerts';
 import { listShops } from '../../api/shops';
 import { getCarriers } from '../../api/tracking';
@@ -67,7 +66,6 @@ export default function PreAlertForm() {
   // The lists the form chooses from.
   const [carriers, setCarriers] = useState([]);
   const [shops, setShops] = useState([]);
-  const [addresses, setAddresses] = useState([]);
 
   const [form, setForm] = useState({
     trackingNumber: (searchParams.get('number') ?? '').slice(0, 255),
@@ -76,7 +74,6 @@ export default function PreAlertForm() {
     shopName: '',
     description: '',
     consigneeName: user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() : '',
-    consigneeAddress: '',
     restrictedConfirmed: false,
   });
   const [files, setFiles] = useState([]);
@@ -90,16 +87,6 @@ export default function PreAlertForm() {
     // Each list on its own: one failing must not empty the others.
     getCarriers().then((list) => !cancelled && setCarriers(list.filter((c) => c.trackable)), () => {});
     listShops().then((list) => !cancelled && setShops(list), () => {});
-    listAddresses().then(
-      (list) => {
-        if (cancelled) return;
-        setAddresses(list);
-        // The default address is the likely one: chosen to start with.
-        const preferred = list.find((address) => address.is_default) ?? list[0];
-        if (preferred) setForm((current) => ({ ...current, consigneeAddress: String(preferred.id) }));
-      },
-      () => {},
-    );
     return () => {
       cancelled = true;
     };
@@ -212,7 +199,6 @@ export default function PreAlertForm() {
         shopName: form.shop === OTHER_SHOP ? form.shopName.trim() : '',
         description: form.description.trim(),
         consigneeName: form.consigneeName.trim(),
-        consigneeAddress: form.consigneeAddress ? Number(form.consigneeAddress) : null,
         restrictedConfirmed: form.restrictedConfirmed,
         files,
       });
@@ -226,7 +212,6 @@ export default function PreAlertForm() {
         shop: serverMessage(fields, 'shop'),
         description: serverMessage(fields, 'description'),
         consigneeName: serverMessage(fields, 'consignee_name'),
-        consigneeAddress: serverMessage(fields, 'consignee_address'),
         restrictedConfirmed: serverMessage(fields, 'restricted_items_confirmed'),
         files: serverMessage(fields, 'documents'),
       });
@@ -358,7 +343,8 @@ export default function PreAlertForm() {
                 <option value="">{p('chooseCarrier')}</option>
                 {carriers.map((carrier) => (
                   <option key={carrier.code} value={carrier.code}>
-                    {carrier.name}
+                    {/* "Other" in the customer's own language. */}
+                    {carrier.code === 'other' ? t('courier.otherCarrier') : carrier.name}
                   </option>
                 ))}
               </select>
@@ -450,32 +436,6 @@ export default function PreAlertForm() {
               {fieldError('consigneeName')}
             </div>
 
-            <div className={profile.field}>
-              <label className={profile.label} htmlFor="prealert-address">
-                {p('consigneeAddress')}
-              </label>
-              <select
-                id="prealert-address"
-                className={profile.input}
-                value={form.consigneeAddress}
-                onChange={set('consigneeAddress')}
-                aria-invalid={Boolean(errors.consigneeAddress)}
-                aria-describedby={described('consigneeAddress') ?? 'prealert-address-hint'}
-              >
-                <option value="">{p('noAddress')}</option>
-                {addresses.map((address) => (
-                  <option key={address.id} value={address.id}>
-                    {[address.label, `${address.street} ${address.house_number}`, address.city]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </option>
-                ))}
-              </select>
-              <span className={styles.count} id="prealert-address-hint">
-                {p('addressHint')}
-              </span>
-              {fieldError('consigneeAddress')}
-            </div>
           </div>
 
           {/* The shop's invoice: optional, but it speeds up customs. */}

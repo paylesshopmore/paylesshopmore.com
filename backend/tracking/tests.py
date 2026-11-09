@@ -186,9 +186,9 @@ class CustomerSavesACourierTests(TrackingTestCase):
     def test_the_courier_list(self):
         self.client.force_authenticate(self.customer)
         names = [row["name"] for row in self.client.get(reverse("tracking-carriers")).data]
-        # The trimmed list (migration 0006), in this order; the others are
-        # switched off, not deleted.
-        self.assertEqual(names, ["PostNL", "DHL", "DPD", "Amazon", "FedEx"])
+        # The trimmed list (migration 0006) plus "Other" last (0008), in
+        # this order; the rest are switched off, not deleted.
+        self.assertEqual(names, ["PostNL", "DHL", "DPD", "Amazon", "FedEx", "Other"])
 
     def test_the_customer_sees_no_staff_details(self):
         shipment = self.make_shipment()

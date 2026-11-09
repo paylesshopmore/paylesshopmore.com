@@ -335,7 +335,6 @@ function Review({ form, orders, shopNames, onEdit, t }) {
       step: 4,
       title: t('booking.guided.optionsTitle'),
       rows: [
-        [t('booking.sections.emigration'), form.emigration ? yes : no],
         [
           t('booking.sections.insurance'),
           form.insured ? `${yes} · € ${form.insured_value_eur}` : no,
@@ -826,41 +825,9 @@ export default function Booking() {
         </fieldset>
         )}
 
-        {/* 5 — emigration, only when it applies ----------------------- */}
-        {shows(4) && (
-        <fieldset className={styles.card}>
-          <legend className={styles.legend}>{t('booking.sections.emigration')}</legend>
-
-          <label className={styles.check}>
-            <input
-              type="checkbox"
-              name="emigration"
-              checked={form.emigration}
-              onChange={handleChange}
-            />
-            {t('booking.emigration')}
-          </label>
-
-          {/* The four Ja/Nee boxes stay hidden until they mean something —
-              on paper they are asked of everybody, and most people leave them
-              blank because they do not apply. */}
-          {form.emigration && (
-            <div className={styles.subChecks}>
-              {['id_present', 'deregistered', 'deregistration_present'].map((name) => (
-                <label key={name} className={styles.check}>
-                  <input
-                    type="checkbox"
-                    name={name}
-                    checked={form[name]}
-                    onChange={handleChange}
-                  />
-                  {t(`booking.${name}`)}
-                </label>
-              ))}
-            </div>
-          )}
-        </fieldset>
-        )}
+        {/* Emigration is no longer asked on the booking form. The fields
+            stay in the form state as false, so the server keeps its
+            defaults and older bookings keep what they had. */}
 
         {/* 6 — insurance ---------------------------------------------- */}
         {shows(4) && (

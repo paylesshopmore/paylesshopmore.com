@@ -386,3 +386,26 @@ class PreAlertReadTests(PreAlertTestCase):
     def test_without_a_key_it_is_a_503(self):
         response, _ = self.read(self.answer())
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+
+
+class CompanyAddressTests(PreAlertTestCase):
+    """Delivering to the PayLesShopMore address instead of a home address."""
+
+    def test_the_company_address_is_written_on_the_pre_alert(self):
+        response = self.send(consignee_address=None, deliver_to_company="true")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        prealert = PreAlert.objects.get()
+        self.assertIsNone(prealert.consignee_address)
+        self.assertIn("Hertzstraat 10", prealert.consignee_address_text)
+        self.assertIn("Berkel en Rodenrijs", prealert.consignee_address_text)
+
+    def test_it_wins_over_an_address_sent_along(self):
+        self.send(deliver_to_company="true")
+        prealert = PreAlert.objects.get()
+        self.assertIsNone(prealert.consignee_address)
+        self.assertIn("Hertzstraat 10", prealert.consignee_address_text)
+
+    def test_without_it_the_customers_own_address_is_kept(self):
+        self.send()
+        self.assertIn("Willemstad", PreAlert.objects.get().consignee_address_text)

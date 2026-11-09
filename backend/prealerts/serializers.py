@@ -134,6 +134,9 @@ class PreAlertInputSerializer(serializers.Serializer):
     consignee_name = serializers.CharField(max_length=150)
     # One of the customer's own addresses (checked in validate), optional.
     consignee_address = serializers.IntegerField(required=False, allow_null=True)
+    # Or: deliver to the PayLesShopMore address itself (the company address in
+    # Site settings), instead of one of the customer's own addresses.
+    deliver_to_company = serializers.BooleanField(required=False, default=False)
     # Optional: the form no longer asks for it. Left out means "not given".
     declared_value = serializers.DecimalField(
         max_digits=10, decimal_places=2, min_value=Decimal("0.01"), required=False, allow_null=True
@@ -183,6 +186,12 @@ class PreAlertInputSerializer(serializers.Serializer):
 
         address_id = attrs.pop("consignee_address", None)
         attrs["consignee_address"] = None
+        # The written-down address kept with the pre-alert (views.py).
+        attrs["consignee_address_text"] = ""
+        if attrs.pop("deliver_to_company", False):
+            # The PayLesShopMore address: no customer address is linked.
+            attrs["consignee_address_text"] = company_address_text()
+            return attrs
         if address_id:
             user = self.context["request"].user
             # Only one of the caller's own addresses: somebody else's id is
@@ -191,6 +200,7 @@ class PreAlertInputSerializer(serializers.Serializer):
             if address is None:
                 raise serializers.ValidationError({"consignee_address": "Choose one of your addresses."})
             attrs["consignee_address"] = address
+            attrs["consignee_address_text"] = address_text(address)
         return attrs
 
 
@@ -207,6 +217,20 @@ def validate_documents(files):
         except serializers.ValidationError as error:
             raise serializers.ValidationError({"documents": error.detail}) from None
     return checked
+
+
+def company_address_text():
+    """The PayLesShopMore address (Django admin -> Site settings), as lines."""
+    from accounts.models import SiteSettings
+
+    settings_row = SiteSettings.load()
+    lines = [
+        settings_row.company_name,
+        settings_row.company_street,
+        settings_row.company_postcode_city,
+        "Nederland",
+    ]
+    return "\n".join(line.strip() for line in lines if line and line.strip())
 
 
 def address_text(address):

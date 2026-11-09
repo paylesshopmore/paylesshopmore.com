@@ -242,6 +242,10 @@
   font-size: 0.92rem;
   font-weight: 700;
   line-height: 1.25;
+  /* A long word (or a long translation) wraps inside the tile instead of
+     running out of it. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .tileValue {

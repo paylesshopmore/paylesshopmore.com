@@ -423,6 +423,8 @@ export const translations = {
       testDataNote: "Dit zijn verzonnen testgegevens, geen echte informatie van de koerier.",
       carrierLabel: "Koeriersbedrijf",
       carrierPlaceholder: "Kies de koerier",
+      // The courier list's last choice (server code "other").
+      otherCarrier: "Andere koerier",
       carrierHint: "Kies de koerier om uw pakket te volgen op weg naar ons magazijn.",
       problems: {
         delivery_failed: "De koerier kon dit pakket niet bij ons magazijn bezorgen. Kijk op de pagina van de koerier of neem contact op met de winkel.",
@@ -480,9 +482,6 @@ export const translations = {
       description: "Omschrijving van het pakket",
       descriptionPlaceholder: "Bijvoorbeeld: 1 moederbord en 1 voeding",
       consignee: "Ontvanger",
-      consigneeAddress: "Afleveradres",
-      noAddress: "Geen adres gekozen",
-      addressHint: "Uw adressen uit uw profiel. Daar kunt u er een toevoegen.",
       value: "Aangegeven waarde",
       invoice: "Factuur",
       invoiceHint: "De factuur of orderbevestiging van de winkel: PDF, JPG, PNG of WebP, maximaal 10 MB per bestand, tot {count} bestanden. Niet verplicht, maar het versnelt de douane.",
@@ -3383,6 +3382,8 @@ export const translations = {
       testDataNote: "This is made-up test data, not real information from the courier.",
       carrierLabel: "Courier company",
       carrierPlaceholder: "Choose the courier",
+      // The courier list's last choice (server code "other").
+      otherCarrier: "Other courier",
       carrierHint: "Choose the courier to follow your parcel on its way to our warehouse.",
       problems: {
         delivery_failed: "The courier could not deliver this parcel to our warehouse. Check the courier's page or contact the shop.",
@@ -3440,9 +3441,6 @@ export const translations = {
       description: "Package description",
       descriptionPlaceholder: "For example: 1 computer motherboard and 1 power supply",
       consignee: "Consignee (who receives it)",
-      consigneeAddress: "Delivery address",
-      noAddress: "No address chosen",
-      addressHint: "Your addresses from your profile. You can add one there.",
       value: "Declared value",
       invoice: "Invoice",
       invoiceHint: "The shop's invoice or order confirmation: PDF, JPG, PNG or WebP, at most 10 MB each, up to {count} files. Optional, but it speeds up customs.",
@@ -6332,6 +6330,8 @@ export const translations = {
       testDataNote: "Esaki ta datos di prueba inventá, no informashon real di e kurier.",
       carrierLabel: "Kompania di kurier",
       carrierPlaceholder: "Skohe e kurier",
+      // The courier list's last choice (server code "other").
+      otherCarrier: "Otro kurier",
       carrierHint: "Skohe e kurier pa sigui bo pakete riba su kaminda pa nos pakus.",
       problems: {
         delivery_failed: "E kurier no por a entregá e pakete aki na nos pakus. Wak e página di e kurier òf tuma kontakto ku e tienda.",
@@ -6389,9 +6389,6 @@ export const translations = {
       description: "Deskripshon di e pakete",
       descriptionPlaceholder: "Por ehèmpel: 1 motherboard i 1 power supply",
       consignee: "Risibidó",
-      consigneeAddress: "Adrès di entrega",
-      noAddress: "Ningun adrès skohé",
-      addressHint: "Bo adrèsnan for di bo perfil. Bo por agregá un einan.",
       value: "Balor deklará",
       invoice: "Faktura",
       invoiceHint: "E faktura òf konfirmashon di òrdu di e tienda: PDF, JPG, PNG òf WebP, maksimo 10 MB pa kada, te {count} archivo. No ta obligatorio, pero e ta hasi duana mas lihé.",

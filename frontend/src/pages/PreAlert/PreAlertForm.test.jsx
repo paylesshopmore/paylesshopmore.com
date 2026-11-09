@@ -19,11 +19,6 @@ vi.mock('../../api/tracking', () => ({
 vi.mock('../../api/shops', () => ({
   listShops: vi.fn().mockResolvedValue([{ id: 3, name: 'bol.com' }]),
 }));
-vi.mock('../../api/profile', () => ({
-  listAddresses: vi.fn().mockResolvedValue([
-    { id: 9, label: 'Thuis', street: 'Kaya Grandi', house_number: '24', city: 'Willemstad', is_default: true },
-  ]),
-}));
 const auth = { user: { firstName: 'Klaas', lastName: 'Klant' } };
 vi.mock('../../auth/useAuth', () => ({ useAuth: () => auth }));
 
@@ -42,10 +37,11 @@ async function fillIn(user) {
 }
 
 describe('PreAlertForm', () => {
-  it('starts with the customer as receiver and their default address', async () => {
+  it('starts with the customer as receiver, and asks no delivery address', async () => {
     renderWithProviders(<PreAlertForm />);
     expect(screen.getByLabelText('Consignee (who receives it) *')).toHaveValue('Klaas Klant');
-    expect(await screen.findByRole('option', { name: /Thuis/ })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Delivery address')).toBeNull();
+    await screen.findByRole('option', { name: 'PostNL' });
     // A walk-in has no courier number: not offered.
     expect(screen.queryByRole('option', { name: 'Walk-in' })).toBeNull();
   });
@@ -89,7 +85,6 @@ describe('PreAlertForm', () => {
       carrier: 'postnl',
       shop: 3,
       consigneeName: 'Klaas Klant',
-      consigneeAddress: 9,
       restrictedConfirmed: true,
     });
     expect(sent.files.map((file) => file.name)).toEqual(['factuur.pdf']);

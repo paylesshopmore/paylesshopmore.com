@@ -43,7 +43,6 @@ from .serializers import (
     CustomerPreAlertSerializer,
     PreAlertInputSerializer,
     StaffPreAlertSerializer,
-    address_text,
     validate_documents,
 )
 
@@ -99,7 +98,7 @@ def create_prealert(user, data, files):
                 description=data["description"],
                 consignee_name=data["consignee_name"],
                 consignee_address=data["consignee_address"],
-                consignee_address_text=address_text(data["consignee_address"]),
+                consignee_address_text=data["consignee_address_text"],
                 declared_value=data.get("declared_value"),
                 currency=data["currency"],
                 restricted_items_confirmed_at=timezone.now(),

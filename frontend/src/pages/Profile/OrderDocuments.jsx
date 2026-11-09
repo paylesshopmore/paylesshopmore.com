@@ -157,7 +157,8 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
               <option value="">{t('courier.carrierPlaceholder')}</option>
               {(carriers ?? []).map((option) => (
                 <option key={option.code} value={option.code}>
-                  {option.name}
+                  {/* "Other" in the customer's own language. */}
+                  {option.code === 'other' ? t('courier.otherCarrier') : option.name}
                 </option>
               ))}
             </select>
