@@ -75,13 +75,12 @@ function AddressCard() {
 
   const rows = [
     // The same order as "Your shipping address" in the account
-    // (WarehouseAddressCard.jsx): the customer's full name first - that is
-    // how the warehouse knows whose parcel it is - then our name as the
-    // company. The name is shown as an instruction (in italics), not as
-    // something to copy. The wording is shared with the tutorial page
-    // (tutorial.address.firstNameValue), so the two always say the same.
-    // (The keys are still called firstName / lastName; their labels now
-    // read "Full name" and "Company".)
+    // (WarehouseAddressCard.jsx): first name = the customer's own (that is
+    // how the warehouse knows whose parcel it is), last name = our name
+    // ("Pay less Shop More"). The first name is shown as an instruction (in
+    // italics), not as something to copy. The wording is shared with the
+    // tutorial page (tutorial.address.firstNameValue), so the two always
+    // say the same.
     {
       label: t('onboarding.address.firstName'),
       value: t('tutorial.address.firstNameValue'),

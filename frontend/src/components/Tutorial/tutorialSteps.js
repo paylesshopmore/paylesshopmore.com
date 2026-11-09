@@ -51,6 +51,7 @@
 //             [data-tour="shops"]    Home page: the strip of shops
 //             [data-tour="address"]  Tutorial page: the address card
 //             [data-tour="help"]     The robot in the corner (help + guide)
+//             [data-tour="feedback"] The yellow "Feedback" tab on the right
 //             #track, #tracking      Track & Trace (home when signed in,
 //                                    and the account page)
 //           The page tours use hooks named after their page, e.g.
@@ -59,7 +60,9 @@
 
 // Raise this number when the tour changes enough that everyone who has
 // already seen it should see it once more. See storage.js.
-export const TUTORIAL_VERSION = 1;
+// 2: the Feedback step, delivery reviews, and the address's name lines
+// (first name = your own, last name = Pay less Shop More).
+export const TUTORIAL_VERSION = 2;
 
 export const tutorialSteps = [
   {
@@ -121,6 +124,12 @@ export const tutorialSteps = [
     ],
   },
   {
+    // The yellow "Feedback" tab on the right edge of every page.
+    id: 'feedback',
+    kind: 'text',
+    target: '[data-tour="feedback"]',
+  },
+  {
     id: 'help',
     kind: 'help',
     target: '[data-tour="help"]',
@@ -176,6 +185,8 @@ export const pageTours = {
     // which is not open yet: the shipments card is highlighted instead.
     { id: 'handover', target: '#shipments' },
     { id: 'bookings', target: '#bookings' },
+    // Rate a delivered shipment (DeliveryReviews.jsx).
+    { id: 'reviews', target: '#reviews' },
     { id: 'invoices', target: '#invoices' },
     { id: 'notifications', target: '#notifications' },
   ],

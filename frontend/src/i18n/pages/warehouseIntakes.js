@@ -7,7 +7,7 @@ export const warehouseIntakes = {
   en: {
     title: 'Intakes',
     intro:
-      'Every intake sheet with its number. Empty intakes can be deleted - their number is then used again for the next new intake. An intake with anything on it can only be archived.',
+      'Every intake sheet with its shipment number (PLSM-…). Empty intakes can be deleted - their number is then used again for the next new intake. An intake with anything on it can only be archived.',
     number: 'Intake {number}',
     noNumber: 'Intake',
     view: {
@@ -21,7 +21,7 @@ export const warehouseIntakes = {
     filterWorker: 'Started by',
     filterCustomer: 'Customer',
     filterCustomerHint: 'Name, e-mail or customer number',
-    filterNumber: 'Intake number',
+    filterNumber: 'Shipment number',
     filterFrom: 'From',
     filterTo: 'To',
     everybody: 'Everybody',
@@ -76,7 +76,7 @@ export const warehouseIntakes = {
     filterWorker: 'Gestart door',
     filterCustomer: 'Klant',
     filterCustomerHint: 'Naam, e-mail of klantnummer',
-    filterNumber: 'Intakenummer',
+    filterNumber: 'Zendingnummer',
     filterFrom: 'Van',
     filterTo: 'Tot',
     everybody: 'Iedereen',
@@ -131,7 +131,7 @@ export const warehouseIntakes = {
     filterWorker: 'Kuminsá pa',
     filterCustomer: 'Kliente',
     filterCustomerHint: 'Nòmber, e-mail òf number di kliente',
-    filterNumber: 'Number di intake',
+    filterNumber: 'Number di envio',
     filterFrom: 'For di',
     filterTo: 'Te',
     everybody: 'Tur hende',

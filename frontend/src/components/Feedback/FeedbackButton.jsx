@@ -70,7 +70,7 @@ export default function FeedbackButton() {
 
   return (
     <>
-      <button type="button" className={styles.tab} onClick={() => setOpen(true)}>
+      <button type="button" className={styles.tab} data-tour="feedback" onClick={() => setOpen(true)}>
         {/* A speech bubble: "tell us something". */}
         <svg
           className={styles.tabIcon}

@@ -1389,3 +1389,32 @@ class IntakeDeletion(AppendOnlyModel):
 
     def __str__(self):
         return f"Intake {self.number or '?'} deleted"
+
+
+class FreedReference(models.Model):
+    """A PLSM shipment number given back by deleting an EMPTY intake sheet.
+
+    The next new intake sheet that needs a number takes the lowest freed one
+    before the office's counter goes up (warehouse/intake_numbers.py,
+    take_freed_reference). So if PLSM-00004 is deleted while PLSM-00005 is
+    the last number, the next new intake gets PLSM-00004 again.
+
+    `reused_at` empty = free to use. Filled = taken again (by `reused_by`).
+    The row stays as the number's history.
+    """
+
+    reference = models.CharField(max_length=50, unique=True)
+    freed_at = models.DateTimeField(default=timezone.now)
+    freed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    reused_at = models.DateTimeField(null=True, blank=True)
+    reused_by = models.ForeignKey(
+        IntakeSheet, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["reference"]
+
+    def __str__(self):
+        return f"{self.reference} ({'free' if self.reused_at is None else 'used again'})"

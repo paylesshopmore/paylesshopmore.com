@@ -12,6 +12,7 @@ rather than a form does not stop applying because the URL changed.
 from django.contrib import admin
 
 from .models import (
+    FreedReference,
     IntakeDeletion,
     IntakeNumber,
     IntakeSheet,
@@ -160,3 +161,8 @@ class IntakeNumberAdmin(ReadOnlyAdmin):
 @admin.register(IntakeDeletion)
 class IntakeDeletionAdmin(ReadOnlyAdmin):
     list_display = ("number", "sheet_id_was", "reference", "created_by", "deleted_by", "deleted_at")
+
+
+@admin.register(FreedReference)
+class FreedReferenceAdmin(ReadOnlyAdmin):
+    list_display = ("reference", "freed_at", "freed_by", "reused_at", "reused_by")

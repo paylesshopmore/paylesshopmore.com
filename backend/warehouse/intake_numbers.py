@@ -26,6 +26,7 @@ so the second worker waits a moment instead of failing.
 """
 
 import logging
+import re
 
 from django.db import IntegrityError, transaction
 from django.db.models import Exists, Max, OuterRef, Q
@@ -33,6 +34,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 
 from .models import (
+    FreedReference,
     IntakeAssignment,
     IntakeDeletion,
     IntakeNumber,
@@ -242,7 +244,10 @@ def delete_empty(sheet, by):
             sheet_created_at=sheet.created_at,
             deleted_by=by,
         )
+        reference = sheet.reference
         sheet.delete()
+        # Its PLSM shipment number goes back too, for the next new intake.
+        free_reference(reference, by)
 
         if number:
             # Free the number for the next new sheet. The register row stays
@@ -259,6 +264,57 @@ def delete_empty(sheet, by):
 
     logger.info("Intake %s (sheet %s) deleted by user %s", number, record.sheet_id_was, by.pk)
     return record
+
+
+# ------------------------------------------------- PLSM shipment numbers
+
+
+def _is_plsm(reference):
+    """A number exactly as the office's own series makes it (PLSM-00004:
+    five digits), not a courier's tracking number or a reference typed by
+    hand (PLSM-0546, PLSM-748383...). Only those come back for reuse."""
+    from bookings.models import ShippingNumberSequence
+
+    pattern = rf"{re.escape(ShippingNumberSequence.PREFIX)}\d{{{ShippingNumberSequence.DIGITS}}}"
+    return bool(re.fullmatch(pattern, reference or "", re.IGNORECASE))
+
+
+def free_reference(reference, by):
+    """Give a deleted empty intake's PLSM number back, for the next intake.
+
+    Only a PLSM-<digits> number, and only when nothing else (a booking, a
+    shipment, another sheet) uses it - then it truly belongs to nobody.
+    """
+    from bookings.models import ShippingNumberSequence
+
+    reference = (reference or "").strip().upper()
+    if not _is_plsm(reference) or ShippingNumberSequence.taken(reference):
+        return
+    FreedReference.objects.update_or_create(
+        reference=reference,
+        defaults={"freed_at": timezone.now(), "freed_by": by, "reused_at": None, "reused_by": None},
+    )
+
+
+def take_freed_reference(sheet):
+    """The lowest freed PLSM number, now taken by `sheet`; None if none.
+
+    Call inside a transaction. The conditional update means two workers
+    starting an intake at the same moment never both get the same number:
+    the second one's update changes 0 rows and it tries the next number.
+    """
+    from bookings.models import ShippingNumberSequence
+
+    for freed in FreedReference.objects.filter(reused_at__isnull=True).order_by("reference"):
+        taken = FreedReference.objects.filter(pk=freed.pk, reused_at__isnull=True).update(
+            reused_at=timezone.now(), reused_by=sheet
+        )
+        if not taken:
+            continue  # somebody else just took it
+        if ShippingNumberSequence.taken(freed.reference):
+            continue  # typed on a booking since; leave it marked used
+        return freed.reference
+    return None
 
 
 # -------------------------------------------------------------- archiving

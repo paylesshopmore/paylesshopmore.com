@@ -190,7 +190,7 @@ describe('Intake sheets', () => {
     expect(updateIntakeSheet.mock.calls[0][1]).not.toHaveProperty('freight');
   });
 
-  it('shows the intake number on the list and the sheet', async () => {
+  it('shows one number per intake: the PLSM shipment number', async () => {
     listIntakeSheets.mockResolvedValue({
       results: [{ ...SHEET, number: 7, number_display: '007' }],
       count: 1,
@@ -200,9 +200,10 @@ describe('Intake sheets', () => {
     const user = userEvent.setup();
     renderIntake();
 
-    expect(await screen.findByText('007 · PLSM-00001')).toBeInTheDocument();
+    expect(await screen.findByText('PLSM-00001')).toBeInTheDocument();
+    expect(screen.queryByText(/007/)).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Open sheet' }));
-    expect(within(screen.getByRole('dialog')).getByText('Intake 007')).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).queryByText('Intake 007')).toBeNull();
   });
 
   it('shows another worker’s draft read-only, saying why', async () => {
@@ -244,7 +245,7 @@ describe('Intake sheets', () => {
     deleteIntakeSheet.mockReset().mockResolvedValue(null);
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     listIntakeSheets.mockResolvedValue({
-      results: [{ ...SHEET, number_display: '027', permissions: { edit: true, delete: true } }],
+      results: [{ ...SHEET, permissions: { edit: true, delete: true } }],
       count: 1,
       hasNext: false,
       hasPrevious: false,
@@ -252,10 +253,10 @@ describe('Intake sheets', () => {
     const user = userEvent.setup();
     renderIntake();
 
-    await user.click(await screen.findByRole('button', { name: 'Delete intake 027' }));
+    await user.click(await screen.findByRole('button', { name: 'Delete intake PLSM-00001' }));
 
     expect(deleteIntakeSheet).toHaveBeenCalledWith(11);
-    expect(await screen.findByText('Intake 027 was deleted. Its number is free again.')).toBeInTheDocument();
+    expect(await screen.findByText('Intake PLSM-00001 was deleted. Its number is free again.')).toBeInTheDocument();
     window.confirm.mockRestore();
   });
 

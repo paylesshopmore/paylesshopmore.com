@@ -79,14 +79,14 @@ beforeEach(() => {
 describe('the list', () => {
   it('shows each intake by its number', async () => {
     renderAt();
-    expect(await screen.findByText('Intake 002')).toBeInTheDocument();
+    expect(await screen.findByText('Intake PLSM-00031')).toBeInTheDocument();
     expect(listIntakeSheets).toHaveBeenCalledWith({ page: 1 });
   });
 
   it('asks the server for the empty intakes in the Empty view', async () => {
     const user = userEvent.setup();
     renderAt();
-    await screen.findByText('Intake 002');
+    await screen.findByText('Intake PLSM-00031');
 
     await user.click(screen.getByRole('button', { name: 'Empty' }));
 
@@ -97,7 +97,7 @@ describe('the list', () => {
   it('filters by who started it and by date, in the address', async () => {
     const user = userEvent.setup();
     renderAt();
-    await screen.findByText('Intake 002');
+    await screen.findByText('Intake PLSM-00031');
 
     await user.selectOptions(screen.getByLabelText('Started by'), '3');
 
@@ -110,7 +110,7 @@ describe('the list', () => {
   it('searches a customer when the box is left, not on every key', async () => {
     const user = userEvent.setup();
     renderAt();
-    await screen.findByText('Intake 002');
+    await screen.findByText('Intake PLSM-00031');
     const calls = listIntakeSheets.mock.calls.length;
 
     await user.type(screen.getByLabelText('Customer'), 'klaas');
@@ -127,20 +127,20 @@ describe('deleting and archiving', () => {
   it('deletes an empty intake after confirming, and says its number is free', async () => {
     const user = userEvent.setup();
     renderAt('/warehouse/manager/intakes?view=empty');
-    await screen.findByText('Intake 002');
+    await screen.findByText('Intake PLSM-00031');
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('002'));
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('PLSM-00031'));
     expect(deleteIntakeSheet).toHaveBeenCalledWith(7);
-    expect(await screen.findByText('Intake 002 was deleted. Its number is free again.')).toBeInTheDocument();
+    expect(await screen.findByText('Intake PLSM-00031 was deleted. Its number is free again.')).toBeInTheDocument();
   });
 
   it('does nothing when the manager cancels', async () => {
     window.confirm.mockReturnValue(false);
     const user = userEvent.setup();
     renderAt('/warehouse/manager/intakes?view=empty');
-    await screen.findByText('Intake 002');
+    await screen.findByText('Intake PLSM-00031');
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
@@ -151,7 +151,7 @@ describe('deleting and archiving', () => {
     deleteIntakeSheet.mockRejectedValue(Object.assign(new Error('conflict'), { status: 409 }));
     const user = userEvent.setup();
     renderAt('/warehouse/manager/intakes?view=empty');
-    await screen.findByText('Intake 002');
+    await screen.findByText('Intake PLSM-00031');
 
     await user.click(screen.getByRole('button', { name: 'Delete' }));
 
@@ -164,14 +164,14 @@ describe('deleting and archiving', () => {
     );
     const user = userEvent.setup();
     renderAt();
-    await screen.findByText('Intake 002');
+    await screen.findByText('Intake PLSM-00031');
 
     expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Archive' }));
 
     expect(window.prompt).toHaveBeenCalled();
     expect(archiveIntakeSheet).toHaveBeenCalledWith(7, 'Entered twice');
-    expect(await screen.findByText('Intake 002 was archived.')).toBeInTheDocument();
+    expect(await screen.findByText('Intake PLSM-00031 was archived.')).toBeInTheDocument();
   });
 
   it('brings an archived intake back', async () => {

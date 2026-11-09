@@ -2172,14 +2172,19 @@ export const translations = {
             'De informatie verschijnt zodra die voor uw zending beschikbaar is.',
           ],
         },
+        // The "Feedback" tab on the right edge (components/Feedback).
+        feedback: {
+          title: 'Vertel ons wat u ervan vindt',
+          text: 'Met de gele knop "Feedback" aan de rechterkant van elke pagina geeft u ons sterren en een opmerking. Na een levering vragen wij u ook om die te beoordelen.',
+        },
         help: {
           title: 'Hulp nodig?',
           text: 'Ons team helpt u graag met vragen over:',
         },
       },
       address: {
-        firstName: 'Volledige naam',
-        lastName: 'Bedrijf',
+        firstName: 'Voornaam',
+        lastName: 'Achternaam',
         street: 'Adres',
         postcode: 'Postcode',
         city: 'Plaats',
@@ -2847,12 +2852,14 @@ export const translations = {
         },
         profile: {
           details: { title: 'Uw gegevens', text: 'Uw naam, e-mailadres, telefoonnummer en afleveradres. Houd ze actueel, zodat wij u kunnen bereiken.' },
-          address: { title: 'Uw verzendadres', text: 'Dit adres vult u bij élke bestelling in een webshop in als afleveradres, zodat het pakket naar ons magazijn komt. Vul uw naam precies zo in als hier staat. Met het knopje naast een regel kopieert u die regel, of kopieer het hele adres in één keer.' },
+          address: { title: 'Uw verzendadres', text: 'Dit adres vult u bij élke bestelling in een webshop in als afleveradres, zodat het pakket naar ons magazijn komt. Vul bij "voornaam" uw eigen voornaam in en bij "achternaam" "Pay less Shop More". Met het knopje naast een regel kopieert u die regel, of kopieer het hele adres in één keer.' },
           tracking: { title: 'Track & Trace', text: 'Volg hier uw zending. De informatie verschijnt zodra die voor uw zending beschikbaar is.' },
           shipments: { title: 'Mijn zendingen', text: 'Al uw zendingen op een rij, met waar elke zending nu is.' },
           prealert: { title: 'Een pakket vooraanmelden', text: 'Is er een pakket onderweg naar ons magazijn? Meld het hier aan met het trackingnummer, de koerier, de winkel en wat erin zit. Een aangegeven waarde is niet meer nodig. Voeg de factuur van de winkel toe, dan gaat de douane sneller.' },
           handover: { title: 'Bezorgen of zelf ophalen', text: 'Klik op een zending en kies hoe u hem wilt ontvangen: "Bezorgen" of "Zelf ophalen". U kiest maar één keer: eerst vragen wij of u het zeker weet, daarna staat de keuze vast. Wilt u het later toch wijzigen? Klik in de zending op ons e-mailadres; het onderwerp met uw zendingnummer staat er al in.' },
           bookings: { title: 'Mijn boekingen', text: 'Alles wat u via de boekingsbon heeft aangemeld. Klik op een boeking om te zien wat u heeft ingevuld.' },
+          // "Beoordeel uw levering" (DeliveryReviews.jsx).
+          reviews: { title: 'Beoordeel uw levering', text: 'Is een zending afgeleverd? Geef hier sterren en een opmerking. Wij lezen alles en leren ervan.' },
           invoices: { title: 'Mijn facturen', text: 'Hier vindt u onze facturen voor uw zendingen, om te bekijken of te downloaden.' },
           notifications: { title: 'Meldingen', text: 'Kies welke e-mails u van ons wilt ontvangen.' },
         },
@@ -2861,7 +2868,7 @@ export const translations = {
           courier: { title: 'Trackingnummer en koerier', text: 'Het trackingnummer en het koeriersbedrijf (PostNL, DHL, DPD ...) staan in de verzendmail van de winkel. Daarmee volgen wij het pakket naar ons magazijn.' },
           shop: { title: 'De winkel', text: 'Kies de winkel waar u het kocht. Staat die er niet bij? Kies "Een andere winkel…" en typ de naam.' },
           description: { title: 'Wat zit erin?', text: 'Beschrijf kort wat er in het pakket zit, bijvoorbeeld "1 moederbord en 1 voeding". Een aangegeven waarde is niet nodig.' },
-          receiver: { title: 'Ontvanger en adres', text: 'Uw naam staat al ingevuld. Kies eventueel een van uw adressen uit uw profiel, waar de zending naartoe moet.' },
+          receiver: { title: 'Ontvanger', text: 'Uw naam staat al ingevuld. Ontvangt iemand anders het pakket? Vul dan zijn of haar naam in.' },
           invoice: { title: 'De factuur', text: 'Voeg de factuur of orderbevestiging van de winkel toe: PDF of foto, tot 5 bestanden. Niet verplicht, maar de douane gaat er sneller door.' },
           confirm: { title: 'Bevestigen en versturen', text: 'Vink aan dat u de lijst met artikelen die wij niet verzenden heeft gelezen, en klik op "Vooraanmelding versturen". U vindt hem daarna in uw account bij "Mijn zendingen".' },
         },
@@ -2910,9 +2917,9 @@ export const translations = {
       writtenLead:
         'Alle stappen achter elkaar, om rustig na te lezen of uit te printen.',
       address: {
-        firstName: 'Volledige naam',
-        firstNameValue: 'Uw volledige voor- en achternaam',
-        lastName: 'Bedrijf',
+        firstName: 'Voornaam',
+        firstNameValue: 'Uw eigen voornaam',
+        lastName: 'Achternaam',
         street: 'Adres',
       },
       ctaTitle: 'Klaar om te beginnen?',
@@ -5149,14 +5156,19 @@ export const translations = {
             'Information appears as soon as it is available for your shipment.',
           ],
         },
+        // The "Feedback" tab on the right edge (components/Feedback).
+        feedback: {
+          title: 'Tell us what you think',
+          text: 'With the yellow "Feedback" button on the right of every page you can give us stars and a comment. After a delivery we also ask you to rate it.',
+        },
         help: {
           title: 'Need help?',
           text: 'Our team is happy to help with questions about:',
         },
       },
       address: {
-        firstName: 'Full name',
-        lastName: 'Company',
+        firstName: 'First name',
+        lastName: 'Last name',
         street: 'Address',
         postcode: 'Postal code',
         city: 'City',
@@ -5824,12 +5836,14 @@ export const translations = {
         },
         profile: {
           details: { title: 'Your details', text: 'Your name, email address, phone number and delivery address. Keep them up to date so we can reach you.' },
-          address: { title: 'Your shipping address', text: 'Enter this address as the delivery address for every order in a webshop, so the parcel comes to our warehouse. Fill in your name exactly as shown here. The button next to a line copies that line, or copy the whole address at once.' },
+          address: { title: 'Your shipping address', text: 'Enter this address as the delivery address for every order in a webshop, so the parcel comes to our warehouse. Put your own first name under "first name" and "Pay less Shop More" under "last name". The button next to a line copies that line, or copy the whole address at once.' },
           tracking: { title: 'Track & Trace', text: 'Follow your shipment here. Information appears as soon as it is available for your shipment.' },
           shipments: { title: 'My shipments', text: 'All your shipments in one list, with where each one is now.' },
           prealert: { title: 'Pre-alert a parcel', text: 'Is a parcel on its way to our warehouse? Tell us about it here with the tracking number, the courier, the shop and what is inside. A declared value is no longer needed. Add the shop\'s invoice and customs goes faster.' },
           handover: { title: 'Delivery or pick it up yourself', text: 'Click a shipment and choose how you want to receive it: "Delivery" or "Pick it up myself". You choose only once: we first ask if you are sure, then the choice is fixed. Want to change it later after all? Click our e-mail address in the shipment; the subject with your shipment number is already filled in.' },
           bookings: { title: 'My bookings', text: 'Everything you sent us with the booking form. Click a booking to see what you filled in.' },
+          // "Rate your delivery" (DeliveryReviews.jsx).
+          reviews: { title: 'Rate your delivery', text: 'Has a shipment been delivered? Give it stars and a comment here. We read everything and learn from it.' },
           invoices: { title: 'My invoices', text: 'Find our invoices for your shipments here, to view or download.' },
           notifications: { title: 'Notifications', text: 'Choose which emails you want to receive from us.' },
         },
@@ -5838,7 +5852,7 @@ export const translations = {
           courier: { title: 'Tracking number and courier', text: 'The tracking number and the courier company (PostNL, DHL, DPD ...) are in the shop\'s shipping e-mail. We use them to follow the parcel to our warehouse.' },
           shop: { title: 'The shop', text: 'Choose the shop you bought it from. Not in the list? Choose "Another store…" and type its name.' },
           description: { title: 'What is inside?', text: 'Describe in short what is in the parcel, for example "1 motherboard and 1 power supply". A declared value is not needed.' },
-          receiver: { title: 'Receiver and address', text: 'Your name is already filled in. If you like, choose one of the addresses from your profile, where the shipment should go.' },
+          receiver: { title: 'Receiver', text: 'Your name is already filled in. Is somebody else receiving the parcel? Then fill in their name.' },
           invoice: { title: 'The invoice', text: 'Add the shop\'s invoice or order confirmation: a PDF or a photo, up to 5 files. Not required, but customs goes faster with it.' },
           confirm: { title: 'Confirm and send', text: 'Tick that you have read the list of items we do not ship, and click "Send pre-alert". You will then find it in your account under "My shipments".' },
         },
@@ -5887,9 +5901,9 @@ export const translations = {
       writtenLead:
         'All the steps in order, to read through at your own pace or print out.',
       address: {
-        firstName: 'Full name',
-        firstNameValue: 'Your own full first and last name',
-        lastName: 'Company',
+        firstName: 'First name',
+        firstNameValue: 'Your own first name',
+        lastName: 'Last name',
         street: 'Address',
       },
       ctaTitle: 'Ready to start?',
@@ -8131,14 +8145,19 @@ export const translations = {
             'E informashon ta aparesé apenas e ta disponibel pa bo enbio.',
           ],
         },
+        // The "Feedback" tab on the right edge (components/Feedback).
+        feedback: {
+          title: 'Bisa nos kiko bo ta pensa',
+          text: 'Ku e boton hel "Feedback" na banda drechi di kada página bo por duna nos strea i un komentario. Despues di un entrega nos ta pidi bo tambe pa evaluá esaki.',
+        },
         help: {
           title: 'Bo mester yudansa?',
           text: 'Nos tim ta yuda bo ku gusto ku preguntanan tokante:',
         },
       },
       address: {
-        firstName: 'Nòmber kompleto',
-        lastName: 'Kompania',
+        firstName: 'Nòmber',
+        lastName: 'Fam',
         street: 'Adres',
         postcode: 'Kódigo postal',
         city: 'Stat',
@@ -8807,12 +8826,14 @@ export const translations = {
         },
         profile: {
           details: { title: 'Bo informashon', text: 'Bo nòmber, e-mail, number di telefòn i adres di entrega. Tene nan al dia pa nos por yega na bo.' },
-          address: { title: 'Bo adrès di entrega', text: 'Yena e adres aki komo adres di entrega pa kada òrdu den un webshop, pa e pakete yega na nos pakus. Yena bo nòmber eksaktamente manera e ta aki. E boton banda di un liña ta kopia e liña ei, òf kopia henter e adres un biaha.' },
+          address: { title: 'Bo adrès di entrega', text: 'Yena e adrès aki komo adrès di entrega pa kada òrdu den un webshop, pa e pakete yega na nos pakus. Pone bo mes nòmber na "nòmber" i "Pay less Shop More" na "fam". E boton banda di un liña ta kopia e liña ei, òf kopia henter e adrès un biaha.' },
           tracking: { title: 'Track & Trace', text: 'Sigui bo enbio akinan. E informashon ta aparesé apenas e ta disponibel pa bo enbio.' },
           shipments: { title: 'Mi enbionan', text: 'Tur bo enbionan riba un lista, ku unda kada un ta awor.' },
           prealert: { title: 'Avisá un pakete promé', text: 'Tin un pakete ta bini na nos pakus? Avisá nos aki ku e number di tracking, e kurier, e tienda i kiko tin aden. No ta nesesario mas pa duna un balor. Agregá e faktura di e tienda, anto duana ta bai mas lihé.' },
           handover: { title: 'Entregá òf bin buska', text: 'Klek riba un enbio i skohe kon bo ke risibí e: "Entregá" òf "Mi ta bin buska e". Bo ta skohe un biaha so: promé nos ta puntra si bo ta sigur, despues e skohe ta fiho. Bo ke kambi\'é despues tòg? Klek riba nos adrès di e-mail den e enbio; e tópiko ku bo number di enbio ta yená kaba.' },
           bookings: { title: 'Mi boekingnan', text: 'Tur loke bo a manda nos ku e formulario di boeking. Klek riba un boeking pa mira kiko bo a yena.' },
+          // "Evaluá bo entrega" (DeliveryReviews.jsx).
+          reviews: { title: 'Evaluá bo entrega', text: 'Un envio a wòrdu entregá? Duna strea i un komentario aki. Nos ta lesa tur kos i siña for di dje.' },
           invoices: { title: 'Mi fakturanan', text: 'Akinan bo ta haña nos fakturanan pa bo enbionan, pa wak òf deskargá.' },
           notifications: { title: 'Notifikashon', text: 'Skohe kua e-mail bo ke risibí di nos.' },
         },
@@ -8821,7 +8842,7 @@ export const translations = {
           courier: { title: 'Number di tracking i kurier', text: 'E number di tracking i e kompania di kurier (PostNL, DHL, DPD ...) ta den e e-mail di enbio di e tienda. Ku esei nos ta sigui e pakete te na nos pakus.' },
           shop: { title: 'E tienda', text: 'Skohe e tienda kaminda bo a kumpra. No ta den e lista? Skohe "Otro tienda…" i tek su nòmber.' },
           description: { title: 'Kiko tin aden?', text: 'Splika kòrtiku kiko tin den e pakete, por ehèmpel "1 motherboard i 1 power supply". No ta nesesario pa duna un balor.' },
-          receiver: { title: 'Risibidó i adres', text: 'Bo nòmber ta yená kaba. Si bo ke, skohe un di e adresnan for di bo profil, kaminda e enbio mester bai.' },
+          receiver: { title: 'Risibidó', text: 'Bo nòmber ta yená kaba. Un otro hende ta risibí e pakete? Yena anto su nòmber.' },
           invoice: { title: 'E faktura', text: 'Agregá e faktura òf konfirmashon di òrdu di e tienda: un PDF òf potrèt, te 5 archivo. No ta obligatorio, pero duana ta bai mas lihé kuné.' },
           confirm: { title: 'Konfirmá i manda', text: 'Marka ku bo a lesa e lista di artíkulonan ku nos no ta manda, i klek riba "Manda pre-alerta". Despues bo ta haña e den bo kuenta na "Mi enbionan".' },
         },
@@ -8870,9 +8891,9 @@ export const translations = {
       writtenLead:
         'Tur e pasonan un tras di otro, pa lesa kalmo òf pa imprimí.',
       address: {
-        firstName: 'Nòmber kompleto',
-        firstNameValue: 'Bo nòmber i fam kompletu',
-        lastName: 'Kompania',
+        firstName: 'Nòmber',
+        firstNameValue: 'Bo mes nòmber',
+        lastName: 'Fam',
         street: 'Adres',
       },
       ctaTitle: 'Kla pa kuminsá?',

@@ -386,3 +386,70 @@ class FilterAndStatsTests(IntakeNumberTestCase):
             if q == "x":
                 continue
             self.assertEqual([row["id"] for row in rows], [mine["id"]], q)
+
+
+class ShipmentNumberReuseTests(IntakeNumberTestCase):
+    """The PLSM shipment number of a deleted EMPTY intake comes back too."""
+
+    def test_a_deleted_plsm_number_is_given_to_the_next_new_intake(self):
+        first = self.new_intake()
+        second = self.new_intake()
+        third = self.new_intake()
+        self.assertEqual(
+            [first["reference"], second["reference"], third["reference"]],
+            ["PLSM-00001", "PLSM-00002", "PLSM-00003"],
+        )
+
+        self.delete(second["id"])  # PLSM-00002 is free now
+
+        again = self.new_intake()
+        self.assertEqual(again["reference"], "PLSM-00002")
+        # And after that the counter goes on as before.
+        self.assertEqual(self.new_intake()["reference"], "PLSM-00004")
+
+    def test_the_lowest_freed_number_goes_first(self):
+        sheets = [self.new_intake() for _ in range(5)]
+        self.delete(sheets[3]["id"])  # PLSM-00004
+        self.delete(sheets[1]["id"])  # PLSM-00002
+        self.assertEqual(self.new_intake()["reference"], "PLSM-00002")
+        self.assertEqual(self.new_intake()["reference"], "PLSM-00004")
+        self.assertEqual(self.new_intake()["reference"], "PLSM-00006")
+
+    def test_a_number_meanwhile_typed_on_a_booking_is_not_given_twice(self):
+        from bookings.models import Booking
+
+        sheet = self.new_intake()
+        self.new_intake()
+        self.delete(sheet["id"])  # PLSM-00001 freed
+        # The office typed PLSM-00001 on a booking in the meantime.
+        Booking.objects.create(shipping_number="PLSM-00001")
+
+        self.assertEqual(self.new_intake()["reference"], "PLSM-00003")
+
+    def test_a_number_from_an_intake_that_is_not_empty_never_comes_back(self):
+        sheet = self.new_intake()
+        self.new_intake()
+        IntakeSheet.objects.filter(pk=sheet["id"]).update(notes="Two boxes")
+        self.delete(sheet["id"])  # refused: not empty
+        self.assertEqual(self.new_intake()["reference"], "PLSM-00003")
+
+    def test_a_sheet_from_a_booking_keeps_the_bookings_number(self):
+        from .models import FreedReference
+
+        first = self.new_intake()
+        self.delete(first["id"])
+        self.assertTrue(FreedReference.objects.filter(reference="PLSM-00001", reused_at__isnull=True).exists())
+        # A manager typing a number of their own does not use up the freed one.
+        self.client.force_authenticate(self.manager)
+        response = self.client.post(LIST_URL, {"reference": "CI-777"}, format="json")
+        self.assertEqual(response.data["reference"], "CI-777")
+        self.assertEqual(self.new_intake()["reference"], "PLSM-00001")
+
+    def test_only_numbers_in_the_offices_own_format_come_back(self):
+        from .models import FreedReference
+
+        for typed in ("PLSM-0546", "PLSM-748383922938928333", "CI-1001"):
+            sheet = self.new_intake()
+            IntakeSheet.objects.filter(pk=sheet["id"]).update(reference=typed)
+            self.delete(sheet["id"])
+        self.assertFalse(FreedReference.objects.exists())

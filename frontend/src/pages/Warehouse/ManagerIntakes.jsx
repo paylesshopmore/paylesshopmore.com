@@ -1,10 +1,10 @@
 // src/pages/Warehouse/ManagerIntakes.jsx
 //
-// "Intakes": every intake sheet with its intake number (001, 002 ...), for
+// "Intakes": every intake sheet by its PLSM shipment number, for
 // the warehouse manager. From here a manager can:
 //   - filter by state (being filled in, empty, handed over, archived), by
-//     who started it, by customer, by intake number and by date;
-//   - DELETE an empty intake. Its number is then free, and the next new
+//     who started it, by customer, by shipment number and by date;
+//   - DELETE an empty intake. Its PLSM number is then free, and the next new
 //     intake gets it (backend warehouse/intake_numbers.py decides what
 //     "empty" means, and checks again at the moment of deleting);
 //   - ARCHIVE an intake that has something on it (with a reason), or bring
@@ -46,7 +46,8 @@ const VIEWS = {
 };
 
 // The filters kept in the address, besides `view` and `page`.
-const FILTERS = ['created_by', 'customer_q', 'number', 'created_from', 'created_to'];
+// `search` matches the shipment number (and the other boxes on the sheet).
+const FILTERS = ['created_by', 'customer_q', 'search', 'created_from', 'created_to'];
 
 /** Which badge a row gets. `empty` comes from the view: the list answer does
  *  not say whether a sheet is empty, the "Empty" view does. */
@@ -57,10 +58,10 @@ function badgeFor(row, inEmptyView) {
   return { key: 'draft', tone: 'progress' };
 }
 
-/** "Intake 007", or just "Intake" for a sheet that somehow has no number. */
+/** "Intake PLSM-00004": the shipment number is the intake's one number. */
 function useIntakeName() {
   const t = usePageText('warehouseIntakes');
-  return (row) => (row.number_display ? t('number', { number: row.number_display }) : t('noNumber'));
+  return (row) => (row.label ? t('number', { number: row.label }) : t('noNumber'));
 }
 
 function IntakeRow({ row, inEmptyView, onDone }) {
@@ -70,7 +71,7 @@ function IntakeRow({ row, inEmptyView, onDone }) {
   const [error, setError] = useState('');
   const allowed = row.permissions ?? {};
   const badge = badgeFor(row, inEmptyView);
-  const number = row.number_display || row.label;
+  const number = row.label;
 
   // Runs one action; tells the list what happened so it can reload.
   async function run(action, message) {
@@ -103,7 +104,6 @@ function IntakeRow({ row, inEmptyView, onDone }) {
         <span className={own.itemMain}>
           <span className={own.itemTitle}>
             {name(row)}
-            {row.reference && <span className={own.muted}> · {row.reference}</span>}
           </span>
           <span className={own.itemNote}>
             {[
@@ -170,7 +170,7 @@ export default function ManagerIntakes() {
 
   // The two typed filters are only sent when the manager presses Enter /
   // leaves the box, not on every key.
-  const [typed, setTyped] = useState({ customer_q: filters.customer_q, number: filters.number });
+  const [typed, setTyped] = useState({ customer_q: filters.customer_q, search: filters.search });
   const [workers, setWorkers] = useState([]);
   const [attempt, setAttempt] = useState(0);
   const [done, setDone] = useState('');
@@ -226,7 +226,7 @@ export default function ManagerIntakes() {
 
   function applyTyped(event) {
     event?.preventDefault();
-    set({ customer_q: typed.customer_q.trim(), number: typed.number.trim() });
+    set({ customer_q: typed.customer_q.trim(), search: typed.search.trim() });
   }
 
   // Enter in one of the two text boxes applies them (the form has no
@@ -236,7 +236,7 @@ export default function ManagerIntakes() {
   }
 
   function clearAll() {
-    setTyped({ customer_q: '', number: '' });
+    setTyped({ customer_q: '', search: '' });
     setParams(view === 'all' ? {} : { view });
     setDone('');
   }
@@ -304,11 +304,10 @@ export default function ManagerIntakes() {
           <span className={own.fieldLabel}>{t('filterNumber')}</span>
           <input
             className={own.input}
-            inputMode="numeric"
-            value={typed.number}
-            placeholder="002"
+            value={typed.search}
+            placeholder="PLSM-00004"
             onChange={(event) =>
-              setTyped((now) => ({ ...now, number: event.target.value.replace(/\D/g, '').slice(0, 6) }))
+              setTyped((now) => ({ ...now, search: event.target.value.slice(0, 50) }))
             }
             onBlur={applyTyped}
             onKeyDown={enterApplies}

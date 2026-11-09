@@ -767,10 +767,6 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
     <div>
       {/* The pop-up around it (Intake, below) carries the title and Close. */}
       <div className={styles.intakeHead}>
-        {/* The intake number the floor calls it by: "Intake 007". */}
-        {sheet.number_display && (
-          <StatusBadge tone="neutral">{n('number', { number: sheet.number_display })}</StatusBadge>
-        )}
         <StatusBadge tone={TONES[sheet.status]}>
           {labelFor(c, 'intakeStatus', sheet.status, sheet.status_display)}
         </StatusBadge>
@@ -1384,7 +1380,8 @@ export default function Intake() {
   // shows only when the server says `permissions.delete`). Its number is
   // then free for the next new intake. The server checks again.
   async function removeSheet(row) {
-    const number = row.number_display || row.label;
+    // The PLSM shipment number: the one number people see for an intake.
+    const number = row.label;
     if (!window.confirm(n('deleteConfirm', { number }))) return;
     setError('');
     setDeleted('');
@@ -1500,7 +1497,7 @@ export default function Intake() {
                   >
                     <td>
                       <div className={styles.primaryCell}>
-                        {row.number_display ? `${row.number_display} · ${row.label}` : row.label}
+                        {row.label}
                       </div>
                       <div className={styles.mutedCell}>
                         {row.created_by_name || d('unknown')}
@@ -1521,7 +1518,7 @@ export default function Intake() {
                             type="button"
                             className={styles.linkButton}
                             onClick={() => removeSheet(row)}
-                            aria-label={n('deleteLabel', { number: row.number_display || row.label })}
+                            aria-label={n('deleteLabel', { number: row.label })}
                           >
                             {n('delete')}
                           </button>

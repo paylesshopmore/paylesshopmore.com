@@ -405,7 +405,13 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
             package.tracking_number if package else ""
         )
         with transaction.atomic():
-            sheet.reference = reference or ShippingNumberSequence.next_number()
+            # A number freed by deleting an empty intake first (PLSM-00004
+            # comes back before PLSM-00006 is made), else the next one.
+            sheet.reference = (
+                reference
+                or intake_numbers.take_freed_reference(sheet)
+                or ShippingNumberSequence.next_number()
+            )
             sheet.save(update_fields=["reference"])
 
     def _prefill_from_link(self, sheet):
