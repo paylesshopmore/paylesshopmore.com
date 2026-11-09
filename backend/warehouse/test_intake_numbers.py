@@ -453,3 +453,10 @@ class ShipmentNumberReuseTests(IntakeNumberTestCase):
             IntakeSheet.objects.filter(pk=sheet["id"]).update(reference=typed)
             self.delete(sheet["id"])
         self.assertFalse(FreedReference.objects.exists())
+
+    def test_a_huge_number_typed_on_a_booking_does_not_push_intakes_up(self):
+        from bookings.models import Booking
+
+        Booking.objects.create(shipping_number="PLSM-748383922938928329")
+        Booking.objects.create(shipping_number="PLSM-00001")
+        self.assertEqual(self.new_intake()["reference"], "PLSM-00002")

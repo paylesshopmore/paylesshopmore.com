@@ -585,6 +585,28 @@ class ShippingNumberSequence(models.Model):
         return any(number.strip().upper() == value.upper() for number in cls._in_use())
 
     @classmethod
+    def lowest_free(cls):
+        """The LOWEST shipping number nobody uses (PLSM-00001 when none is
+        used). For new intake sheets (warehouse/views.py): a number freed by
+        deleting an empty intake is filled again before the series goes up.
+
+        Call inside a transaction: the counter row is locked first, so two
+        workers starting an intake at the same moment are taken one after the
+        other and never get the same number.
+        """
+        cls.objects.select_for_update().get_or_create(pk=1)
+        pattern = re.compile(rf"^{re.escape(cls.PREFIX)}(\d+)$", re.IGNORECASE)
+        used = set()
+        for number in cls._in_use():
+            match = pattern.match(number.strip())
+            if match:
+                used.add(int(match.group(1)))
+        number = 1
+        while number in used:
+            number += 1
+        return cls.format(number)
+
+    @classmethod
     def next_number(cls):
         """The next free shipping number. Call inside a transaction."""
         row, _ = cls.objects.select_for_update().get_or_create(pk=1)

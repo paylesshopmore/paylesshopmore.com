@@ -296,25 +296,11 @@ def free_reference(reference, by):
     )
 
 
-def take_freed_reference(sheet):
-    """The lowest freed PLSM number, now taken by `sheet`; None if none.
-
-    Call inside a transaction. The conditional update means two workers
-    starting an intake at the same moment never both get the same number:
-    the second one's update changes 0 rows and it tries the next number.
-    """
-    from bookings.models import ShippingNumberSequence
-
-    for freed in FreedReference.objects.filter(reused_at__isnull=True).order_by("reference"):
-        taken = FreedReference.objects.filter(pk=freed.pk, reused_at__isnull=True).update(
-            reused_at=timezone.now(), reused_by=sheet
-        )
-        if not taken:
-            continue  # somebody else just took it
-        if ShippingNumberSequence.taken(freed.reference):
-            continue  # typed on a booking since; leave it marked used
-        return freed.reference
-    return None
+def mark_reused(reference, sheet):
+    """Note in the history that a freed number was given out again."""
+    FreedReference.objects.filter(reference=reference.upper(), reused_at__isnull=True).update(
+        reused_at=timezone.now(), reused_by=sheet
+    )
 
 
 # -------------------------------------------------------------- archiving
