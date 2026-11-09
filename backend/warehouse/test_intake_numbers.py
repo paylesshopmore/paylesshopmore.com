@@ -460,3 +460,19 @@ class ShipmentNumberReuseTests(IntakeNumberTestCase):
         Booking.objects.create(shipping_number="PLSM-748383922938928329")
         Booking.objects.create(shipping_number="PLSM-00001")
         self.assertEqual(self.new_intake()["reference"], "PLSM-00002")
+
+
+class ListOrderTests(IntakeNumberTestCase):
+    def test_the_list_is_in_number_order(self):
+        sheets = [self.new_intake() for _ in range(4)]  # PLSM-00001..00004
+        self.delete(sheets[1]["id"])  # PLSM-00002 freed
+        self.new_intake()  # gets PLSM-00002 again, but is the newest
+        odd = IntakeSheet.objects.create(reference="3SABC1234567")
+
+        self.client.force_authenticate(self.manager)
+        rows = self.client.get(LIST_URL).data["results"]
+
+        self.assertEqual(
+            [row["reference"] for row in rows],
+            ["PLSM-00001", "PLSM-00002", "PLSM-00003", "PLSM-00004", odd.reference],
+        )

@@ -19,7 +19,8 @@ import logging
 from datetime import date, timedelta
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models.functions import Length
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import mixins
@@ -50,6 +51,23 @@ from .serializers import (
 from .services import release_sheet
 
 logger = logging.getLogger(__name__)
+
+
+# Intake sheets in number order. Our own PLSM numbers first; shorter before
+# longer, so PLSM-00009 comes before PLSM-00010 and before an odd long one
+# typed by hand; then the text itself. Other references (a courier's
+# tracking number) after those, the same way. The id last, so equal ones
+# always come in the same order.
+NUMBER_ORDER = (
+    Case(
+        When(reference__istartswith="PLSM-", then=Value(0)),
+        default=Value(1),
+        output_field=IntegerField(),
+    ),
+    Length("reference"),
+    "reference",
+    "id",
+)
 
 
 class SheetLocked(APIException):
@@ -347,6 +365,18 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
             queryset = queryset.filter(
                 customer__isnull=True, package__isnull=True, booking__isnull=True
             ).order_by("created_at")
+
+        # The everyday list, in number order: PLSM-00001, PLSM-00002, ...
+        # (not newest first, which mixed a reused low number in at the top).
+        # Only when nothing else chose an order: ?ordering=, the review queue
+        # and the "Without a customer" queue keep their own.
+        if (
+            self.action == "list"
+            and not params.get("ordering")
+            and not params.get("review")
+            and params.get("unassigned") != "true"
+        ):
+            queryset = queryset.order_by(*NUMBER_ORDER)
 
         return queryset
 
