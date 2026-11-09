@@ -1,0 +1,204 @@
+/* src/components/Feedback/Feedback.module.css
+ *
+ * The "Feedback" tab (FeedbackButton.jsx), its pop-up, the star rating
+ * (StarRating.jsx) and the delivery reviews on the profile page.
+ */
+
+/* A tab on the right edge, below the language rail (which sits in the
+   middle of the right edge). Same z-index as the rail: under the header's
+   100, so an open mobile menu covers it. */
+.tab {
+  position: fixed;
+  right: 0;
+  bottom: 7.5rem;
+  z-index: 80;
+  padding: 0.85rem 0.55rem;
+  border: 0;
+  border-radius: 10px 0 0 10px;
+  background: var(--brand-yellow, #ffd93d);
+  box-shadow: -4px 0 14px rgba(5, 7, 10, 0.16);
+  color: var(--brand-ink, #0b2545);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  /* Written top to bottom, like a tab on a folder. */
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--brand-yellow-light, #ffe57a);
+}
+
+.tab:focus-visible {
+  outline: 3px solid #29abe2;
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------ the form */
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+
+.intro {
+  margin: 0;
+  color: #475569;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+}
+
+.input:focus {
+  border-color: #29abe2;
+  outline: 3px solid rgba(41, 171, 226, 0.25);
+}
+
+.error {
+  margin: 0;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.send {
+  justify-self: start;
+  min-height: 2.9rem;
+  padding: 0 1.5rem;
+  border: 0;
+  border-radius: 8px;
+  background: var(--brand-yellow, #ffd93d);
+  color: var(--brand-ink, #0b2545);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.send:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.thanks {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
+/* ------------------------------------------------------------ the stars */
+
+.stars {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.starLabel {
+  cursor: pointer;
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+/* The keyboard focus is on the hidden radio: show it on its star. */
+.starLabel:has(input:focus-visible) {
+  outline: 3px solid #29abe2;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.starOn {
+  color: #f59e0b;
+}
+
+.starOff {
+  color: #cbd5e1;
+}
+
+.starLabel:hover .starOff {
+  color: #fcd34d;
+}
+
+.starsStatic {
+  font-size: 1.3rem;
+  letter-spacing: 0.05em;
+}
+
+/* --------------------------------------------- delivery reviews (profile) */
+
+.reviewList {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reviewItem {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+/* The shipment the "delivered" e-mail's link points at. */
+.reviewItemChosen {
+  border-color: #29abe2;
+  box-shadow: 0 0 0 3px rgba(41, 171, 226, 0.2);
+}
+
+.reviewHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.reviewTitle {
+  font-weight: 700;
+}
+
+.muted {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.92rem;
+}
+
+/* For screen readers only. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .tab {
+    bottom: 6rem;
+    padding: 0.7rem 0.45rem;
+    font-size: 0.82rem;
+  }
+}

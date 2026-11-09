@@ -16,13 +16,14 @@ beforeEach(() => {
 });
 
 describe('WarehouseAddressCard', () => {
-  it('shows the full name, without a customer number', () => {
+  it('shows their first name and our name as the last name', () => {
     renderWithProviders(<WarehouseAddressCard {...KLAAS} />);
 
-    expect(screen.getByText('Klaas Klant')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Copy: First name.* Klaas$/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Copy: Last name.* Pay less Shop More$/ })).toBeInTheDocument();
+    // Their own last name is not used here.
+    expect(screen.queryByText('Klant')).toBeNull();
     expect(screen.queryByText(/PLSM-C/)).toBeNull();
-    // Our name only as the company, for a checkout that asks for one.
-    expect(screen.getByText('Pay less Shop More')).toBeInTheDocument();
     expect(screen.getByText('Hertzstraat 10')).toBeInTheDocument();
     expect(screen.getByText('2652 XX')).toBeInTheDocument();
     expect(screen.getByText('Berkel en Rodenrijs')).toBeInTheDocument();
@@ -37,8 +38,8 @@ describe('WarehouseAddressCard', () => {
     const user = userEvent.setup();
     renderWithProviders(<WarehouseAddressCard {...KLAAS} />);
 
-    await user.click(screen.getByRole('button', { name: /^Copy: Full name.* Klaas Klant$/ }));
-    expect(await navigator.clipboard.readText()).toBe('Klaas Klant');
+    await user.click(screen.getByRole('button', { name: /^Copy: First name.* Klaas$/ }));
+    expect(await navigator.clipboard.readText()).toBe('Klaas');
   });
 
   it('copies the whole address as on an envelope', async () => {
@@ -47,7 +48,7 @@ describe('WarehouseAddressCard', () => {
 
     await user.click(screen.getByRole('button', { name: 'Copy the whole address' }));
     expect(await navigator.clipboard.readText()).toBe(
-      ['Klaas Klant', 'Pay less Shop More', 'Hertzstraat 10', '2652 XX Berkel en Rodenrijs', 'Netherlands'].join(
+      ['Klaas Pay less Shop More', 'Hertzstraat 10', '2652 XX Berkel en Rodenrijs', 'Netherlands'].join(
         '\n',
       ),
     );
@@ -56,6 +57,6 @@ describe('WarehouseAddressCard', () => {
 
   it('says what goes there when the account has no name yet', () => {
     renderWithProviders(<WarehouseAddressCard firstName="" lastName="" />);
-    expect(screen.getByText('Your first name Your last name')).toBeInTheDocument();
+    expect(screen.getByText('Your first name')).toBeInTheDocument();
   });
 });

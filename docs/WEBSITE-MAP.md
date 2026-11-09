@@ -160,6 +160,7 @@ All pages use `api/staff.js` unless noted.
 | `/dashboard/documents` | `Documents.jsx` | Uploaded documents |
 | `/dashboard/measurements` | `MeasurementsList.jsx` | Measurements from intake sheets; opens the sheet |
 | `/dashboard/customers`, `/workers` | `Customers.jsx`, `Workers.jsx` | Accounts (they link to each other) |
+| `/dashboard/feedback` | `Feedback.jsx` | Website feedback (the "Feedback" tab on every page) and delivery reviews: stars, comment, who, page; mark handled (`api/feedback.js`, backend `feedback/`) |
 | `/dashboard/warehouse-access` | `WarehouseAccess.jsx` | Which warehouse parts each worker may use (`api/warehouse.js`) |
 | `/dashboard/floor-devices` | `FloorDevices.jsx` | Shared tablets on the warehouse floor |
 | `/dashboard/shops` | `Shops.jsx` | The shop logos on the home page (`api/shops.js`) |

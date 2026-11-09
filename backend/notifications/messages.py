@@ -86,6 +86,7 @@ MESSAGES = {
         "invoice_ready_unnumbered": "Your invoice is ready.",
         "invoice_covers": "It covers shipment {tracking}.",
         "invoice_download": "You can download it from your profile page:",
+        "review": "How did it go? Tell us in one click - rate your delivery:",
         "preferences": "You can change which e-mails you receive on your profile page:",
     },
     "nl": {
@@ -152,6 +153,7 @@ MESSAGES = {
         "invoice_ready_unnumbered": "Uw factuur staat klaar.",
         "invoice_covers": "Deze hoort bij zending {tracking}.",
         "invoice_download": "U kunt de factuur downloaden op uw profielpagina:",
+        "review": "Hoe is het gegaan? Geef uw levering een beoordeling:",
         "preferences": "Op uw profielpagina kiest u welke e-mails u van ons ontvangt:",
     },
     "pap": {
@@ -209,6 +211,7 @@ MESSAGES = {
         "invoice_ready_unnumbered": "Bo faktura ta kla.",
         "invoice_covers": "E ta pa enbio {tracking}.",
         "invoice_download": "Bo por baha e faktura for di bo página di perfil:",
+        "review": "Kon e la bai? Duna bo entrega un evaluashon:",
         "preferences": "Riba bo página di perfil bo ta skohe kua e-mail bo ke risibí di nos:",
     },
 }
@@ -279,6 +282,14 @@ def body_for(notification):
                 "",
                 copy["tracking"].format(tracking=tracking),
                 f"{settings.FRONTEND_URL}/tracking?number={tracking}",
+            ]
+        # Delivered: ask for a review (feedback app). The link opens the
+        # review card on the profile page with this shipment chosen.
+        if context.get("status") == "delivered" and notification.package_id:
+            lines += [
+                "",
+                copy["review"],
+                f"{settings.FRONTEND_URL}/profile?review={notification.package_id}#reviews",
             ]
 
     lines += [

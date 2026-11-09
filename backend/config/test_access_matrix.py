@@ -42,6 +42,9 @@ PASSWORD = "a-long-enough-password"
 PUBLIC = re.compile(
     r"^api/(health|ready|stats|auth/(csrf|signup|login|code-login|floor|pin-login|"
     r"password-reset(/confirm)?)|blog|shops|bookings/$|contact|quote|client-errors|assistant|site/$|"
+    # The "Feedback" button on every page (feedback/views.py). Only the
+    # button itself: a delivery review needs an account.
+    r"feedback/$|"
     # The handling-cost rules for the shipping calculator: prices the site
     # shows anyway, read-only (invoicing/pricing_views.py).
     r"pricing/handling/$)"
@@ -51,7 +54,7 @@ PUBLIC = re.compile(
 # victim's ids in the URL must still be refused (see test_customer_idor).
 CUSTOMER_ROUTES = re.compile(
     r"^api/(auth/|profile|addresses|documents|invoices|notifications|packages|prealerts|"
-    r"bookings|track|stats|blog|shops|contact|quote|health|ready|client-errors|assistant|site/$|"
+    r"bookings|track|stats|blog|shops|contact|quote|health|ready|client-errors|assistant|site/$|feedback/|"
     r"pricing/handling/$)|^api/staff/warehouse/access/$"
 )
 

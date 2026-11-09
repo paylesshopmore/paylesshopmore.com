@@ -39,6 +39,8 @@ DEFAULT_LIMITS = {
     # The chat assistant: each one is a paid OpenAI call, so this is also
     # the ceiling on that bill per hour.
     "assistant": 2000,
+    # The "Feedback" button on every page (feedback/views.py).
+    "feedback": 300,
 }
 
 

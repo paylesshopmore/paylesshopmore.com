@@ -53,6 +53,7 @@ urlpatterns = [
     path('api/staff/prealerts/', include('prealerts.staff_urls')),
     # The chat assistant on the website (assistant/views.py).
     path('api/', include('assistant.urls')),
+    path('api/', include('feedback.urls')),
 ]
 
 if settings.DEBUG:

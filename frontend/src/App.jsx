@@ -26,6 +26,7 @@ import RequireStaff from './components/RequireStaff/RequireStaff';
 import RequireWarehouse from './components/RequireWarehouse/RequireWarehouse';
 import RequireDriver from './components/RequireDriver/RequireDriver';
 import LanguageSwitcher from './components/LanguageSwitcher/LanguageSwitcher';
+import FeedbackButton from './components/Feedback/FeedbackButton';
 import PageGuide from './components/PageGuide/PageGuide';
 import { useSiteSwitches } from './hooks/useSiteSwitches';
 import ChatProvider from './components/ChatAssistant/ChatProvider';
@@ -73,6 +74,7 @@ const DashboardLayout = lazy(() => import('./pages/Dashboard/DashboardLayout'));
 const Overview = lazy(() => import('./pages/Dashboard/Overview'));
 const Quotes = lazy(() => import('./pages/Dashboard/Quotes'));
 const Messages = lazy(() => import('./pages/Dashboard/Messages'));
+const FeedbackPage = lazy(() => import('./pages/Dashboard/Feedback'));
 const Packages = lazy(() => import('./pages/Dashboard/Packages'));
 const Intake = lazy(() => import('./pages/Dashboard/Intake'));
 const Scan = lazy(() => import('./pages/Dashboard/Scan'));
@@ -308,6 +310,8 @@ export default function App() {
               <Route index element={<Overview />} />
               <Route path="quotes" element={<Quotes />} />
               <Route path="messages" element={<Messages />} />
+              {/* Website feedback and delivery reviews. */}
+              <Route path="feedback" element={<FeedbackPage />} />
               <Route path="packages" element={<Packages />} />
               <Route path="bookings" element={<Bookings />} />
               <Route path="invoices" element={<Invoices />} />
@@ -423,6 +427,8 @@ export default function App() {
           dashboard is English-only, so the switcher has nothing to offer
           there. */}
       {!isDashboard && <LanguageSwitcher />}
+      {/* The "Feedback" tab on the right edge (components/Feedback). */}
+      {!isDashboard && <FeedbackButton />}
       {/* The robot in the corner: explains whatever page is showing, and
           holds the "Help" list (restart the tour, shipping info, ...). Off
           the staff screens for the same reason the switcher is: those are an

@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 from blog.views import StaffBlogPostViewSet
 from docreview.views import DocumentJobViewSet
+from feedback.views import StaffFeedbackViewSet
 from ops import views as ops_views
 from shops.views import ShopViewSet
 from warehouse import access as warehouse_access
@@ -19,6 +20,7 @@ from . import floor, invoice_config, reports, security, site_settings, views
 router = DefaultRouter()
 router.register("quotes", views.QuoteRequestViewSet, basename="staff-quote")
 router.register("messages", views.ContactMessageViewSet, basename="staff-message")
+router.register("feedback", StaffFeedbackViewSet, basename="staff-feedback")
 # AI document reading with human review (docreview/views.py).
 router.register("document-jobs", DocumentJobViewSet, basename="staff-document-job")
 router.register("packages", views.PackageViewSet, basename="staff-package")

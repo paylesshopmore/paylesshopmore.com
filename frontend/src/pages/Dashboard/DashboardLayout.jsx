@@ -68,6 +68,8 @@ const GROUPS = [
       { to: '/dashboard/quotes', labelKey: 'dashboard.office.nav.quotes', icon: FileIcon, pill: (o) => o?.quotes.new },
       { to: '/dashboard/bookings', labelKey: 'dashboard.office.nav.bookings', icon: BookmarkIcon, pill: (o) => o?.bookings?.new },
       { to: '/dashboard/messages', labelKey: 'dashboard.office.nav.messages', icon: MailIcon, pill: (o) => o?.messages.unhandled },
+      // Website feedback and delivery reviews (Feedback.jsx).
+      { to: '/dashboard/feedback', labelKey: 'dashboard.office.nav.feedback', icon: MailIcon },
     ],
   },
   {

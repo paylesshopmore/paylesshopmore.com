@@ -112,6 +112,8 @@ INSTALLED_APPS = [
     'docreview',
     # The chat assistant on the website (assistant/ai.py).
     'assistant',
+    # Feedback from visitors and delivery reviews from customers.
+    'feedback',
 ]
 
 # Must be set before the first migration is applied: Django cannot swap the
@@ -595,7 +597,14 @@ LOGIN_FAILURE_WINDOW_SECONDS = int(os.environ.get("DJANGO_LOGIN_FAILURE_WINDOW",
 # a backstop for a flood, not a rate anybody should meet.
 SITE_WIDE_LIMITS = {
     name: int(os.environ.get(f"DJANGO_SITE_LIMIT_{name.upper()}", default))
-    for name, default in {"signup": 100, "contact": 200, "quote": 200, "booking": 200, "assistant": 2000}.items()
+    for name, default in {
+        "signup": 100,
+        "contact": 200,
+        "quote": 200,
+        "booking": 200,
+        "assistant": 2000,
+        "feedback": 300,
+    }.items()
 }
 
 # The most one request to a public upload endpoint (booking, quote, contact,
@@ -788,6 +797,15 @@ OFFICE_REPLY_TO_EMAIL = os.environ.get("DJANGO_REPLY_TO_EMAIL", "info@paylesshop
 BOOKING_NOTIFY_EMAILS = [
     address.strip()
     for address in os.environ.get("DJANGO_BOOKING_NOTIFY_EMAILS", OFFICE_REPLY_TO_EMAIL).split(",")
+    if address.strip()
+]
+
+# Who is e-mailed when somebody sends feedback or reviews a delivery
+# (feedback/tasks.py): a comma-separated list. The office's mailbox by
+# default. Empty to send nothing (the feedback is still in the dashboard).
+FEEDBACK_NOTIFY_EMAILS = [
+    address.strip()
+    for address in os.environ.get("DJANGO_FEEDBACK_NOTIFY_EMAILS", OFFICE_REPLY_TO_EMAIL).split(",")
     if address.strip()
 ]
 

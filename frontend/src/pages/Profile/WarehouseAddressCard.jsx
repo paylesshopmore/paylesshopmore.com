@@ -31,10 +31,9 @@ import styles from './Profile.module.css';
 /**
  * @param {object} props
  * @param {string} props.firstName  the account holder's first name
- * @param {string} props.lastName  the account holder's last name
  * @param {import('react').ReactNode} [props.icon]  the section icon
  */
-export default function WarehouseAddressCard({ firstName, lastName, icon }) {
+export default function WarehouseAddressCard({ firstName, icon }) {
   const { t } = useLanguage();
   const a = (key) => t(`profile.warehouseAddress.${key}`);
 
@@ -44,18 +43,17 @@ export default function WarehouseAddressCard({ firstName, lastName, icon }) {
   const resetTimer = useRef(0);
   useEffect(() => () => window.clearTimeout(resetTimer.current), []);
 
-  // The account holder's full name. Placeholders when the account has no
-  // name yet, which tell the customer what belongs there.
-  const fullName = [
-    firstName?.trim() || a('firstNameFallback'),
-    lastName?.trim() || a('lastNameFallback'),
-  ].join(' ');
+  // First name: the customer's own. Last name: always the company's
+  // ("Pay less Shop More") - that is how the warehouse knows the parcel is
+  // for us, and the first name tells us whose it is. A placeholder when the
+  // account has no first name yet, which tells the customer what goes there.
+  const ownFirstName = firstName?.trim() || a('firstNameFallback');
   const country = t('onboarding.address.countryValue');
 
   // In the order a checkout asks for them.
   const rows = [
-    { key: 'fullName', label: a('fullName'), value: fullName },
-    { key: 'company', label: a('company'), value: WAREHOUSE_ADDRESS.lastName },
+    { key: 'firstName', label: a('firstName'), value: ownFirstName },
+    { key: 'lastName', label: a('lastName'), value: WAREHOUSE_ADDRESS.lastName },
     { key: 'street', label: a('street'), value: WAREHOUSE_ADDRESS.street },
     { key: 'postcode', label: a('postcode'), value: WAREHOUSE_ADDRESS.postcode },
     { key: 'city', label: a('city'), value: WAREHOUSE_ADDRESS.town },
@@ -72,8 +70,7 @@ export default function WarehouseAddressCard({ firstName, lastName, icon }) {
 
   // The whole address as it would be written on an envelope.
   const wholeAddress = [
-    fullName,
-    WAREHOUSE_ADDRESS.lastName,
+    `${ownFirstName} ${WAREHOUSE_ADDRESS.lastName}`,
     WAREHOUSE_ADDRESS.street,
     `${WAREHOUSE_ADDRESS.postcode} ${WAREHOUSE_ADDRESS.town}`,
     country,
