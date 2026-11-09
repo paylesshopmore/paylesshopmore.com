@@ -31,7 +31,6 @@ const FOOTER_LINKS = [
     links: [
       { key: 'footer.privacy', href: '/privacy' },
       { key: 'footer.terms', href: '/terms' },
-      { key: 'footer.cookies', href: '/cookies' },
     ],
   },
 ];

@@ -6,34 +6,60 @@
 
 /* A tab on the right edge, below the language rail (which sits in the
    middle of the right edge). Same z-index as the rail: under the header's
-   100, so an open mobile menu covers it. */
+   100, so an open mobile menu covers it.
+
+   The button itself is NOT rotated - only the word inside it - so its
+   rounded corners and its shadow stay on the left, facing the page. */
 .tab {
   position: fixed;
   right: 0;
   bottom: 7.5rem;
   z-index: 80;
-  padding: 0.85rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.5rem 0.9rem;
   border: 0;
-  border-radius: 10px 0 0 10px;
+  border-radius: 12px 0 0 12px;
   background: var(--brand-yellow, #ffd93d);
-  box-shadow: -4px 0 14px rgba(5, 7, 10, 0.16);
+  box-shadow: -3px 2px 12px rgba(5, 7, 10, 0.18);
   color: var(--brand-ink, #0b2545);
   font: inherit;
-  font-size: 0.9rem;
-  font-weight: 700;
-  /* Written top to bottom, like a tab on a folder. */
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
   cursor: pointer;
+  transition: padding-right 0.15s ease, background 0.15s ease;
 }
 
+/* Slides out a little on hover, like a tab being pulled. */
 .tab:hover {
+  padding-right: 0.8rem;
   background: var(--brand-yellow-light, #ffe57a);
 }
 
 .tab:focus-visible {
   outline: 3px solid #29abe2;
   outline-offset: 2px;
+}
+
+.tabIcon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+}
+
+/* The word, read from bottom to top like the spine of a book. */
+.tabText {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition: none;
+  }
 }
 
 /* ------------------------------------------------------------ the form */
@@ -198,7 +224,10 @@
 @media (max-width: 560px) {
   .tab {
     bottom: 6rem;
-    padding: 0.7rem 0.45rem;
-    font-size: 0.82rem;
+    padding: 0.6rem 0.4rem 0.75rem;
+  }
+
+  .tabText {
+    font-size: 0.8rem;
   }
 }

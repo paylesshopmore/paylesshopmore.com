@@ -4,7 +4,7 @@
 //   Address:      * (any address App.jsx does not know)
 //   Who can open: everybody
 //   Links to:     / (Home)
-//   Linked from:  every mistyped or removed address (the Footer's /about-us and /cookies too)
+//   Linked from:  every mistyped or removed address (the Footer's /about-us too)
 //   Backend:      -
 
 import { Link } from 'react-router-dom';

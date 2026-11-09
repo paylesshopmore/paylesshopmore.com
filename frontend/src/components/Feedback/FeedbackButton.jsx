@@ -71,7 +71,20 @@ export default function FeedbackButton() {
   return (
     <>
       <button type="button" className={styles.tab} onClick={() => setOpen(true)}>
-        {t('feedback.button')}
+        {/* A speech bubble: "tell us something". */}
+        <svg
+          className={styles.tabIcon}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M20 14.5a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5Z" />
+        </svg>
+        <span className={styles.tabText}>{t('feedback.button')}</span>
       </button>
 
       <HelpDialog
