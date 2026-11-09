@@ -70,10 +70,6 @@ export default function NextSteps() {
         <Link to="/booking" className={styles.submit}>
           {n('bookButton')}
         </Link>
-        {/* For a single parcel already on its way to our warehouse. */}
-        <Link to="/prealert" className={styles.secondaryButton}>
-          {t('prealert.newButton')}
-        </Link>
       </div>
     </section>
   );

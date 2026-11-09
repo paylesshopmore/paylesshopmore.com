@@ -28,9 +28,7 @@ describe('NextSteps', () => {
       'href',
       '/booking',
     );
-    expect(screen.getByRole('link', { name: 'Pre-alert a package' })).toHaveAttribute(
-      'href',
-      '/prealert',
-    );
+    // Only the booking button: no pre-alert button in this box.
+    expect(screen.queryByRole('link', { name: 'Pre-alert a package' })).toBeNull();
   });
 });
