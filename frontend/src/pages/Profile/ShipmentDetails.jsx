@@ -10,6 +10,10 @@
 //   5. The "this shipment can no longer be changed" notice, when it applies.
 //   6. Delivery or pickup: the customer chooses how they get it at the end.
 //
+// At the top, the order actions: "Factuur bekijken" swaps these details for
+// the invoice and the "Ontvangst in ons magazijn" overview (OrderInvoice.jsx)
+// inside the same pop-up; its Back button swaps them back.
+//
 // Every date and stage comes from the server (the same reading as Track &
 // Trace, see backend accounts/public.py); nothing here guesses where a
 // shipment is. The one estimate - the usual sailing time when there is no
@@ -17,6 +21,8 @@
 
 import { useState } from 'react';
 import PhotoGallery from '../../components/PhotoGallery/PhotoGallery';
+import { InvoiceIcon } from '../../components/Icons/icons';
+import OrderInvoice from './OrderInvoice';
 import { setHandover } from '../../api/profile';
 import { CONTACT } from '../../data/company';
 import ShipmentTimeline from '../../components/ShipmentTimeline/ShipmentTimeline';
@@ -157,6 +163,8 @@ export default function ShipmentDetails({
   const label = (key) => t(`profile.shipments.details.${key}`);
 
   const timing = useTiming(shipment, (date) => dayFormat.format(date));
+  // true while the "Factuur bekijken" panel is shown instead of the details.
+  const [showInvoice, setShowInvoice] = useState(false);
   const ownInvoices = invoices.filter(
     (invoice) => invoice.trackingNumber === shipment.tracking_number,
   );
@@ -198,8 +206,26 @@ export default function ShipmentDetails({
       : null,
   ].filter(Boolean);
 
+  // "Factuur bekijken" was pressed: the invoice and the product overview
+  // take the place of the details, in the same pop-up.
+  if (showInvoice) {
+    return <OrderInvoice shipment={shipment} onBack={() => setShowInvoice(false)} />;
+  }
+
   return (
     <div className={styles.shipmentDetails}>
+      {/* The order actions. */}
+      <div className={styles.orderActions}>
+        <button
+          type="button"
+          className={styles.orderActionButton}
+          onClick={() => setShowInvoice(true)}
+        >
+          <InvoiceIcon size={18} />
+          {t('orderOverview.viewInvoice')}
+        </button>
+      </div>
+
       {/* 1. How long it will still take - the question the customer
           opened this for, so it comes first. */}
       {timing && (

@@ -22,6 +22,8 @@ from .models import (
     PackageDamageReport,
     PackageMeasurement,
     PackagePackaging,
+    ProductReceipt,
+    ProductReceiptChange,
 )
 
 
@@ -166,3 +168,16 @@ class IntakeDeletionAdmin(ReadOnlyAdmin):
 @admin.register(FreedReference)
 class FreedReferenceAdmin(ReadOnlyAdmin):
     list_display = ("reference", "freed_at", "freed_by", "reused_at", "reused_by")
+
+
+# How many of each ordered product were in a delivery (warehouse/receipts.py).
+# Counted and corrected on the intake sheet only, so the history in
+# ProductReceiptChange always matches; here they are only read.
+@admin.register(ProductReceipt)
+class ProductReceiptAdmin(ReadOnlyAdmin):
+    list_display = ("sheet", "product", "quantity", "confirmed_by", "confirmed_at")
+
+
+@admin.register(ProductReceiptChange)
+class ProductReceiptChangeAdmin(ReadOnlyAdmin):
+    list_display = ("created_at", "sheet", "product", "quantity_before", "quantity_after", "user")

@@ -788,6 +788,59 @@ class PackageViewSet(
         photo = get_object_or_404(PackagePhoto, pk=photo_id, package=package)
         return stream_photo(photo)
 
+    @action(detail=True, methods=["get"], url_path="order-overview", url_name="order-overview")
+    def order_overview(self, request, pk=None):
+        """GET: the "Factuur bekijken" panel of one shipment - its invoice and
+        every product the customer ordered, with how many reached the warehouse.
+
+        WHO MAY SEE IT: get_object() goes through get_queryset() above, which
+        only holds the signed-in customer's own shipments. Somebody else's
+        shipment id is a 404, so their invoice and products never leave the
+        server. The invoice download (invoicing/views.py) checks the same.
+
+        THE INVOICE: only one that was sent to the customer (the same rule as
+        "My invoices"). `invoice` is null before that - the page then says the
+        invoice is not available yet, and still shows the products.
+        `download_url` is null when the invoice has no PDF file.
+
+        THE PRODUCTS: worked out fresh on every request from the order lines
+        and the warehouse's confirmed counts (warehouse/receipts.py), so a
+        count the warehouse corrects shows the next time the page is opened
+        or refreshed. Nothing is cached.
+        """
+        from invoicing.models import Invoice
+        from invoicing.serializers import CustomerInvoiceSerializer
+        from warehouse.receipts import customer_overview
+
+        package = self.get_object()
+
+        invoice_data = None
+        invoice = (
+            Invoice.objects.filter(package=package, status=Invoice.Status.SENT)
+            .select_related("package")
+            .prefetch_related("lines")
+            .first()
+        )
+        if invoice is not None:
+            invoice_data = CustomerInvoiceSerializer(invoice, context={"request": request}).data
+            # A link only when there is a file to download.
+            if not invoice.pdf:
+                invoice_data["download_url"] = None
+            # The money lines of a composed invoice ("Zeevracht  € 120,00"),
+            # so the customer can read the invoice without opening the PDF.
+            invoice_data["lines"] = [
+                {"description": line.description, "amount": str(line.amount)}
+                for line in invoice.lines.all()
+            ]
+
+        return Response(
+            {
+                "tracking_number": package.tracking_number,
+                "invoice": invoice_data,
+                "products": customer_overview(package),
+            }
+        )
+
     @action(detail=True, methods=["post"])
     def handover(self, request, pk=None):
         """POST {"handover": "delivery" | "pickup"}: the customer's choice.

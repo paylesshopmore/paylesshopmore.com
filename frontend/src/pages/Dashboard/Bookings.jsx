@@ -13,8 +13,11 @@ import Loading from '../../components/Loading/Loading';
 import ConnectionError from '../../components/ConnectionError/ConnectionError';
 import OrderList from '../../components/AttachmentList/OrderList';
 import HelpDialog from '../../components/HelpDialog/HelpDialog';
+import BookingReceivedProducts from './BookingReceivedProducts';
 import BookingWarehouseMeasurements from './BookingWarehouseMeasurements';
 import ProductCheck from './ProductCheck';
+import ReceivedButton from './ReceivedButton';
+import { useLanguage } from '../../i18n/useLanguage';
 import { warehouseSummary } from './bookingMeasurements';
 import { Chip, Field, Group, Progress } from './sheet';
 import { BOOKING_STATUSES, listBookings, sendBookingToWarehouse, updateBooking } from '../../api/staff';
@@ -331,8 +334,11 @@ function withProduct(booking, saved) {
   };
 }
 
-function BookingSheet({ booking, busy, onSave, onSend, onProductSaved }) {
+function BookingSheet({ booking, busy, onSave, onSend, onProductSaved, onBookingChanged }) {
   const d = usePageText('bookings');
+  // For the kind of a document the customer added ("Factuur", ...): the
+  // same words the customer chose it by on their profile page.
+  const { t } = useLanguage();
   const c = usePageText('common');
   const freight = labelFor(c, 'freight', booking.freight, booking.freight_display);
   const packingCheck = PACKING_CHECK[booking.packing_quality];
@@ -558,11 +564,36 @@ function BookingSheet({ booking, busy, onSave, onSend, onProductSaved }) {
                 total: d('storeTotal'),
                 noLink: d('noLink'),
               }}
+              // The documents the customer added to a store afterwards (order
+              // confirmation, their invoice, ...), named in the page's language.
+              kindLabel={(document) => {
+                const key = `profile.bookings.documents.kinds.${document.kind}`;
+                const word = t(key);
+                return word === key ? document.kind_display : word;
+              }}
               renderProductExtra={(product) => (
-                <ProductCheck
-                  key={product.id}
-                  product={product}
-                  onSaved={onProductSaved}
+                <>
+                  <ProductCheck
+                    key={product.id}
+                    product={product}
+                    onSaved={onProductSaved}
+                  />
+                  {/* "Product ontvangen": only this item has arrived. */}
+                  <ReceivedButton
+                    kind="product"
+                    bookingId={booking.id}
+                    row={product}
+                    onChanged={onBookingChanged}
+                  />
+                </>
+              )}
+              // "Bestelling ontvangen": everything from this store has arrived.
+              renderOrderExtra={(order) => (
+                <ReceivedButton
+                  kind="order"
+                  bookingId={booking.id}
+                  row={order}
+                  onChanged={onBookingChanged}
                 />
               )}
             />
@@ -579,6 +610,9 @@ function BookingSheet({ booking, busy, onSave, onSend, onProductSaved }) {
 
       {/* What the warehouse measured: intake sheets and scanner measurements. */}
       <BookingWarehouseMeasurements warehouse={booking.warehouse} />
+
+      {/* Per ordered product: how many the warehouse has counted in. */}
+      <BookingReceivedProducts products={booking.received_products} />
 
       <Group title={d('remarksAndSignature')}>
         <Field label={d('sendersRemarks')} wide>
@@ -844,6 +878,7 @@ export default function Bookings() {
             onSave={(changes) => save(openBooking, changes)}
             onSend={(changes) => send(openBooking, changes)}
             onProductSaved={(product) => list.replaceRow(withProduct(openBooking, product))}
+            onBookingChanged={(updated) => list.replaceRow(updated)}
           />
         </HelpDialog>
       )}

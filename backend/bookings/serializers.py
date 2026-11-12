@@ -230,6 +230,9 @@ class _ProductSerializer(serializers.ModelSerializer):
             "quantity",
             "customer_subtotal_eur",
             "screenshot",
+            # When the office confirmed this product arrived at the
+            # warehouse, or null. The customer sees it too.
+            "received_at",
         ]
         read_only_fields = fields
 
@@ -265,13 +268,19 @@ class StaffProductSerializer(_ProductSerializer):
             "staff_notes",
             "verified_by_name",
             "verified_at",
+            "received_by_name",
             "updated_at",
         ]
         read_only_fields = fields
 
+    received_by_name = serializers.SerializerMethodField()
+
     def get_verified_by_name(self, product):
         user = product.verified_by
         return (user.get_full_name() or user.get_username()) if user else ""
+
+    def get_received_by_name(self, product):
+        return _person(product.received_by)
 
 
 class StaffProductCheckSerializer(serializers.ModelSerializer):
@@ -320,6 +329,9 @@ class _OrderSerializer(serializers.ModelSerializer):
             "carrier_trackings",
             "products",
             "products_subtotal_eur",
+            # When the office confirmed the whole store order arrived at the
+            # warehouse, or null. The customer sees it too.
+            "received_at",
         ]
         read_only_fields = fields
 
@@ -369,6 +381,15 @@ class MyOrderSerializer(_OrderSerializer):
 class StaffOrderSerializer(_OrderSerializer):
     attachment_serializer = StaffAttachmentSerializer
     product_serializer = StaffProductSerializer
+    # Who in the office pressed "Bestelling ontvangen" - for the office only.
+    received_by_name = serializers.SerializerMethodField()
+
+    class Meta(_OrderSerializer.Meta):
+        fields = [*_OrderSerializer.Meta.fields, "received_by_name"]
+        read_only_fields = fields
+
+    def get_received_by_name(self, order):
+        return _person(order.received_by)
 
 # What the sender fills in. Listed by hand: built from `exclude`, this would
 # start accepting `status` the day somebody added a field to the model.
@@ -538,6 +559,10 @@ class StaffBookingSerializer(serializers.ModelSerializer):
     # What the warehouse measured: intake sheets and scanner measurements.
     # Read-only - the warehouse writes these, the office reads them here.
     warehouse = serializers.SerializerMethodField()
+    # Per ordered product: how many the warehouse has counted in, and the
+    # status ("partial", ...) - the same rows the customer sees behind
+    # "Factuur bekijken". Worked out by warehouse/receipts.py.
+    received_products = serializers.SerializerMethodField()
     # The handling costs by the purchase value, and how many suppliers (stores)
     # the consignment has - see handling_for.
     handling = serializers.SerializerMethodField()
@@ -557,6 +582,7 @@ class StaffBookingSerializer(serializers.ModelSerializer):
                 "shipment",
                 "shipment_blocked",
                 "warehouse",
+                "received_products",
                 "destination_label",
                 "sender_name",
                 "recipient_name",
@@ -600,6 +626,11 @@ class StaffBookingSerializer(serializers.ModelSerializer):
 
     def get_warehouse(self, obj):
         return _warehouse(obj)
+
+    def get_received_products(self, obj):
+        from warehouse.receipts import booking_lines
+
+        return booking_lines(obj, obj.package)
 
 
 def _number(value):

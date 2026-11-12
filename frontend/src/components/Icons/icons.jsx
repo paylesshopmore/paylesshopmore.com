@@ -198,6 +198,39 @@ export function ChevronRightIcon(props) {
   );
 }
 
+/** An invoice: a sheet of paper with a folded corner and lines of text. */
+export function InvoiceIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+      <path d="M14 3v5h5" />
+      <path d="M9 13h6" />
+      <path d="M9 17h4" />
+    </Icon>
+  );
+}
+
+/** Download: an arrow down into a tray. */
+export function DownloadIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M12 4v11" />
+      <path d="m7.5 10.5 4.5 4.5 4.5-4.5" />
+      <path d="M4.5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2" />
+    </Icon>
+  );
+}
+
+/** A back arrow: "return to where you were". */
+export function ArrowLeftIcon(props) {
+  return (
+    <Icon {...props}>
+      <path d="M19 12H5" />
+      <path d="m10.5 6.5-5.5 5.5 5.5 5.5" />
+    </Icon>
+  );
+}
+
 /** A downward arrow, between the steps of a flow. */
 export function ArrowDownIcon(props) {
   return (

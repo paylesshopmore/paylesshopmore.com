@@ -35,7 +35,7 @@ from staff.permissions import IsWarehouseOrStaff, WarehouseRateThrottle
 from staff.views import StaffViewSet
 from tracking.matching import confirm_arrival, find_by_courier_number, scan_summary
 
-from . import customers, intake_numbers, operations, review, scanning, shipments
+from . import customers, intake_numbers, operations, receipts, review, scanning, shipments
 from .access import SectionAllowed
 from .models import AlreadyReleased, IntakeSheet, IntakeSheetPhoto, NotReleased
 from .recipients import handover_recipients
@@ -43,6 +43,7 @@ from .records import stream_photo
 from .serializers import (
     IntakeSheetPhotoSerializer,
     IntakeSheetSerializer,
+    ProductCountsSerializer,
     ScannedBookingSerializer,
     ScannedPackageSerializer,
     can_assign_freight,
@@ -730,6 +731,36 @@ class IntakeSheetViewSet(mixins.CreateModelMixin, StaffViewSet):
             operations.remove_intake_photo(photo)
             return Response(status=http_status.HTTP_204_NO_CONTENT)
         return stream_photo(photo)
+
+    @action(detail=True, methods=["get", "put"])
+    def products(self, request, pk=None):
+        """The "Products received" box: how many of each ordered product were
+        in this delivery.
+
+        GET  every order line of the sheet's booking, with this delivery's
+             count, the other deliveries' counts and the total.
+        PUT  {"counts": [{"product": <order line id>, "quantity": 3}, ...]}
+             confirms the counts (or corrects earlier ones).
+
+        Who may: the same accounts as the rest of the intake sheet -
+        warehouse workers (signed in for the floor), warehouse managers and
+        the office (IsWarehouseOrStaff + the "intake" switch). Customers never
+        reach /api/staff/. Allowed on a released sheet too: boxes are often
+        opened and counted after the sheet went to the office, and a wrong
+        count must stay correctable. Not on an archived sheet.
+
+        The rules for a count are in warehouse/receipts.py (confirm_counts).
+        """
+        sheet = self.get_object()
+        if request.method == "PUT":
+            body = ProductCountsSerializer(data=request.data)
+            body.is_valid(raise_exception=True)
+            try:
+                result = receipts.confirm_counts(sheet, body.validated_data["counts"], request.user)
+            except receipts.CountRefused as error:
+                raise ValidationError({"counts": [str(error)]}) from error
+            return Response(result)
+        return Response(receipts.sheet_lines(sheet) or {"booking": None, "lines": []})
 
     @action(detail=False, methods=["get"])
     def scan(self, request):

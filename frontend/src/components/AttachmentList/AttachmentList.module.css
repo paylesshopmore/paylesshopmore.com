@@ -270,3 +270,19 @@
   color: #0f172a;
   font-variant-numeric: tabular-nums;
 }
+
+/* "Ontvangen in ons magazijn" on a store order or product (ReceivedBadge.jsx). */
+.receivedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  align-self: flex-start;
+  width: fit-content;
+  margin-top: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.75rem;
+  font-weight: 700;
+}

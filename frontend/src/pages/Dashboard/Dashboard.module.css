@@ -5202,3 +5202,88 @@ button.bkAction:disabled {
   align-items: center;
   gap: 0.5rem;
 }
+
+/* ---- "Ontvangen producten" on an intake sheet (IntakeProducts.jsx) ----
+   One row per ordered product: name and numbers, the count box, the status.
+   On a phone the three stack, so the box is wide enough to tap. */
+.receiptLines {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.receiptLine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 9rem auto;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.receiptLineMain {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.receiptLineNumbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.receiptLineCount {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .receiptLine {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .receiptLine > :last-child {
+    justify-self: start;
+  }
+}
+
+/* The same row on a booking (BookingReceivedProducts.jsx): no count box,
+   so just the product and its status side by side. */
+.receiptLineSimple {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+@media (max-width: 640px) {
+  .receiptLineSimple {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* "Bestelling ontvangen" / "Product ontvangen" (ReceivedButton.jsx). */
+.receivedAction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.receivedError {
+  color: #991b1b;
+  font-size: 0.85rem;
+}

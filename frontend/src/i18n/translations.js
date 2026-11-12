@@ -10,6 +10,7 @@ import { dashboardTranslations } from './dashboardTranslations';
 import { invoiceTranslations } from './invoiceTranslations';
 import { warehouseFlowTranslations } from './warehouseFlowTranslations';
 import { dashboardPageTranslations } from './dashboardPageTranslations';
+import { orderOverviewTranslations } from './orderOverviewTranslations';
 
 // The languages a visitor can choose (the flags on the site and in the
 // dashboard). Papiamentu is switched off for now: its translations below are
@@ -53,6 +54,9 @@ export const translations = {
         loadFailed: 'Uw leveringen konden niet worden geladen.',
       },
     },
+    // "Factuur bekijken" on a shipment: the invoice and which products
+    // reached the warehouse; see orderOverviewTranslations.js.
+    orderOverview: orderOverviewTranslations.nl,
     // The office and warehouse dashboards; see dashboardTranslations.js.
     dashboard: {
       ...dashboardTranslations.nl,
@@ -3048,6 +3052,9 @@ export const translations = {
         loadFailed: 'Your deliveries could not be loaded.',
       },
     },
+    // "Factuur bekijken" on a shipment: the invoice and which products
+    // reached the warehouse; see orderOverviewTranslations.js.
+    orderOverview: orderOverviewTranslations.en,
     // The office and warehouse dashboards; see dashboardTranslations.js.
     dashboard: {
       ...dashboardTranslations.en,
@@ -6034,6 +6041,9 @@ export const translations = {
         loadFailed: 'No por a karga bo entreganan.',
       },
     },
+    // "Factuur bekijken" on a shipment: the invoice and which products
+    // reached the warehouse; see orderOverviewTranslations.js.
+    orderOverview: orderOverviewTranslations.pap,
     // The office and warehouse dashboards; see dashboardTranslations.js.
     dashboard: {
       ...dashboardTranslations.pap,

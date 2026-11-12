@@ -49,6 +49,7 @@ import {
 import { useAuth } from '../../auth/useAuth';
 import { setWarehouseEmails } from '../../api/profile';
 import IntakePhotos from './IntakePhotos';
+import IntakeProducts from './IntakeProducts';
 import { SHIPMENT_DETAILS } from '../../ocr/labelFields';
 import LabelMeasurement from './LabelMeasurement';
 import LabelReader from './LabelReader';
@@ -1200,6 +1201,18 @@ function SheetForm({ sheet, recipients, onSaved, onReleased, onDirtyChange }) {
           </div>
         )}
       </fieldset>
+
+      {/* How many of each ordered product were in this delivery. Outside the
+          fieldset above on purpose: boxes are often opened after the sheet
+          was released, and a count must stay correctable (IntakeProducts.jsx).
+          In the step-by-step form it sits with the goods step. */}
+      {show('goods') && (
+        <IntakeProducts
+          sheetId={sheet.id}
+          linked={Boolean(sheet.booking || sheet.package)}
+          archived={Boolean(sheet.archived)}
+        />
+      )}
 
       {!locked && (
         <div className={styles.intakeActions}>

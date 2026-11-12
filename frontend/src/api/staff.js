@@ -239,6 +239,27 @@ export async function updateBookingProduct(id, changes) {
   return request(`/staff/booking-products/${id}/`, { method: 'PATCH', body: changes });
 }
 
+/**
+ * The admin's "Bestelling ontvangen" button: the whole store order (everything
+ * bought at that store) has arrived at the warehouse. received=false undoes
+ * it. Admins only - the server answers 403 to anybody else. Answers the whole
+ * booking, as the dashboard shows it.
+ */
+export async function markOrderReceived(bookingId, orderId, received) {
+  return request(`/staff/bookings/${bookingId}/orders/${orderId}/received/`, {
+    method: 'POST',
+    body: { received },
+  });
+}
+
+/** The same, for one product of a store order ("Product ontvangen"). */
+export async function markProductReceived(bookingId, productId, received) {
+  return request(`/staff/bookings/${bookingId}/products/${productId}/received/`, {
+    method: 'POST',
+    body: { received },
+  });
+}
+
 // What the office can say about a product's price (BookingProduct.Verification).
 export const PRODUCT_VERIFICATION = [
   { value: 'not_checked', label: 'Not checked' },
@@ -1022,6 +1043,26 @@ export async function archiveIntakeSheet(id, reason) {
 /** Brings an archived sheet back to the everyday lists. Answers the sheet. */
 export async function unarchiveIntakeSheet(id) {
   return request(`/staff/intake/${id}/unarchive/`, { method: 'POST' });
+}
+
+/**
+ * "Products received" on an intake sheet: every order line of the sheet's
+ * booking, with this delivery's count and the other deliveries' counts
+ * (backend warehouse/receipts.py sheet_lines). { booking: null, lines: [] }
+ * when the sheet is not linked to a booking.
+ */
+export async function getIntakeProducts(id) {
+  return request(`/staff/intake/${id}/products/`);
+}
+
+/**
+ * Confirms (or corrects) how many units of each order line were in this
+ * delivery: counts = [{ product: <order line id>, quantity: 3 }, ...].
+ * Returns the same shape as getIntakeProducts. Only warehouse, manager and
+ * office accounts may; the server refuses everybody else.
+ */
+export async function saveIntakeProducts(id, counts) {
+  return request(`/staff/intake/${id}/products/`, { method: 'PUT', body: { counts } });
 }
 
 /** The photos on an intake sheet (see pages/Dashboard/IntakePhotos.jsx). */

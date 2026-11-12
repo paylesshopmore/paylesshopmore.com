@@ -13,6 +13,7 @@
 import { useContext, useState } from 'react';
 import { LanguageContext } from '../../i18n/context';
 import AttachmentList from './AttachmentList';
+import ReceivedBadge from './ReceivedBadge';
 import styles from './AttachmentList.module.css';
 
 // The words when no language is around (and the keys under
@@ -130,6 +131,8 @@ export default function ProductList({ order, labels: given, language: chosen, op
           <li key={product.id} className={styles.productRow}>
             <div className={styles.productMain}>
               <span className={styles.productName}>{product.description}</span>
+              {/* The office confirmed this product arrived. */}
+              <ReceivedBadge receivedAt={product.received_at} />
               <ProductLink url={product.url} labels={labels} />
               {/* The booking form no longer asks for a price or a
                   quantity; bookings sent while it did still show them. */}

@@ -1418,3 +1418,98 @@ class FreedReference(models.Model):
 
     def __str__(self):
         return f"{self.reference} ({'free' if self.reused_at is None else 'used again'})"
+
+
+# ----------------------------------------------------------------------------
+# Products received: how many of each ordered product the warehouse counted
+# ----------------------------------------------------------------------------
+#
+# READ THIS FIRST
+#
+# An intake sheet says "a delivery came in" - so many boxes, this big, this
+# heavy. It does NOT say which products were inside the boxes. A box can hold
+# 3 of the 5 chairs a customer ordered, and the other 2 come next week.
+#
+# So a warehouse worker who opens the boxes counts what is inside, per order
+# line (BookingProduct: "Chair, 5 x"), and confirms the count on the intake
+# sheet of that delivery. Each confirmed count is one ProductReceipt row:
+#
+#   sheet 001 (Monday's delivery)   chair: 3
+#   sheet 004 (next week's)         chair: 2
+#
+# The customer's page adds those up: 3 + 2 = 5 received of 5 ordered.
+# warehouse/receipts.py does the adding up and decides the status.
+#
+# A correction overwrites the row (the worker typed 3, it was really 4), and
+# every change is written to ProductReceiptChange as well, so the history of
+# who counted what, and when, is never lost.
+
+
+class ProductReceipt(models.Model):
+    """How many units of ONE order line arrived in ONE delivery (intake sheet).
+
+    Matched by the order line's own id, never by the product's name or link:
+    the same "Chair" can be on two different orders (two customers, or the
+    same customer twice), and only the id says which one this count is for.
+    warehouse/receipts.py also checks the order line belongs to the booking
+    the sheet is linked to.
+    """
+
+    # CASCADE on both: a count means nothing without the delivery it was
+    # counted in, or without the order line it counts.
+    sheet = models.ForeignKey(
+        IntakeSheet, on_delete=models.CASCADE, related_name="product_receipts"
+    )
+    product = models.ForeignKey(
+        "bookings.BookingProduct", on_delete=models.CASCADE, related_name="receipts"
+    )
+    # How many units of this product were in this delivery. 0 is a real
+    # answer: "we looked, it was not in these boxes".
+    quantity = models.PositiveIntegerField()
+
+    # Who confirmed the count and when. The row only exists once somebody
+    # confirmed it, so every row is a confirmed count.
+    confirmed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    confirmed_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["sheet_id", "product_id"]
+        constraints = [
+            # One count per product per delivery. A second count for the same
+            # delivery is a correction of the first, not another delivery.
+            models.UniqueConstraint(fields=["sheet", "product"], name="one_receipt_per_sheet_product"),
+        ]
+
+    def __str__(self):
+        return f"Sheet {self.sheet_id}: product {self.product_id} x {self.quantity}"
+
+
+class ProductReceiptChange(AppendOnlyModel):
+    """Every time a count was confirmed or corrected. Write-once.
+
+    `quantity_before` is empty the first time a product is counted on a
+    sheet; after that it holds what the count was before the correction.
+    """
+
+    sheet = models.ForeignKey(IntakeSheet, on_delete=models.CASCADE, related_name="+")
+    product = models.ForeignKey(
+        "bookings.BookingProduct", on_delete=models.CASCADE, related_name="+"
+    )
+    quantity_before = models.PositiveIntegerField(null=True, blank=True)
+    quantity_after = models.PositiveIntegerField()
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"Sheet {self.sheet_id}: product {self.product_id} {self.quantity_before} -> {self.quantity_after}"

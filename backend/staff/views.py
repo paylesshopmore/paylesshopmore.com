@@ -753,6 +753,65 @@ class BookingViewSet(StaffViewSet):
         follow_booking_status(booking, actor=self.request.user)
         send_to_warehouse(booking, actor=self.request.user)
 
+    # ---- "We have received it": the office's buttons ---------------------
+    #
+    # POST {"received": true} marks a whole store order, or one product, as
+    # arrived at the warehouse; {"received": false} undoes a mistake. The
+    # customer then sees it as "Ontvangen" (warehouse/receipts.py).
+    #
+    # ONLY AN ADMIN may: checked here on the server, not only by hiding the
+    # button. Other office accounts get a 403. Both answer the whole booking
+    # again, so the dashboard can redraw it in one go.
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"orders/(?P<order_id>[0-9]+)/received",
+        url_name="order-received",
+    )
+    def order_received(self, request, pk=None, order_id=None):
+        booking = self.get_object()
+        order = get_object_or_404(booking.orders, pk=order_id)
+        return self._mark_received(request, booking, order)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"products/(?P<product_id>[0-9]+)/received",
+        url_name="product-received",
+    )
+    def product_received(self, request, pk=None, product_id=None):
+        booking = self.get_object()
+        product = get_object_or_404(booking.products, pk=product_id)
+        return self._mark_received(request, booking, product)
+
+    def _mark_received(self, request, booking, row):
+        """Set or clear received_at / received_by on a store order or a product.
+
+        Step by step:
+          1. Only an admin - anybody else is refused (403).
+          2. "received" must be true or false.
+          3. True: stamp now and who. False: empty both again.
+          4. Answer the booking as the dashboard shows it.
+        """
+        if not request.user.is_admin:
+            raise PermissionDenied("Only an admin can mark an order as received.")
+        received = request.data.get("received")
+        if not isinstance(received, bool):
+            raise ValidationError({"received": ["Send true or false."]})
+
+        if received:
+            row.received_at = timezone.now()
+            row.received_by = request.user
+        else:
+            row.received_at = None
+            row.received_by = None
+        row.save(update_fields=["received_at", "received_by"])
+
+        # Read again through the queryset, so every prefetch is fresh.
+        fresh = self.get_queryset().get(pk=booking.pk)
+        return Response(self.get_serializer(fresh).data)
+
     @action(detail=True, methods=["post"], url_path="send-to-warehouse", url_name="send-to-warehouse")
     def send_to_warehouse_now(self, request, pk=None):
         """POST: number the booking (next PLSM-number, unless it has one) and

@@ -234,6 +234,22 @@ export async function setHandover(id, handover) {
 }
 
 /**
+ * The "Factuur bekijken" panel of one shipment: its invoice (null until the
+ * office has sent it) and every product the customer ordered, with how many
+ * the warehouse has received (backend accounts/views.py order_overview).
+ *
+ * The server only answers for the signed-in customer's own shipment - any
+ * other id is a 404. Never cached: each call reads the warehouse's latest
+ * counts, so a refresh shows a correction straight away.
+ *
+ * @param {number} id  the shipment's id
+ * @returns {Promise<{ tracking_number: string, invoice: object|null, products: object[] }>}
+ */
+export async function getOrderOverview(id) {
+  return request(`/packages/${id}/order-overview/`);
+}
+
+/**
  * Saves the customer's e-mail choice. Only shipping updates: the offers and
  * newsletter switches were removed from the profile page, so they are no
  * longer sent (the server keeps whatever it already has).

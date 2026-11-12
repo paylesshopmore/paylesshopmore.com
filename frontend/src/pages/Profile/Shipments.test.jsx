@@ -13,7 +13,11 @@ import { renderWithProviders } from '../../test/utils';
 import { listPackages, setHandover } from '../../api/profile';
 import Shipments from './Shipments';
 
-vi.mock('../../api/profile', () => ({ listPackages: vi.fn(), setHandover: vi.fn() }));
+vi.mock('../../api/profile', () => ({
+  listPackages: vi.fn(),
+  setHandover: vi.fn(),
+  getOrderOverview: vi.fn(),
+}));
 
 const STAGES = [
   'paid',

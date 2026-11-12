@@ -543,3 +543,18 @@ class IntakeSheetSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+
+
+class ProductCountSerializer(serializers.Serializer):
+    """One confirmed count from the "Products received" box on an intake
+    sheet: which order line, and how many units were in this delivery."""
+
+    product = serializers.IntegerField(min_value=1)
+    quantity = serializers.IntegerField(min_value=0)
+
+
+class ProductCountsSerializer(serializers.Serializer):
+    """The body of PUT /api/staff/intake/<id>/products/: {"counts": [...]}.
+    The rules beyond "whole numbers" are in warehouse/receipts.py."""
+
+    counts = ProductCountSerializer(many=True, allow_empty=False)

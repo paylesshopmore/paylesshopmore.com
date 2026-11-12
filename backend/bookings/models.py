@@ -304,6 +304,21 @@ class BookingOrder(models.Model):
     # The order the rows were filled in, kept so they read back the same way.
     position = models.PositiveSmallIntegerField(default=0)
 
+    # ---- "we have received it" (the office's button) ---------------------
+    # Set when an admin in the office confirms this whole store order (everything bought at this store) has arrived at
+    # the warehouse ("Bestelling ontvangen" / "Product ontvangen" on
+    # Dashboard -> Bookings). Empty = not confirmed. The customer then sees
+    # it as received (warehouse/receipts.py). An admin can undo it, which
+    # empties both fields again.
+    received_at = models.DateTimeField(null=True, blank=True)
+    received_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
     class Meta:
         ordering = ["position", "id"]
 
@@ -506,6 +521,21 @@ class BookingProduct(models.Model):
         related_name="+",
     )
     verified_at = models.DateTimeField(null=True, blank=True)
+
+    # ---- "we have received it" (the office's button) ---------------------
+    # Set when an admin in the office confirms this one product has arrived at
+    # the warehouse ("Bestelling ontvangen" / "Product ontvangen" on
+    # Dashboard -> Bookings). Empty = not confirmed. The customer then sees
+    # it as received (warehouse/receipts.py). An admin can undo it, which
+    # empties both fields again.
+    received_at = models.DateTimeField(null=True, blank=True)
+    received_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
 
     position = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)

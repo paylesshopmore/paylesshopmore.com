@@ -29,6 +29,7 @@ function isWebLink(value) {
 }
 import AttachmentList from './AttachmentList';
 import ProductList from './ProductList';
+import ReceivedBadge from './ReceivedBadge';
 import styles from './AttachmentList.module.css';
 
 /**
@@ -73,6 +74,8 @@ export default function OrderList({
             <span className={styles.orderText}>
               <span className={styles.orderShop}>{order.shop_name}</span>
               <span className={styles.orderDescription}>{order.description}</span>
+              {/* The office confirmed the whole order arrived. */}
+              <ReceivedBadge receivedAt={order.received_at} />
             </span>
             {order.screenshot && (
               <span className={styles.orderShot}>

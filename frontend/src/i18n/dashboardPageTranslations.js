@@ -42,8 +42,9 @@ import { warehouseCustomers } from './pages/warehouseCustomers';
 import { warehouseReview } from './pages/warehouseReview';
 import { warehouseIntakes } from './pages/warehouseIntakes';
 import { feedbackStaff } from './pages/feedbackStaff';
+import { productReceipts } from './pages/productReceipts';
 
-const PAGES = { common, floorDevices, workers, bookingWarehouse, documents, intakeCamera, quotes, packages, bookings, invoices, addInvoice, shops, customers, intake, measurements, measurementsList, warehouseAccess, messages, blog, warehouseProfile, security, courierTracking, prealerts, reports, system, documentReview, website, warehouseManager, warehouseCustomers, warehouseReview, warehouseIntakes, feedbackStaff };
+const PAGES = { common, floorDevices, workers, bookingWarehouse, documents, intakeCamera, quotes, packages, bookings, invoices, addInvoice, shops, customers, intake, measurements, measurementsList, warehouseAccess, messages, blog, warehouseProfile, security, courierTracking, prealerts, reports, system, documentReview, website, warehouseManager, warehouseCustomers, warehouseReview, warehouseIntakes, feedbackStaff, productReceipts };
 
 function forLanguage(language) {
   return Object.fromEntries(Object.entries(PAGES).map(([name, page]) => [name, page[language]]));
