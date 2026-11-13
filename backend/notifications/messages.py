@@ -110,7 +110,6 @@ MESSAGES = {
         "confirmation_upload": "You can upload the document through your Pay Less Shop More account:",
         "confirmation_thanks": "Thank you,",
         "confirmation_team": "Pay Less Shop More Team",
-        "review": "How did it go? Tell us in one click - rate your delivery:",
         "preferences": "You can change which e-mails you receive on your profile page:",
     },
     "nl": {
@@ -199,7 +198,6 @@ MESSAGES = {
         "confirmation_upload": "U kunt het document uploaden via uw Pay Less Shop More-account:",
         "confirmation_thanks": "Bedankt,",
         "confirmation_team": "Team Pay Less Shop More",
-        "review": "Hoe is het gegaan? Geef uw levering een beoordeling:",
         "preferences": "Op uw profielpagina kiest u welke e-mails u van ons ontvangt:",
     },
     "pap": {
@@ -279,7 +277,6 @@ MESSAGES = {
         "confirmation_upload": "Bo por karga e dokumento via bo kuenta di Pay Less Shop More:",
         "confirmation_thanks": "Danki,",
         "confirmation_team": "Tim di Pay Less Shop More",
-        "review": "Kon e la bai? Duna bo entrega un evaluashon:",
         "preferences": "Riba bo página di perfil bo ta skohe kua e-mail bo ke risibí di nos:",
     },
 }
@@ -387,14 +384,6 @@ def body_for(notification):
                 "",
                 copy["tracking"].format(tracking=tracking),
                 f"{settings.FRONTEND_URL}/tracking?number={tracking}",
-            ]
-        # Delivered: ask for a review (feedback app). The link opens the
-        # review card on the profile page with this shipment chosen.
-        if context.get("status") == "delivered" and notification.package_id:
-            lines += [
-                "",
-                copy["review"],
-                f"{settings.FRONTEND_URL}/profile?review={notification.package_id}#reviews",
             ]
 
     lines += [

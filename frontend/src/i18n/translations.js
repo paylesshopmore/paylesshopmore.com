@@ -25,8 +25,7 @@ export const DEFAULT_LANGUAGE = 'nl';
 
 export const translations = {
   nl: {
-    // The "Feedback" button on every page and the delivery reviews on the
-    // profile page (components/Feedback, pages/Profile/DeliveryReviews.jsx).
+    // The "Feedback" button on every page (components/Feedback).
     feedback: {
       button: 'Feedback',
       title: 'Wat vindt u van onze website?',
@@ -43,16 +42,6 @@ export const translations = {
       chooseStars: 'Kies eerst 1 tot 5 sterren.',
       failed: 'Het versturen is niet gelukt. Probeer het opnieuw.',
       thanks: 'Bedankt voor uw feedback!',
-      reviews: {
-        intro: 'Hoe is uw levering gegaan? Geef elke afgeleverde zending een beoordeling.',
-        empty: 'U heeft nog geen afgeleverde zendingen.',
-        deliveredOn: 'Afgeleverd op {date}',
-        yourReview: 'Uw beoordeling',
-        rate: 'Beoordelen',
-        thanks: 'Bedankt voor uw beoordeling!',
-        already: 'U heeft deze zending al beoordeeld.',
-        loadFailed: 'Uw leveringen konden niet worden geladen.',
-      },
     },
     // "Factuur bekijken" on a shipment: the invoice and which products
     // reached the warehouse; see orderOverviewTranslations.js.
@@ -883,7 +872,6 @@ export const translations = {
         tracking: 'Track & Trace',
         shipments: 'Mijn zendingen',
         bookings: 'Mijn boekingen',
-        reviews: 'Beoordeel uw levering',
         invoices: 'Mijn facturen',
         password: 'Wachtwoord wijzigen',
         twoFactor: 'Tweestapsverificatie',
@@ -2887,8 +2875,6 @@ export const translations = {
           prealert: { title: 'Een pakket vooraanmelden', text: 'Is er een pakket onderweg naar ons magazijn? Meld het hier aan met het trackingnummer, de koerier, de winkel en wat erin zit. Een aangegeven waarde is niet meer nodig. Voeg de factuur van de winkel toe, dan gaat de douane sneller.' },
           handover: { title: 'Bezorgen of zelf ophalen', text: 'Klik op een zending en kies hoe u hem wilt ontvangen: "Bezorgen" of "Zelf ophalen". U kiest maar één keer: eerst vragen wij of u het zeker weet, daarna staat de keuze vast. Wilt u het later toch wijzigen? Klik in de zending op ons e-mailadres; het onderwerp met uw zendingnummer staat er al in.' },
           bookings: { title: 'Mijn boekingen', text: 'Alles wat u via de boekingsbon heeft aangemeld. Klik op een boeking om te zien wat u heeft ingevuld.' },
-          // "Beoordeel uw levering" (DeliveryReviews.jsx).
-          reviews: { title: 'Beoordeel uw levering', text: 'Is een zending afgeleverd? Geef hier sterren en een opmerking. Wij lezen alles en leren ervan.' },
           invoices: { title: 'Mijn facturen', text: 'Hier vindt u onze facturen voor uw zendingen, om te bekijken of te downloaden.' },
           notifications: { title: 'Meldingen', text: 'Kies welke e-mails u van ons wilt ontvangen.' },
         },
@@ -3048,8 +3034,7 @@ export const translations = {
   },
 
   en: {
-    // The "Feedback" button on every page and the delivery reviews on the
-    // profile page (components/Feedback, pages/Profile/DeliveryReviews.jsx).
+    // The "Feedback" button on every page (components/Feedback).
     feedback: {
       button: 'Feedback',
       title: 'What do you think of our website?',
@@ -3066,16 +3051,6 @@ export const translations = {
       chooseStars: 'Choose 1 to 5 stars first.',
       failed: 'Sending did not work. Please try again.',
       thanks: 'Thank you for your feedback!',
-      reviews: {
-        intro: 'How did your delivery go? Rate each delivered shipment.',
-        empty: 'You have no delivered shipments yet.',
-        deliveredOn: 'Delivered on {date}',
-        yourReview: 'Your review',
-        rate: 'Rate',
-        thanks: 'Thank you for your review!',
-        already: 'You have already reviewed this shipment.',
-        loadFailed: 'Your deliveries could not be loaded.',
-      },
     },
     // "Factuur bekijken" on a shipment: the invoice and which products
     // reached the warehouse; see orderOverviewTranslations.js.
@@ -3904,7 +3879,6 @@ export const translations = {
         tracking: 'Track & Trace',
         shipments: 'My shipments',
         bookings: 'My bookings',
-        reviews: 'Rate your delivery',
         invoices: 'My invoices',
         password: 'Change password',
         twoFactor: 'Two-factor sign-in',
@@ -5899,8 +5873,6 @@ export const translations = {
           prealert: { title: 'Pre-alert a parcel', text: 'Is a parcel on its way to our warehouse? Tell us about it here with the tracking number, the courier, the shop and what is inside. A declared value is no longer needed. Add the shop\'s invoice and customs goes faster.' },
           handover: { title: 'Delivery or pick it up yourself', text: 'Click a shipment and choose how you want to receive it: "Delivery" or "Pick it up myself". You choose only once: we first ask if you are sure, then the choice is fixed. Want to change it later after all? Click our e-mail address in the shipment; the subject with your shipment number is already filled in.' },
           bookings: { title: 'My bookings', text: 'Everything you sent us with the booking form. Click a booking to see what you filled in.' },
-          // "Rate your delivery" (DeliveryReviews.jsx).
-          reviews: { title: 'Rate your delivery', text: 'Has a shipment been delivered? Give it stars and a comment here. We read everything and learn from it.' },
           invoices: { title: 'My invoices', text: 'Find our invoices for your shipments here, to view or download.' },
           notifications: { title: 'Notifications', text: 'Choose which emails you want to receive from us.' },
         },
@@ -6062,8 +6034,7 @@ export const translations = {
   // NOTE: the Papiamentu below needs review by a native speaker before launch.
   // See the spelling note at the bottom of this file.
   pap: {
-    // The "Feedback" button on every page and the delivery reviews on the
-    // profile page (components/Feedback, pages/Profile/DeliveryReviews.jsx).
+    // The "Feedback" button on every page (components/Feedback).
     feedback: {
       button: 'Feedback',
       title: 'Kiko bo ta pensa di nos website?',
@@ -6080,16 +6051,6 @@ export const translations = {
       chooseStars: 'Skohe 1 te 5 strea promé.',
       failed: 'No a logra manda. Purba atrobe.',
       thanks: 'Danki pa bo feedback!',
-      reviews: {
-        intro: 'Kon bo entrega a bai? Duna kada envio entregá un evaluashon.',
-        empty: 'Bo no tin envio entregá ainda.',
-        deliveredOn: 'Entregá dia {date}',
-        yourReview: 'Bo evaluashon',
-        rate: 'Evaluá',
-        thanks: 'Danki pa bo evaluashon!',
-        already: 'Bo a evaluá e envio aki kaba.',
-        loadFailed: 'No por a karga bo entreganan.',
-      },
     },
     // "Factuur bekijken" on a shipment: the invoice and which products
     // reached the warehouse; see orderOverviewTranslations.js.
@@ -6916,7 +6877,6 @@ export const translations = {
         tracking: 'Track & Trace',
         shipments: 'Mi enbionan',
         bookings: 'Mi boekingnan',
-        reviews: 'Evaluá bo entrega',
         invoices: 'Mi fakturanan',
         password: 'Kambia kontraseña',
         twoFactor: 'Verifikashon di dos paso',
@@ -8917,8 +8877,6 @@ export const translations = {
           prealert: { title: 'Avisá un pakete promé', text: 'Tin un pakete ta bini na nos pakus? Avisá nos aki ku e number di tracking, e kurier, e tienda i kiko tin aden. No ta nesesario mas pa duna un balor. Agregá e faktura di e tienda, anto duana ta bai mas lihé.' },
           handover: { title: 'Entregá òf bin buska', text: 'Klek riba un enbio i skohe kon bo ke risibí e: "Entregá" òf "Mi ta bin buska e". Bo ta skohe un biaha so: promé nos ta puntra si bo ta sigur, despues e skohe ta fiho. Bo ke kambi\'é despues tòg? Klek riba nos adrès di e-mail den e enbio; e tópiko ku bo number di enbio ta yená kaba.' },
           bookings: { title: 'Mi boekingnan', text: 'Tur loke bo a manda nos ku e formulario di boeking. Klek riba un boeking pa mira kiko bo a yena.' },
-          // "Evaluá bo entrega" (DeliveryReviews.jsx).
-          reviews: { title: 'Evaluá bo entrega', text: 'Un envio a wòrdu entregá? Duna strea i un komentario aki. Nos ta lesa tur kos i siña for di dje.' },
           invoices: { title: 'Mi fakturanan', text: 'Akinan bo ta haña nos fakturanan pa bo enbionan, pa wak òf deskargá.' },
           notifications: { title: 'Notifikashon', text: 'Skohe kua e-mail bo ke risibí di nos.' },
         },

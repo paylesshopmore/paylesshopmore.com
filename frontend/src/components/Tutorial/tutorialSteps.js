@@ -185,8 +185,6 @@ export const pageTours = {
     // which is not open yet: the shipments card is highlighted instead.
     { id: 'handover', target: '#shipments' },
     { id: 'bookings', target: '#bookings' },
-    // Rate a delivered shipment (DeliveryReviews.jsx).
-    { id: 'reviews', target: '#reviews' },
     { id: 'invoices', target: '#invoices' },
     { id: 'notifications', target: '#notifications' },
   ],

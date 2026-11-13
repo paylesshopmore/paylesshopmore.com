@@ -18,29 +18,6 @@ export async function sendFeedback(feedback) {
 }
 
 /**
- * The signed-in customer's delivered shipments (newest first, at most ten),
- * each with their review or null:
- * [{ package, tracking_number, delivered_at, review: {rating, comment}|null }]
- */
-export async function listMyDeliveries() {
-  return request('/feedback/deliveries/');
-}
-
-/**
- * Reviews one delivered shipment. 409 when it was already reviewed.
- *
- * @param {number} packageId
- * @param {number} rating   1 to 5
- * @param {string} [comment]
- */
-export async function reviewDelivery(packageId, rating, comment = '') {
-  return request('/feedback/deliveries/', {
-    method: 'POST',
-    body: { package: packageId, rating, comment },
-  });
-}
-
-/**
  * Dashboard -> Feedback: one page of feedback. Filters: kind ('site' |
  * 'delivery'), rating (1-5), handled ('true' | 'false'), search, page.
  */

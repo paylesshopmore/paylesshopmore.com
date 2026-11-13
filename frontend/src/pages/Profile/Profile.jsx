@@ -19,7 +19,6 @@ import {
 } from '../../api/profile';
 import { listInvoices } from '../../api/invoices';
 import MyBookings from './MyBookings';
-import DeliveryReviews from './DeliveryReviews';
 import NextSteps from './NextSteps';
 import WarehouseUnlock from './WarehouseUnlock';
 import Shipments from './Shipments';
@@ -137,8 +136,6 @@ function SectionIcon({ name }) {
         <path d="M12 13v7" />
       </>
     ),
-    // A star: reviews of delivered shipments.
-    reviews: <path d="m12 3.2 2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8Z" />,
     bookings: (
       <>
         <rect x="5" y="4" width="14" height="17" rx="2" />
@@ -200,8 +197,6 @@ const SECTIONS = [
   { id: 'tracking', labelKey: 'profile.sections.tracking' },
   { id: 'shipments', labelKey: 'profile.sections.shipments' },
   { id: 'bookings', labelKey: 'profile.sections.bookings' },
-  // Reviews of delivered shipments (DeliveryReviews.jsx).
-  { id: 'reviews', labelKey: 'profile.sections.reviews' },
   { id: 'invoices', labelKey: 'profile.sections.invoices' },
   { id: 'password', labelKey: 'profile.sections.password' },
   { id: 'two-factor', labelKey: 'profile.sections.twoFactor' },
@@ -817,16 +812,6 @@ export default function Profile() {
               {t('profile.sections.bookings')}
             </h2>
             <MyBookings />
-          </section>
-
-          {/* Rate each delivered shipment. The "delivered" e-mail links here
-              (?review=<id>#reviews). */}
-          <section className={styles.card} id="reviews">
-            <h2 className={styles.cardTitle}>
-              <SectionIcon name="reviews" />
-              {t('profile.sections.reviews')}
-            </h2>
-            <DeliveryReviews />
           </section>
 
           <section className={styles.card} id="invoices">

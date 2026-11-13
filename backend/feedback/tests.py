@@ -118,7 +118,9 @@ class DeliveryReviewTests(FeedbackTestCase):
 
 
 class DeliveredEmailTests(FeedbackTestCase):
-    def test_the_delivered_email_asks_for_a_review(self):
+    def test_the_delivered_email_no_longer_asks_for_a_review(self):
+        # The "Rate your delivery" card was removed from the profile page, so the
+        # e-mail must not send the customer to it.
         notification = Notification.objects.create(
             user=self.customer,
             kind=Notification.Kind.SHIPMENT_STATUS,
@@ -126,9 +128,10 @@ class DeliveredEmailTests(FeedbackTestCase):
             context={"tracking_number": "PLS-1", "status": "delivered"},
         )
         body = body_for(notification)
-        self.assertIn(f"/profile?review={self.delivered.pk}#reviews", body)
+        self.assertNotIn("review=", body)
+        self.assertNotIn("#reviews", body)
 
-    def test_other_status_emails_do_not(self):
+    def test_other_status_emails_do_not_either(self):
         notification = Notification.objects.create(
             user=self.customer,
             kind=Notification.Kind.SHIPMENT_STATUS,
