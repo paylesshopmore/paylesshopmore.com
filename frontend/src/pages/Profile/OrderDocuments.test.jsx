@@ -1,7 +1,7 @@
 // Adding a document to a store on the customer's booking, and the documents
 // as the order list shows them.
 
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { addOrderDocument, removeBookingDocument, setOrderNumber, setOrderTracking } from '../../api/booking';
@@ -40,30 +40,39 @@ beforeEach(() => {
   ]);
 });
 
+/**
+ * Opens the panel, then the form for everything that is not one of the two
+ * document rows: track-and-trace, order number, another file.
+ */
+async function openMore(user) {
+  await user.click(screen.getByRole('button', { name: '+ Add document' }));
+  await user.click(screen.getByRole('button', { name: 'Track & trace, order number or other file' }));
+}
+
 describe('adding a document to a store', () => {
-  it('uploads the chosen type and file, and hands back the updated store', async () => {
+  it('uploads another file of the chosen type, and hands back the updated store', async () => {
     const user = userEvent.setup();
     const onUpdated = vi.fn();
-    const updated = { ...ORDER, documents: [{ id: 9, kind: 'invoice', name: 'factuur.pdf', url: '/api/x/' }] };
+    const updated = { ...ORDER, documents: [{ id: 9, kind: 'other', name: 'factuur.pdf', url: '/api/x/' }] };
     addOrderDocument.mockResolvedValue(updated);
     renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={onUpdated} />);
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
-    await user.selectOptions(screen.getByLabelText('Type of document'), 'invoice');
+    await openMore(user);
+    await user.selectOptions(screen.getByLabelText('Type of document'), 'other');
     await user.upload(screen.getByLabelText('File'), pdf());
     await user.click(screen.getByRole('button', { name: 'Upload' }));
 
-    expect(addOrderDocument).toHaveBeenCalledWith(3, 5, { kind: 'invoice', file: expect.any(File) });
+    expect(addOrderDocument).toHaveBeenCalledWith(3, 5, { kind: 'other', file: expect.any(File) });
     expect(onUpdated).toHaveBeenCalledWith(updated);
-    // Closed again, ready for the next one.
-    expect(screen.getByRole('button', { name: '+ Add document' })).toBeInTheDocument();
+    // The form closes, ready for the next one.
+    expect(screen.queryByLabelText('Type of document')).not.toBeInTheDocument();
   });
 
   it('asks for the type before sending anything', async () => {
     const user = userEvent.setup();
     renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await openMore(user);
     await user.upload(screen.getByLabelText('File'), pdf());
     await user.click(screen.getByRole('button', { name: 'Upload' }));
 
@@ -78,7 +87,7 @@ describe('adding a document to a store', () => {
     );
     renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await openMore(user);
     await user.selectOptions(screen.getByLabelText('Type of document'), 'other');
     await user.upload(screen.getByLabelText('File'), pdf());
     await user.click(screen.getByRole('button', { name: 'Upload' }));
@@ -127,7 +136,7 @@ describe('track-and-trace as text', () => {
     setOrderTracking.mockResolvedValue({ ...ORDER, tracking_code: '3SABC1234567' });
     renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={onUpdated} />);
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await openMore(user);
     await user.selectOptions(screen.getByLabelText('Type of document'), 'tracking');
 
     expect(screen.queryByLabelText('File')).toBeNull();
@@ -145,7 +154,7 @@ describe('track-and-trace as text', () => {
     setOrderTracking.mockResolvedValue({ ...ORDER, tracking_code: '3SABC1234567' });
     renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await openMore(user);
     await user.selectOptions(screen.getByLabelText('Type of document'), 'tracking');
     await user.selectOptions(await screen.findByLabelText('Courier company'), 'postnl');
     await user.type(screen.getByLabelText('Track-and-trace code or link'), '3SABC1234567');
@@ -160,7 +169,7 @@ describe('track-and-trace as text', () => {
       <AddOrderDocument bookingId={3} order={{ ...ORDER, tracking_code: 'OLD123' }} onUpdated={vi.fn()} />,
     );
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await openMore(user);
     await user.selectOptions(screen.getByLabelText('Type of document'), 'tracking');
 
     expect(screen.getByLabelText('Track-and-trace code or link')).toHaveValue('OLD123');
@@ -170,7 +179,7 @@ describe('track-and-trace as text', () => {
     const user = userEvent.setup();
     renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await openMore(user);
     await user.selectOptions(screen.getByLabelText('Type of document'), 'tracking');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -221,7 +230,7 @@ describe("the webshop's order number (optional)", () => {
     setOrderNumber.mockResolvedValue(updated);
     renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={onUpdated} />);
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await openMore(user);
     await user.selectOptions(screen.getByLabelText('Type of document'), 'order_number');
     // No file picker: a number is typed, not uploaded.
     expect(screen.queryByLabelText('File')).not.toBeInTheDocument();
@@ -239,7 +248,7 @@ describe("the webshop's order number (optional)", () => {
       <AddOrderDocument bookingId={3} order={{ ...ORDER, order_number: 'OLD-1' }} onUpdated={vi.fn()} />,
     );
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await openMore(user);
     await user.selectOptions(screen.getByLabelText('Type of document'), 'order_number');
 
     expect(screen.getByLabelText("The shop's order number (optional)")).toHaveValue('OLD-1');
@@ -249,7 +258,7 @@ describe("the webshop's order number (optional)", () => {
     const user = userEvent.setup();
     renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await openMore(user);
     await user.selectOptions(screen.getByLabelText('Type of document'), 'order_number');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -274,75 +283,153 @@ describe("the webshop's order number (optional)", () => {
   });
 });
 
-describe('the order confirmation the office asked for', () => {
-  const ASKED = { ...ORDER, confirmation_requested_at: '2026-11-13T10:40:00Z' };
+describe('the two document rows', () => {
+  const INVOICE = { id: 7, kind: 'invoice', name: 'factuur.pdf', url: '/api/x/7/' };
   const CONFIRMATION = { id: 8, kind: 'order_confirmation', name: 'oud.pdf', url: '/api/x/8/' };
+  const NEW_CONFIRMATION = { id: 9, kind: 'order_confirmation', name: 'nieuw.pdf', url: '/api/x/9/' };
 
-  it('shows which store was asked about, with an Upload Order Confirmation button', () => {
-    renderWithProviders(<AddOrderDocument bookingId={3} order={ASKED} onUpdated={vi.fn()} />);
-    expect(screen.getByRole('status')).toHaveTextContent('order confirmation');
-    // Optional: the text says the booking carries on without it.
-    expect(screen.getByRole('status')).toHaveTextContent('not required');
-    expect(screen.getByRole('button', { name: 'Upload Order Confirmation' })).toBeInTheDocument();
-  });
+  async function openPanel(user) {
+    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+  }
 
-  it('shows nothing special when it was not asked for', () => {
+  it('replaces the type list with 1. Invoice and 2. Order confirmation, each with its own Add file', async () => {
+    const user = userEvent.setup();
     renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Upload Order Confirmation' })).not.toBeInTheDocument();
+
+    await openPanel(user);
+
+    const rows = screen.getAllByRole('listitem');
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0]).getByText('Invoice')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('Order confirmation')).toBeInTheDocument();
+    expect(within(rows[0]).getByText('1')).toBeInTheDocument();
+    expect(within(rows[1]).getByText('2')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add file: Invoice')).toBeInTheDocument();
+    expect(screen.getByLabelText('Add file: Order confirmation')).toBeInTheDocument();
+    // Nothing is added yet, and what may be added is said.
+    expect(screen.getAllByText('Not added yet')).toHaveLength(2);
+    expect(screen.getAllByText(/PDF, JPG, PNG or WebP/)).toHaveLength(2);
+    // The old "Type of document" list is not here until "more options" is opened.
+    expect(screen.queryByLabelText('Type of document')).not.toBeInTheDocument();
   });
 
-  it('uploads straight away as an order confirmation, without asking for the type', async () => {
+  it('uploads straight away as the row\'s kind', async () => {
     const user = userEvent.setup();
     const onUpdated = vi.fn();
-    const updated = { ...ASKED, documents: [{ ...CONFIRMATION, name: 'orderbevestiging.pdf' }] };
+    const updated = { ...ORDER, documents: [INVOICE] };
     addOrderDocument.mockResolvedValue(updated);
-    renderWithProviders(<AddOrderDocument bookingId={3} order={ASKED} onUpdated={onUpdated} />);
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={onUpdated} />);
 
-    await user.click(screen.getByRole('button', { name: 'Upload Order Confirmation' }));
-    expect(screen.queryByLabelText('Type of document')).not.toBeInTheDocument();
-    await user.upload(screen.getByLabelText('File'), pdf());
-    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    await openPanel(user);
+    await user.upload(screen.getByLabelText('Add file: Invoice'), pdf());
 
-    expect(addOrderDocument).toHaveBeenCalledWith(3, 5, { kind: 'order_confirmation', file: expect.any(File) });
+    expect(addOrderDocument).toHaveBeenCalledWith(3, 5, { kind: 'invoice', file: expect.any(File) });
     expect(removeBookingDocument).not.toHaveBeenCalled();
     expect(onUpdated).toHaveBeenCalledWith(updated);
   });
 
-  it('offers to replace an uploaded one, and removes the old one once the new one is saved', async () => {
+  it('the order confirmation row uploads as an order confirmation', async () => {
+    const user = userEvent.setup();
+    addOrderDocument.mockResolvedValue({ ...ORDER, documents: [CONFIRMATION] });
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
+
+    await openPanel(user);
+    await user.upload(screen.getByLabelText('Add file: Order confirmation'), pdf());
+
+    expect(addOrderDocument).toHaveBeenCalledWith(3, 5, { kind: 'order_confirmation', file: expect.any(File) });
+  });
+
+  it('shows Added and the file name once a file is there, and offers Replace file', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <AddOrderDocument bookingId={3} order={{ ...ORDER, documents: [INVOICE] }} onUpdated={vi.fn()} />,
+    );
+
+    await openPanel(user);
+
+    const [invoiceRow, confirmationRow] = screen.getAllByRole('listitem');
+    expect(within(invoiceRow).getByText('Added')).toBeInTheDocument();
+    expect(within(invoiceRow).getByText('factuur.pdf')).toBeInTheDocument();
+    expect(within(invoiceRow).getByLabelText('Replace file: Invoice')).toBeInTheDocument();
+    // The other row is untouched.
+    expect(within(confirmationRow).getByText('Not added yet')).toBeInTheDocument();
+    expect(within(confirmationRow).getByLabelText('Add file: Order confirmation')).toBeInTheDocument();
+  });
+
+  it('Replace file saves the new file first, then removes the old one', async () => {
     const user = userEvent.setup();
     const onUpdated = vi.fn();
     const order = { ...ORDER, documents: [CONFIRMATION] };
-    addOrderDocument.mockResolvedValue({
-      ...order,
-      documents: [CONFIRMATION, { id: 9, kind: 'order_confirmation', name: 'nieuw.pdf', url: '/api/x/9/' }],
-    });
+    addOrderDocument.mockResolvedValue({ ...order, documents: [CONFIRMATION, NEW_CONFIRMATION] });
     renderWithProviders(<AddOrderDocument bookingId={3} order={order} onUpdated={onUpdated} />);
 
-    // Uploaded already, so there is no "asked" prompt - only a way to replace it.
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Replace Order Confirmation' }));
-    await user.upload(screen.getByLabelText('File'), pdf());
-    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    await openPanel(user);
+    await user.upload(screen.getByLabelText('Replace file: Order confirmation'), pdf());
 
     expect(addOrderDocument).toHaveBeenCalledWith(3, 5, { kind: 'order_confirmation', file: expect.any(File) });
     expect(removeBookingDocument).toHaveBeenCalledWith(3, 8);
-    // The customer's list ends with the new document only.
-    const shown = onUpdated.mock.calls[0][0];
-    expect(shown.documents.map((document) => document.name)).toEqual(['nieuw.pdf']);
+    // The customer's list ends with the new file only.
+    expect(onUpdated.mock.calls[0][0].documents.map((document) => document.name)).toEqual(['nieuw.pdf']);
   });
 
-  it('keeps the old one when the new one could not be saved', async () => {
+  it('keeps the old file when the new one could not be saved, and says why under that row', async () => {
     const user = userEvent.setup();
     const order = { ...ORDER, documents: [CONFIRMATION] };
     addOrderDocument.mockRejectedValue(new ApiError(API_ERRORS.VALIDATION, { file: ['Too big.'] }, 400));
     renderWithProviders(<AddOrderDocument bookingId={3} order={order} onUpdated={vi.fn()} />);
 
-    await user.click(screen.getByRole('button', { name: 'Replace Order Confirmation' }));
-    await user.upload(screen.getByLabelText('File'), pdf());
-    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    await openPanel(user);
+    await user.upload(screen.getByLabelText('Replace file: Order confirmation'), pdf());
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Too big.');
+    const [invoiceRow, confirmationRow] = screen.getAllByRole('listitem');
+    expect(await within(confirmationRow).findByRole('alert')).toHaveTextContent('Too big.');
+    expect(within(invoiceRow).queryByRole('alert')).not.toBeInTheDocument();
     expect(removeBookingDocument).not.toHaveBeenCalled();
+  });
+
+  it('shows a general message when the server gave no reason', async () => {
+    const user = userEvent.setup();
+    addOrderDocument.mockRejectedValue(new ApiError(API_ERRORS.UNAVAILABLE));
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
+
+    await openPanel(user);
+    await user.upload(screen.getByLabelText('Add file: Invoice'), pdf());
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+
+  it('the rows only take the file types the server allows', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
+
+    await openPanel(user);
+
+    expect(screen.getByLabelText('Add file: Invoice')).toHaveAttribute('accept', '.pdf,.png,.jpg,.jpeg,.webp');
+  });
+
+  it('Done closes the panel', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
+
+    await openPanel(user);
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ Add document' })).toBeInTheDocument();
+  });
+
+  it('keeps track-and-trace, order number and other files one step away', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
+
+    await openMore(user);
+
+    const types = within(screen.getByLabelText('Type of document'))
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(types).toEqual(expect.arrayContaining(['Track-and-trace', 'Other']));
+    // The two rows already cover these, so they are not in the list again.
+    expect(types).not.toContain('Invoice');
+    expect(types).not.toContain('Order confirmation');
   });
 });

@@ -2047,28 +2047,220 @@
   }
 }
 
-/* ---- "The office asked for your order confirmation" (OrderDocuments.jsx) ---- */
-.docButtons {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.9rem;
-}
+/* ---- "+ Add document": two numbered rows, each with its own "Add file"
+   (OrderDocuments.jsx) ---------------------------------------------------- */
 
-/* The notice with its "Upload Order Confirmation" button: stands out from the
-   quiet "+ Add document" link, in the shipment pop-up's own colours. */
-.docAsked {
+.docPanel {
   display: grid;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.75rem 0.9rem;
-  border-left: 4px solid #0ea5e9;
-  border-radius: 6px;
-  background: #f0f9ff;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #f8fafc;
 }
 
-.docAsked p {
+.docPanelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.docPanelTitle {
   margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.docRows {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One document: number, name and what is there, a status, and its button. */
+.docRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.docRow:hover {
+  border-color: #bae6fd;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+}
+
+/* Added: the row turns green, so what is still missing stands out. */
+.docRow[data-done='true'] {
+  border-color: #bbf7d0;
+}
+
+.docRowNumber {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 800;
+}
+
+.docRow[data-done='true'] .docRowNumber {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.docRowMain {
+  min-width: 0;
+}
+
+.docRowTitle {
+  margin: 0;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.docRowMeta {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.docRowError {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #991b1b;
+}
+
+.docRowStatus {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.docRowStatus[data-done='true'] {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* "Add file": a label around a file input that covers it, so a click, a tap and
+   the keyboard all work. Yellow like the site's main buttons; white with a
+   yellow edge for "Replace file". */
+.docFileButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.55rem 1.15rem;
+  border: 2px solid var(--brand-yellow);
+  border-radius: 999px;
+  background: var(--brand-yellow);
+  color: var(--brand-ink);
   font-size: 0.9rem;
-  color: #075985;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.docFileButton:hover {
+  background: var(--brand-yellow-light);
+  transform: translateY(-1px);
+}
+
+.docFileButton[data-secondary='true'] {
+  background: #ffffff;
+}
+
+.docFileButton[data-secondary='true']:hover {
+  background: #fffbea;
+}
+
+.docFileButton[data-busy='true'] {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.docFileButton:focus-within {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.docFileInput {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: inherit;
+}
+
+/* The link that opens the form for the track-and-trace, the order number or
+   another file: quieter than the two rows above it. */
+.docMore {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.docMore:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* Phones: number and name on top, the status under them, a full-width button. */
+@media (max-width: 560px) {
+  .docRow {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .docRowStatus {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .docFileButton {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .docRow,
+  .docFileButton {
+    transition: none;
+  }
+
+  .docFileButton:hover {
+    transform: none;
+  }
 }
