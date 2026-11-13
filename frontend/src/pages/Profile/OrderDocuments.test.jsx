@@ -4,7 +4,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { addOrderDocument, setOrderTracking } from '../../api/booking';
+import { addOrderDocument, setOrderNumber, setOrderTracking } from '../../api/booking';
 import { API_ERRORS, ApiError } from '../../api/client';
 import { getCarriers } from '../../api/tracking';
 import OrderList from '../../components/AttachmentList/OrderList';
@@ -14,6 +14,7 @@ import AddOrderDocument from './OrderDocuments';
 vi.mock('../../api/booking', async (importOriginal) => ({
   ...(await importOriginal()),
   addOrderDocument: vi.fn(),
+  setOrderNumber: vi.fn(),
   setOrderTracking: vi.fn(),
 }));
 
@@ -30,6 +31,7 @@ beforeEach(() => {
   window.localStorage.setItem('plsm.language', 'en');
   addOrderDocument.mockReset();
   setOrderTracking.mockReset();
+  setOrderNumber.mockReset();
   getCarriers.mockReset().mockResolvedValue([
     { code: 'postnl', name: 'PostNL', trackable: true },
     { code: 'dhl-parcel-nl', name: 'DHL Parcel (NL)', trackable: true },
@@ -206,5 +208,66 @@ describe('the order list with a track-and-trace', () => {
     await user.click(screen.getByRole('button', { name: 'Remove: Track-and-trace' }));
 
     expect(onRemove).toHaveBeenCalledWith(order);
+  });
+});
+
+describe("the webshop's order number (optional)", () => {
+  it('swaps the file for a text box and saves the number on the store', async () => {
+    const user = userEvent.setup();
+    const onUpdated = vi.fn();
+    const updated = { ...ORDER, order_number: '1234567890' };
+    setOrderNumber.mockResolvedValue(updated);
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={onUpdated} />);
+
+    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await user.selectOptions(screen.getByLabelText('Type of document'), 'order_number');
+    // No file picker: a number is typed, not uploaded.
+    expect(screen.queryByLabelText('File')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("The shop's order number (optional)"), ' 1234567890 ');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(setOrderNumber).toHaveBeenCalledWith(3, 5, '1234567890');
+    expect(addOrderDocument).not.toHaveBeenCalled();
+    expect(onUpdated).toHaveBeenCalledWith(updated);
+  });
+
+  it('starts from the saved number, so it can be corrected', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <AddOrderDocument bookingId={3} order={{ ...ORDER, order_number: 'OLD-1' }} onUpdated={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await user.selectOptions(screen.getByLabelText('Type of document'), 'order_number');
+
+    expect(screen.getByLabelText("The shop's order number (optional)")).toHaveValue('OLD-1');
+  });
+
+  it('asks for something before saving', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: '+ Add document' }));
+    await user.selectOptions(screen.getByLabelText('Type of document'), 'order_number');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Enter the order number.');
+    expect(setOrderNumber).not.toHaveBeenCalled();
+  });
+
+  it('is shown under the store when the page gives it a label', () => {
+    renderWithProviders(
+      <OrderList
+        orders={[{ ...ORDER, order_number: '1234567890' }]}
+        orderNumberLabel="Order number (from the shop)"
+      />,
+    );
+    expect(screen.getByText('Order number (from the shop)')).toBeInTheDocument();
+    expect(screen.getByText('1234567890')).toBeInTheDocument();
+  });
+
+  it('is not shown on pages that give no label (the office has its own block)', () => {
+    renderWithProviders(<OrderList orders={[{ ...ORDER, order_number: '1234567890' }]} />);
+    expect(screen.queryByText('1234567890')).not.toBeInTheDocument();
   });
 });

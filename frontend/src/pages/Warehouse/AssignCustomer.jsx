@@ -28,6 +28,7 @@
 //   Backend:      api/staff.js getIntakeSheet, lookupCustomers, assignIntakeCustomer
 
 import { useEffect, useState } from 'react';
+import { bookingReference } from '../../utils/bookingReference';
 import { Link, useParams } from 'react-router-dom';
 import { assignIntakeCustomer, getIntakeSheet, lookupCustomers } from '../../api/staff';
 import { useAuth } from '../../auth/useAuth';
@@ -318,7 +319,7 @@ export default function AssignCustomer() {
                   onChange={() => setLink(`booking:${booking.id}`)}
                 />
                 {w('linkBooking', {
-                  number: booking.shipping_number || `#${booking.id}`,
+                  number: bookingReference(booking),
                   destination: booking.destination ? ` - ${booking.destination}` : '',
                 })}
               </label>

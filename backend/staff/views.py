@@ -731,6 +731,10 @@ class BookingViewSet(StaffViewSet):
                 # booking on the page would cost four more queries.
                 "intake_sheets__measurements",
                 "intake_sheets__created_by",
+                # Who pressed "received" / "request invoice": names on the page.
+                "orders__received_by",
+                "orders__invoice_requested_by",
+                "orders__products__received_by",
                 "package__intake_sheets__measurements",
                 "package__intake_sheets__created_by",
                 "package__warehouse_measurements__worker",
@@ -784,6 +788,72 @@ class BookingViewSet(StaffViewSet):
         booking = self.get_object()
         product = get_object_or_404(booking.products, pk=product_id)
         return self._mark_received(request, booking, product)
+
+    # ---- "We are missing the invoice": ask the customer for it ----------------
+    #
+    # POST: tells the customer (a notification and, if they allow e-mail, an
+    # e-mail) that the invoice of this store order is missing and asks them to
+    # add it to their booking. Any office account may do this, not only admins:
+    # it is a question to the customer, not a change to the books.
+    #
+    # Refused, with a sentence the page shows, when:
+    #   - the order already has an invoice (nothing to ask for);
+    #   - the booking has no customer account (there is nobody to notify);
+    #   - the booking is shipped or cancelled (the customer can no longer add
+    #     documents, so asking would be pointless);
+    #   - the customer was already asked in the last 24 hours (no pestering).
+
+    INVOICE_REQUEST_COOLDOWN = timedelta(hours=24)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"orders/(?P<order_id>[0-9]+)/request-invoice",
+        url_name="order-request-invoice",
+    )
+    def request_invoice(self, request, pk=None, order_id=None):
+        from bookings.models import BookingOrder
+        from notifications.services import notify_invoice_requested
+
+        booking = self.get_object()
+        order = get_object_or_404(booking.orders, pk=order_id)
+
+        if order.screenshots.filter(kind=BookingAttachment.Kind.INVOICE).exists():
+            raise ValidationError({"detail": ["This order already has an invoice."]})
+        if booking.user_id is None:
+            raise ValidationError(
+                {
+                    "detail": [
+                        "This booking was sent without an account, so there is nobody to notify. "
+                        "Contact the sender by e-mail."
+                    ]
+                }
+            )
+        if booking.status in (Booking.Status.SHIPPED, Booking.Status.CANCELLED):
+            raise ValidationError(
+                {"detail": ["This booking is shipped or cancelled; the customer can no longer add documents."]}
+            )
+
+        now = timezone.now()
+        # A conditional UPDATE: it only goes through when nobody asked within
+        # the cooldown, so two quick presses (or two colleagues) send ONE request.
+        changed = BookingOrder.objects.filter(pk=order.pk).filter(
+            Q(invoice_requested_at__isnull=True) | Q(invoice_requested_at__lt=now - self.INVOICE_REQUEST_COOLDOWN)
+        ).update(invoice_requested_at=now, invoice_requested_by=request.user)
+        if not changed:
+            raise ValidationError(
+                {"detail": ["The customer was already asked for this invoice in the last 24 hours."]}
+            )
+
+        # A problem with the message must never undo the request being recorded.
+        try:
+            order.refresh_from_db()
+            notify_invoice_requested(order)
+        except Exception:  # noqa: BLE001
+            logger.exception("Could not notify the customer about the missing invoice of order %s.", order.pk)
+
+        fresh = self.get_queryset().get(pk=booking.pk)
+        return Response(self.get_serializer(fresh).data)
 
     def _mark_received(self, request, booking, row):
         """Set or clear received_at / received_by on a store order or a product.

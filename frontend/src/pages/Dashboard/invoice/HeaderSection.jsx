@@ -2,9 +2,14 @@
 //
 // STEP 2: THE INVOICE HEADER - number, date, and who it is for.
 //
-// The invoice number is never typed. A new invoice shows the number it will
-// probably get; the real one is handed out by the server at the moment of
-// saving (so two people can never get the same number).
+// THE INVOICE NUMBER
+//   A NEW invoice starts with the number it will probably get (say
+//   PLSM20260015). You may type another one - to carry on from invoices
+//   written somewhere else. Left as suggested, the server hands out the next
+//   number itself at the moment of saving (so two people can never get the
+//   same number); a number you typed is checked for duplicates.
+//   A SAVED invoice keeps its number: it is on the customer's document and in
+//   the books, so it is shown but cannot be changed here.
 //
 // Props used by every section component in this folder:
 //   form      the whole form object (see emptyForm in invoiceForm.js)
@@ -25,12 +30,25 @@ export default function HeaderSection({ form, update, errors, disabled }) {
 
       <div className="row g-3">
         <div className="col-sm-6 col-lg-3">
-          <Field
-            label={tr('header.number')}
-            hint={form.invoiceId ? undefined : tr('header.numberHint')}
-          >
-            {(props) => <input {...props} value={form.number || '—'} readOnly disabled />}
-          </Field>
+          {form.invoiceId ? (
+            <Field label={tr('header.number')}>
+              {(props) => <input {...props} value={form.number || '—'} readOnly disabled />}
+            </Field>
+          ) : (
+            <Field label={tr('header.number')} hint={tr('header.numberHintEditable')} error={errors.number}>
+              {(props) => (
+                <input
+                  {...props}
+                  value={form.number}
+                  placeholder={form.suggestedNumber}
+                  disabled={disabled}
+                  maxLength={30}
+                  autoComplete="off"
+                  onChange={(event) => update({ number: event.target.value })}
+                />
+              )}
+            </Field>
+          )}
         </div>
         <div className="col-sm-6 col-lg-3">
           <Field label={tr('header.date')} error={errors.invoice_date}>

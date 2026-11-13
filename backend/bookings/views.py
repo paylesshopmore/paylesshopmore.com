@@ -356,6 +356,48 @@ class MyOrderTrackingView(APIView):
         return Response(MyOrderSerializer(order).data)
 
 
+class MyOrderNumberView(APIView):
+    """PATCH {"order_number": "..."}: set or clear the webshop's own order
+    number of one store row on the signed-in customer's own booking. Optional
+    information, typed (not a file). Until the booking is shipped or cancelled.
+    Answers with the store row as it now reads.
+
+    Looked up through the booking's owner, so somebody else's order is a 404.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "booking_documents"
+    throttle_classes = [ScopedRateThrottle]
+
+    MAX_LENGTH = BookingOrder._meta.get_field("order_number").max_length
+
+    def patch(self, request, booking_id, order_id):
+        order = get_object_or_404(
+            BookingOrder.objects.select_related("booking"),
+            pk=order_id,
+            booking_id=booking_id,
+            booking__user=request.user,
+        )
+        _refuse_if_closed(order.booking)
+
+        value = request.data.get("order_number")
+        if not isinstance(value, str):
+            raise ValidationError({"order_number": "Enter the order number."})
+        # One line, single spaces: a pasted number with a newline is still one number.
+        value = " ".join(value.split())
+        if len(value) > self.MAX_LENGTH:
+            raise ValidationError({"order_number": f"At most {self.MAX_LENGTH} characters."})
+
+        order.order_number = value
+        order.save(update_fields=["order_number"])
+
+        order = BookingOrder.objects.prefetch_related(
+            "screenshots", "carrier_shipments__carrier", "carrier_shipments__events",
+            "products__screenshot",
+        ).get(pk=order.pk)
+        return Response(MyOrderSerializer(order).data)
+
+
 def _carrier_from(code):
     """The Carrier for a code from the "Courier company" list; None for none."""
     if code in (None, ""):

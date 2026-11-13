@@ -304,6 +304,24 @@ class BookingOrder(models.Model):
     # The order the rows were filled in, kept so they read back the same way.
     position = models.PositiveSmallIntegerField(default=0)
 
+    # The webshop's OWN order number for this order (bol.com's "1234567890"),
+    # typed by the customer after booking. Optional: many customers have it,
+    # some do not. The office reads it to find the order at the shop.
+    order_number = models.CharField(max_length=100, blank=True)
+
+    # The office asked the customer for the invoice of this order (the
+    # "Factuur opvragen" button on Dashboard -> Bookings). Set when the request
+    # went out, so the same customer is not asked again and again; the button
+    # allows another request after a day.
+    invoice_requested_at = models.DateTimeField(null=True, blank=True)
+    invoice_requested_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
     # ---- "we have received it" (the office's button) ---------------------
     # Set when an admin in the office confirms this whole store order (everything bought at this store) has arrived at
     # the warehouse ("Bestelling ontvangen" / "Product ontvangen" on

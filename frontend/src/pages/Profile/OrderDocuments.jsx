@@ -6,9 +6,10 @@
 // file the same way as the booking form's screenshot, and closes the booking
 // to changes once it is shipped or cancelled.
 //
-// Track-and-trace is the exception: a code or a link is something you copy,
-// not a file you have, so choosing it swaps the file picker for a text box
-// and saves it on the store itself (tracking_code).
+// Track-and-trace and the webshop's order number are the exceptions: a code, a
+// link or a number is something you copy, not a file you have, so choosing one
+// swaps the file picker for a text box and saves it on the store itself
+// (tracking_code, order_number). Both are optional.
 //
 // Next to that box is the "Courier company" list (PostNL, DHL, ...). With a
 // courier chosen, the server also follows the parcel automatically on its way
@@ -16,13 +17,13 @@
 // text for the office, as before.
 
 import { useEffect, useRef, useState } from 'react';
-import { addOrderDocument, setOrderTracking } from '../../api/booking';
+import { addOrderDocument, setOrderNumber as saveOrderNumber, setOrderTracking } from '../../api/booking';
 import { getCarriers } from '../../api/tracking';
 import { useLanguage } from '../../i18n/useLanguage';
 import styles from './Profile.module.css';
 
 // What a customer can add; the server accepts the same four.
-const DOCUMENT_KINDS = ['order_confirmation', 'invoice', 'tracking', 'other'];
+const DOCUMENT_KINDS = ['order_confirmation', 'order_number', 'invoice', 'tracking', 'other'];
 const ACCEPT = '.pdf,.png,.jpg,.jpeg,.webp';
 
 /**
@@ -36,6 +37,8 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
   const [kind, setKind] = useState('');
   const [file, setFile] = useState(null);
   const [tracking, setTracking] = useState('');
+  // The webshop's own order number (optional).
+  const [orderNumber, setOrderNumber] = useState('');
   // The courier's code ("postnl"), or '' for none.
   const [carrier, setCarrier] = useState('');
   // The courier list from the server; null until it has loaded.
@@ -45,6 +48,7 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
   const fileInput = useRef(null);
 
   const isTracking = kind === 'tracking';
+  const isOrderNumber = kind === 'order_number';
 
   // Load the courier list the first time the tracking box is shown. If it
   // fails, the box still works: the code is then saved as text only.
@@ -64,6 +68,7 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
     setKind('');
     setFile(null);
     setTracking('');
+    setOrderNumber('');
     setCarrier('');
     setError('');
     if (fileInput.current) fileInput.current.value = '';
@@ -73,14 +78,17 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
     event.preventDefault();
     if (!kind) return setError(d('errors.kind'));
     if (isTracking && !tracking.trim()) return setError(d('errors.tracking'));
-    if (!isTracking && !file) return setError(d('errors.file'));
+    if (isOrderNumber && !orderNumber.trim()) return setError(d('errors.orderNumber'));
+    if (!isTracking && !isOrderNumber && !file) return setError(d('errors.file'));
 
     setBusy(true);
     setError('');
     try {
       const updated = isTracking
         ? await setOrderTracking(bookingId, order.id, tracking.trim(), carrier)
-        : await addOrderDocument(bookingId, order.id, { kind, file });
+        : isOrderNumber
+          ? await saveOrderNumber(bookingId, order.id, orderNumber.trim())
+          : await addOrderDocument(bookingId, order.id, { kind, file });
       onUpdated(updated);
       reset();
       setOpen(false);
@@ -89,7 +97,7 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
       // big, too many, too long) - it is written for the person filling it in.
       const fields = caught?.fields ?? {};
       const reason =
-        fields.file ?? fields.kind ?? fields.tracking_code ?? fields.carrier ?? fields.detail;
+        fields.file ?? fields.kind ?? fields.tracking_code ?? fields.order_number ?? fields.carrier ?? fields.detail;
       setError(reason ? String(Array.isArray(reason) ? reason[0] : reason) : d('errors.failed'));
     } finally {
       setBusy(false);
@@ -107,6 +115,7 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
   const kindId = `doc-kind-${order.id}`;
   const fileId = `doc-file-${order.id}`;
   const trackingId = `doc-tracking-${order.id}`;
+  const orderNumberId = `doc-order-number-${order.id}`;
   const carrierId = `doc-carrier-${order.id}`;
 
   return (
@@ -127,6 +136,7 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
                 setTracking(order.tracking_code ?? '');
                 setCarrier(order.carrier_tracking?.carrier?.code ?? '');
               }
+              if (next === 'order_number') setOrderNumber(order.order_number ?? '');
             }}
           >
             <option value="">{d('chooseKind')}</option>
@@ -168,7 +178,32 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
           </div>
         )}
 
-        {isTracking ? (
+        {isOrderNumber ? (
+          // The webshop's own order number, typed or pasted - optional.
+          <div className={styles.docField}>
+            <label className={styles.label} htmlFor={orderNumberId}>
+              {d('orderNumberLabel')}
+            </label>
+            <input
+              id={orderNumberId}
+              className={styles.input}
+              type="text"
+              value={orderNumber}
+              maxLength={100}
+              autoComplete="off"
+              autoFocus
+              placeholder={d('orderNumberPlaceholder')}
+              aria-describedby={`${orderNumberId}-hint`}
+              onChange={(event) => {
+                setOrderNumber(event.target.value);
+                setError('');
+              }}
+            />
+            <span className={styles.docHint} id={`${orderNumberId}-hint`}>
+              {d('orderNumberHint')}
+            </span>
+          </div>
+        ) : isTracking ? (
           // A code or a link, typed or pasted - not a file.
           <div className={styles.docField}>
             <label className={styles.label} htmlFor={trackingId}>
@@ -227,7 +262,7 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
 
       <div className={styles.docActions}>
         <button type="submit" className={styles.submit} disabled={busy}>
-          {isTracking
+          {isTracking || isOrderNumber
             ? busy
               ? d('saving')
               : d('save')

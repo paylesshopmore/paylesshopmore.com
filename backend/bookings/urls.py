@@ -22,6 +22,12 @@ urlpatterns = [
         views.MyOrderTrackingView.as_view(),
         name="my-order-tracking",
     ),
+    # The webshop's own order number for the same store row (optional).
+    path(
+        "bookings/mine/<int:booking_id>/orders/<int:order_id>/order-number/",
+        views.MyOrderNumberView.as_view(),
+        name="my-order-number",
+    ),
     path(
         "bookings/mine/<int:booking_id>/orders/<int:order_id>/documents/",
         views.MyOrderDocumentView.as_view(),

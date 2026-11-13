@@ -15,8 +15,9 @@ import OrderList from '../../components/AttachmentList/OrderList';
 import HelpDialog from '../../components/HelpDialog/HelpDialog';
 import BookingReceivedProducts from './BookingReceivedProducts';
 import BookingWarehouseMeasurements from './BookingWarehouseMeasurements';
-import ProductCheck from './ProductCheck';
+import OrderPaperwork from './OrderPaperwork';
 import ReceivedButton from './ReceivedButton';
+import { bookingReference } from '../../utils/bookingReference';
 import { useLanguage } from '../../i18n/useLanguage';
 import { warehouseSummary } from './bookingMeasurements';
 import { Chip, Field, Group, Progress } from './sheet';
@@ -323,18 +324,7 @@ function InvoiceState({ shipment }) {
   return <Chip tone="off">{d('invoiceAfterMeasuring')}</Chip>;
 }
 
-/** The booking with one of its products replaced by the saved one. */
-function withProduct(booking, saved) {
-  return {
-    ...booking,
-    orders: (booking.orders ?? []).map((order) => ({
-      ...order,
-      products: (order.products ?? []).map((product) => (product.id === saved.id ? saved : product)),
-    })),
-  };
-}
-
-function BookingSheet({ booking, busy, onSave, onSend, onProductSaved, onBookingChanged }) {
+function BookingSheet({ booking, busy, onSave, onSend, onBookingChanged }) {
   const d = usePageText('bookings');
   // For the kind of a document the customer added ("Factuur", ...): the
   // same words the customer chose it by on their profile page.
@@ -352,7 +342,7 @@ function BookingSheet({ booking, busy, onSave, onSend, onProductSaved, onBooking
 
       <Group title={d('theBooking')}>
         <Field label={d('reference')}>
-          <span className={styles.mono}>{booking.shipping_number || `#${booking.id}`}</span>
+          <span className={styles.mono}>{bookingReference(booking)}</span>
         </Field>
         <Field label={c('status')}>
           <StatusBadge tone={TONES[booking.status]}>
@@ -571,30 +561,29 @@ function BookingSheet({ booking, busy, onSave, onSend, onProductSaved, onBooking
                 const word = t(key);
                 return word === key ? document.kind_display : word;
               }}
+              // "Product ontvangen": only this item has arrived.
               renderProductExtra={(product) => (
+                <ReceivedButton
+                  key={product.id}
+                  kind="product"
+                  bookingId={booking.id}
+                  row={product}
+                  onChanged={onBookingChanged}
+                />
+              )}
+              // Under each store: its invoice (or a button to ask for it), the
+              // webshop's order number and the track-and-trace - then
+              // "Bestelling ontvangen": everything from this store has arrived.
+              renderOrderExtra={(order) => (
                 <>
-                  <ProductCheck
-                    key={product.id}
-                    product={product}
-                    onSaved={onProductSaved}
-                  />
-                  {/* "Product ontvangen": only this item has arrived. */}
+                  <OrderPaperwork booking={booking} order={order} onChanged={onBookingChanged} />
                   <ReceivedButton
-                    kind="product"
+                    kind="order"
                     bookingId={booking.id}
-                    row={product}
+                    row={order}
                     onChanged={onBookingChanged}
                   />
                 </>
-              )}
-              // "Bestelling ontvangen": everything from this store has arrived.
-              renderOrderExtra={(order) => (
-                <ReceivedButton
-                  kind="order"
-                  bookingId={booking.id}
-                  row={order}
-                  onChanged={onBookingChanged}
-                />
               )}
             />
           </Field>
@@ -772,7 +761,7 @@ export default function Bookings() {
                   >
                     <td>
                       <div className={styles.primaryCell}>
-                        {booking.shipping_number || `#${booking.id}`}
+                        {bookingReference(booking)}
                       </div>
                       <div className={styles.mutedCell}>
                         {labelFor(c, 'freight', booking.freight, booking.freight_display)} · {booking.destination_label}
@@ -865,7 +854,7 @@ export default function Bookings() {
           open
           extraWide
           onClose={() => setOpenId(null)}
-          title={openBooking.shipping_number || d('bookingNumber', { id: openBooking.id })}
+          title={bookingReference(openBooking)}
           closeLabel={c('close')}
           doneLabel={c('close')}
         >
@@ -877,7 +866,6 @@ export default function Bookings() {
             busy={savingId === openBooking.id}
             onSave={(changes) => save(openBooking, changes)}
             onSend={(changes) => send(openBooking, changes)}
-            onProductSaved={(product) => list.replaceRow(withProduct(openBooking, product))}
             onBookingChanged={(updated) => list.replaceRow(updated)}
           />
         </HelpDialog>

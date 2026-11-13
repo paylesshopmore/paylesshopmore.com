@@ -15,6 +15,8 @@ it. Financial settings decide what customers are charged, so an office account
 the buttons in the React app is only tidiness.
 """
 
+import logging
+
 from django.db import transaction
 from rest_framework import serializers, viewsets
 from rest_framework.permissions import SAFE_METHODS, BasePermission
@@ -23,6 +25,8 @@ from rest_framework.views import APIView
 
 from accounts.models import SiteSettings
 from invoicing.models import ChargeType, InvoiceNumberSequence, InvoiceSettings, Port
+
+logger = logging.getLogger(__name__)
 
 
 class ReadStaffWriteAdmin(BasePermission):
@@ -40,11 +44,16 @@ class ReadStaffWriteAdmin(BasePermission):
 class InvoiceSettingsSerializer(serializers.ModelSerializer):
     # Shows the admin what their numbering choice produces, e.g. PLSM20260012.
     next_number = serializers.SerializerMethodField()
+    # The counter itself, as a plain number: 15 means the next invoice is
+    # ...0015. An admin sets it to carry on from invoices written elsewhere.
+    # (Not a column of InvoiceSettings: the counter is InvoiceNumberSequence,
+    # so reading and writing it are handled by hand below.)
+    next_sequence = serializers.IntegerField(required=False, min_value=1, max_value=99_999_999)
 
     class Meta:
         model = InvoiceSettings
         fields = [
-            "number_prefix", "number_include_year", "number_digits", "next_number",
+            "number_prefix", "number_include_year", "number_digits", "next_number", "next_sequence",
             "standard_vat_rate", "export_vat_rate",
             "insurance_rate_percent", "insurance_minimum",
             *InvoiceSettings.TEXT_FIELDS,
@@ -55,6 +64,34 @@ class InvoiceSettingsSerializer(serializers.ModelSerializer):
         from django.utils import timezone
 
         return InvoiceNumberSequence.peek(timezone.localdate().year)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        from django.utils import timezone
+
+        data["next_sequence"] = InvoiceNumberSequence.next_value(timezone.localdate().year)
+        return data
+
+    def update(self, instance, validated_data):
+        """Save the settings, and move the counter when an admin set it.
+
+        The counter is this year's (or the single one, when numbers carry no
+        year). It is only touched when the value actually CHANGED, so saving
+        the VAT rate never disturbs the numbering.
+        """
+        from django.utils import timezone
+
+        wanted = validated_data.pop("next_sequence", None)
+        instance = super().update(instance, validated_data)
+        year = timezone.localdate().year
+        if wanted is not None and wanted != InvoiceNumberSequence.next_value(year):
+            before = InvoiceNumberSequence.next_value(year)
+            InvoiceNumberSequence.set_next(year, wanted)
+            logger.info(
+                "Invoice counter changed from %s to %s by staff account %s.",
+                before, wanted, self.context["request"].user.pk,
+            )
+        return instance
 
     def validate_number_prefix(self, value):
         # Letters, digits and dashes only: the number becomes a file name.
@@ -168,7 +205,9 @@ class InvoiceSettingsView(APIView):
         data = dict(request.data)
         company_data = data.pop("company", None)
 
-        body = InvoiceSettingsSerializer(InvoiceSettings.load(), data=data, partial=True)
+        body = InvoiceSettingsSerializer(
+            InvoiceSettings.load(), data=data, partial=True, context={"request": request}
+        )
         company = None
         if company_data is not None:
             company = CompanySerializer(SiteSettings.load(), data=company_data, partial=True)

@@ -533,3 +533,165 @@ class ReceivedNotificationTests(OfficeReceivedButtonTests):
     def test_a_refused_press_notifies_nobody(self):
         self.press("product", self.lamp, user=self.office)
         self.assertEqual(self.notes(), [])
+
+
+class OrderNumberTests(ReceiptsTestCase):
+    """The webshop's own order number, typed by the customer (optional)."""
+
+    def url(self, order=None):
+        order = order or self.chairs.order
+        return reverse("my-order-number", args=[self.booking.pk, order.pk])
+
+    def set_number(self, value, user=None):
+        self.client.force_authenticate(user or self.customer)
+        return self.client.patch(self.url(), {"order_number": value}, format="json")
+
+    def test_a_customer_sets_and_clears_the_order_number(self):
+        response = self.set_number("  1234567890   ")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data["order_number"], "1234567890")
+        self.chairs.order.refresh_from_db()
+        self.assertEqual(self.chairs.order.order_number, "1234567890")
+
+        self.assertEqual(self.set_number("").data["order_number"], "")
+
+    def test_it_is_optional(self):
+        self.assertEqual(self.chairs.order.order_number, "")
+
+    def test_somebody_elses_order_is_a_404(self):
+        self.assertEqual(self.set_number("1", user=self.other).status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_it_cannot_be_too_long_or_missing(self):
+        self.assertEqual(self.set_number("x" * 101).status_code, status.HTTP_400_BAD_REQUEST)
+        self.client.force_authenticate(self.customer)
+        response = self.client.patch(self.url(), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_a_shipped_booking_is_closed(self):
+        self.booking.status = "shipped"
+        self.booking.save(update_fields=["status"])
+        self.assertEqual(self.set_number("1").status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_the_office_sees_it(self):
+        self.set_number("ABC-99")
+        office = make_user("kantoor@example.com", role="office")
+        self.client.force_authenticate(office)
+        data = self.client.get(reverse("staff-booking-detail", args=[self.booking.pk])).data
+        self.assertEqual(data["orders"][0]["order_number"], "ABC-99")
+
+
+class InvoiceRequestTests(ReceiptsTestCase):
+    """The office's "Factuur opvragen" button: ask the customer for a missing invoice."""
+
+    def setUp(self):
+        super().setUp()
+        self.office = make_user("kantoor@example.com", role="office")
+        self.order = self.chairs.order
+
+    def ask(self, user=None):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.force_authenticate(user or self.office)
+            response = self.client.post(
+                reverse("staff-booking-order-request-invoice", args=[self.booking.pk, self.order.pk])
+            )
+        self.client.force_authenticate(None)
+        return response
+
+    def notes(self):
+        from notifications.models import Notification
+
+        return list(Notification.objects.filter(user=self.customer, context__status="invoice_requested"))
+
+    def attach_invoice(self):
+        from django.core.files.base import ContentFile
+
+        from bookings.models import BookingAttachment
+
+        attachment = BookingAttachment(
+            booking=self.booking,
+            order=self.order,
+            kind=BookingAttachment.Kind.INVOICE,
+            original_name="factuur.pdf",
+            content_type="application/pdf",
+        )
+        attachment.file.save("f.pdf", ContentFile(b"%PDF-1.4"), save=True)
+        return attachment
+
+    def test_asking_tells_the_customer_in_their_language(self):
+        from django.core import mail
+
+        response = self.ask()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        [note] = self.notes()
+        self.assertEqual((note.context["shop"], note.context["item"]), ("Ikea", "Ikea"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Wij missen de factuur", mail.outbox[0].subject)
+        # The e-mail points at the booking, where the invoice is added.
+        self.assertIn("/profile#bookings", mail.outbox[0].body)
+
+    def test_it_is_recorded_on_the_order(self):
+        response = self.ask()
+        order = response.data["orders"][0]
+        self.assertIsNotNone(order["invoice_requested_at"])
+        self.assertEqual(order["invoice_requested_by_name"], "kantoor@example.com")
+
+    def test_an_english_customer_gets_english(self):
+        from django.core import mail
+
+        self.customer.language = "en"
+        self.customer.save(update_fields=["language"])
+        self.ask()
+        self.assertIn("We are missing the invoice", mail.outbox[0].subject)
+
+    def test_the_customer_is_not_asked_twice_within_a_day(self):
+        self.ask()
+        again = self.ask()
+        self.assertEqual(again.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("24 hours", again.data["detail"][0])
+        self.assertEqual(len(self.notes()), 1)
+
+    def test_after_a_day_it_can_be_asked_again(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        self.ask()
+        type(self.order).objects.filter(pk=self.order.pk).update(
+            invoice_requested_at=timezone.now() - timedelta(hours=25)
+        )
+        self.assertEqual(self.ask().status_code, status.HTTP_200_OK)
+        self.assertEqual(len(self.notes()), 2)
+
+    def test_nothing_is_asked_when_the_invoice_is_already_there(self):
+        self.attach_invoice()
+        response = self.ask()
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.notes(), [])
+
+    def test_a_booking_without_an_account_has_nobody_to_ask(self):
+        self.booking.user = None
+        self.booking.save(update_fields=["user"])
+        response = self.ask()
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("without an account", response.data["detail"][0])
+
+    def test_a_shipped_booking_is_not_asked(self):
+        self.booking.status = "shipped"
+        self.booking.save(update_fields=["status"])
+        self.assertEqual(self.ask().status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(self.notes(), [])
+
+    def test_only_staff_can_ask(self):
+        for user in (self.customer, self.worker, self.manager):
+            with self.subTest(user=user.email):
+                self.assertEqual(self.ask(user).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.notes(), [])
+
+    def test_the_bell_text_has_every_language(self):
+        from notifications.messages import MESSAGES
+
+        for language, copy in MESSAGES.items():
+            self.assertIn("invoice_requested", copy["subjects"], language)
+            self.assertIn("{item}", copy["lines"]["invoice_requested"], language)
+            self.assertIn("invoice_upload", copy, language)

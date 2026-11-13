@@ -148,6 +148,37 @@ def notify_item_received(row):
     return notification
 
 
+def notify_invoice_requested(order):
+    """Tell the customer the office is missing the invoice of one of their
+    store orders and ask them to add it (the "Factuur opvragen" button on
+    Dashboard -> Bookings, staff/views.py request_invoice).
+
+    `order` is a BookingOrder. A "shipment status" notification with its own
+    status code, like notify_item_received: the facts go in `context`, the words
+    are made later (notifications/messages.py, notificationText.js). Returns the
+    notification, or None when the booking has no customer account.
+    """
+    booking = order.booking
+    if booking.user_id is None:
+        return None
+
+    package = booking.package
+    notification = Notification.objects.create(
+        user=booking.user,
+        kind=Notification.Kind.SHIPMENT_STATUS,
+        package=package,
+        context={
+            "tracking_number": (package.tracking_number if package else booking.shipping_number) or "",
+            "status": "invoice_requested",
+            "shop": order.shop_name,
+            "item": order.description,
+        },
+    )
+
+    _queue_email(notification)
+    return notification
+
+
 def notify_shipment_status(package, previous_status):
     """Tell the customer their shipment has moved.
 

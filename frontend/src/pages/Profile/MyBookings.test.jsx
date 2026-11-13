@@ -99,7 +99,7 @@ describe('My bookings', () => {
     expect(within(bars[0]).getByText('PLSM-1001')).toBeInTheDocument();
     expect(within(bars[0]).getByText('Booked in')).toBeInTheDocument();
     // No shipping number yet: the reference stands in for it.
-    expect(within(bars[1]).getByText('Reference #6')).toBeInTheDocument();
+    expect(within(bars[1]).getByText('PLSM-0000006')).toBeInTheDocument();
     expect(within(bars[1]).getByText(/Garden chairs/)).toBeInTheDocument();
     expect(within(bars[1]).getByText('Received')).toBeInTheDocument();
   });
@@ -114,7 +114,7 @@ describe('My bookings', () => {
     await user.click(await screen.findByRole('button', { name: /Curaçao/ }));
     const dialog = screen.getByRole('dialog');
 
-    expect(within(dialog).getByText('Booking #6')).toBeInTheDocument();
+    expect(within(dialog).getByText('Booking PLSM-0000006')).toBeInTheDocument();
     expect(within(dialog).getByText('Sea freight')).toBeInTheDocument();
     expect(within(dialog).getByText('Maria Martina')).toBeInTheDocument();
     expect(within(dialog).getByText('Kaya Grandi 24, Willemstad')).toBeInTheDocument();

@@ -136,6 +136,17 @@ export async function setOrderTracking(bookingId, orderId, trackingCode, carrier
   });
 }
 
+/**
+ * Sets (or, with '', clears) the webshop's own order number of one store on the
+ * customer's own booking. Optional information. Answers the store as it now reads.
+ */
+export async function setOrderNumber(bookingId, orderId, orderNumber) {
+  return request(`/bookings/mine/${bookingId}/orders/${orderId}/order-number/`, {
+    method: 'PATCH',
+    body: { order_number: orderNumber },
+  });
+}
+
 /** Removes a document the customer added to their own booking. */
 export async function removeBookingDocument(bookingId, attachmentId) {
   return request(`/bookings/mine/${bookingId}/attachments/${attachmentId}/`, {

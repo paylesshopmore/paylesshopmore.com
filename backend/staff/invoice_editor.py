@@ -279,7 +279,13 @@ class InvoiceEditorMixin:
         fields, lines, totals = prepare(data, texts=invoice.texts if invoice else None)
 
         dated = data.get("invoice_date") or timezone.localdate()
-        number_text = invoice.reference if invoice else InvoiceNumberSequence.peek(dated.year)
+        # A saved invoice keeps its own number; a new one shows the number the
+        # person typed, or else the number it would get.
+        number_text = (
+            invoice.reference
+            if invoice
+            else (data.get("number") or InvoiceNumberSequence.peek(dated.year))
+        )
         document = document_from_values(number_text, dated, fields, lines)
         content = render_document(document, SiteSettings.load())
 
@@ -310,6 +316,8 @@ class InvoiceEditorMixin:
         package = data["package"]
         fields, lines, _ = prepare(data)
         dated = data.get("invoice_date") or timezone.localdate()
+        # A number the person chose, or "" for "the next one".
+        typed_number = data.get("number", "")
 
         try:
             with transaction.atomic():
@@ -321,11 +329,22 @@ class InvoiceEditorMixin:
                 if duplicate is not None:
                     raise InvoiceAlreadyExists(duplicate)
 
+                if typed_number:
+                    # Checked again here, now the shipment is locked: another
+                    # invoice may have taken this number a moment ago.
+                    if Invoice.objects.filter(reference__iexact=typed_number).exists():
+                        raise ValidationError({"number": ["That invoice number is already used by another invoice."]})
+                    # Moves the counter up when the number is in our format,
+                    # so the next invoice carries on after it.
+                    reference = InvoiceNumberSequence.claim(dated.year, typed_number)
+                else:
+                    reference = InvoiceNumberSequence.take(dated.year)
+
                 invoice = ensure_invoice_for_package(
                     package,
                     created_by=request.user,
                     invoice_date=dated,
-                    reference=InvoiceNumberSequence.take(dated.year),
+                    reference=reference,
                     **fields,
                 )
                 _save_lines(invoice, lines)

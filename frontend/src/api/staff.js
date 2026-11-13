@@ -252,6 +252,17 @@ export async function markOrderReceived(bookingId, orderId, received) {
   });
 }
 
+/**
+ * "Factuur opvragen": tells the customer the invoice of this store order is
+ * missing and asks them to add it (a notification, and an e-mail when they
+ * allow it). The server refuses when the order already has an invoice, the
+ * customer was asked in the last 24 hours, or there is no customer account.
+ * Answers the whole booking, as the dashboard shows it.
+ */
+export async function requestOrderInvoice(bookingId, orderId) {
+  return request(`/staff/bookings/${bookingId}/orders/${orderId}/request-invoice/`, { method: 'POST' });
+}
+
 /** The same, for one product of a store order ("Product ontvangen"). */
 export async function markProductReceived(bookingId, productId, received) {
   return request(`/staff/bookings/${bookingId}/products/${productId}/received/`, {

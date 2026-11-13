@@ -244,6 +244,17 @@ export default function InvoiceSettingsPage() {
         if (body[field] === '') body[field] = null;
       }
       delete body.next_number;
+      // The counter is sent ONLY when the admin changed it. The page sends the
+      // whole form back, and an untouched counter could be out of date by now
+      // (an invoice may have been saved while this page was open): sending it
+      // would quietly move the numbering backwards.
+      const typed = body.next_sequence;
+      const untouched = Number(typed) === Number(config.settings.next_sequence);
+      if (typed === '' || typed === null || typed === undefined || untouched) {
+        delete body.next_sequence;
+      } else {
+        body.next_sequence = Number(typed);
+      }
       const saved = await saveInvoiceSettings(body);
       setConfig(saved);
       setSettings(saved.settings);
@@ -322,6 +333,14 @@ export default function InvoiceSettingsPage() {
                 {tr('settings.includeYear')}
               </label>
             </div>
+          </div>
+        </div>
+        {/* Where the numbering carries on from. */}
+        <div className="row g-3 mt-0">
+          <div className="col-sm-6 col-lg-4">
+            <Field label={tr('settings.nextSequence')} hint={tr('settings.nextSequenceHint')}>
+              {input('next_sequence', { type: 'number', min: 1, max: 99999999, inputMode: 'numeric' })}
+            </Field>
           </div>
         </div>
         <p className="small text-muted">

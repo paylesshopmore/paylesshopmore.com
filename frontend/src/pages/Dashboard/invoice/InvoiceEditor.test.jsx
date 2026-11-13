@@ -289,6 +289,60 @@ describe('InvoiceEditor', () => {
     expect(screen.getByText('Credit amount (to be paid to the customer)')).toBeInTheDocument();
   });
 
+  it('starts a new invoice at the next number, and the number can be changed', async () => {
+    const user = userEvent.setup();
+    renderEditor();
+    await pickShipment(user);
+
+    const box = screen.getByLabelText('Invoice number');
+    expect(box).toHaveValue('PLSM20260012'); // the next number, as suggested
+    expect(box).toBeEnabled();
+    expect(box).not.toHaveAttribute('readonly');
+
+    await user.clear(box);
+    await user.type(box, 'PLSM20260031');
+    expect(box).toHaveValue('PLSM20260031');
+  });
+
+  it('sends the number only when it was changed', async () => {
+    const user = userEvent.setup();
+    api.createInvoice.mockResolvedValue({ id: 7 });
+    api.getInvoiceForEditing.mockResolvedValue({
+      id: 7, number: 'PLSM20260031', status: 'pending_review', editable: true, customer: 12,
+      customer_name: 'John Smith', package: 100, invoice_date: '2026-10-07', ...DEFAULTS,
+      measurements: [], own_risk: null, insurance_fee: null, export_verified: false,
+      lines: [{ kind: 'charge', description: 'Zeevracht', amount: '100.00' }], texts: config().settings,
+    });
+    renderEditor();
+    await pickShipment(user);
+    await user.click(screen.getByRole('button', { name: '+ Zeevracht' }));
+    await user.type(screen.getByRole('textbox', { name: 'Charge 1 amount' }), '100');
+    const box = screen.getByLabelText('Invoice number');
+    await user.clear(box);
+    await user.type(box, 'PLSM20260031');
+
+    await user.click(screen.getByRole('button', { name: 'Save invoice' }));
+
+    await waitFor(() => expect(api.createInvoice).toHaveBeenCalled());
+    expect(api.createInvoice.mock.calls[0][0].number).toBe('PLSM20260031');
+  });
+
+  it('shows the server explaining a number that is already used', async () => {
+    const user = userEvent.setup();
+    const refusal = new Error('VALIDATION');
+    refusal.status = 400;
+    refusal.fields = { number: ['That invoice number is already used by another invoice.'] };
+    api.createInvoice.mockRejectedValue(refusal);
+    renderEditor();
+    await pickShipment(user);
+    await user.click(screen.getByRole('button', { name: '+ Zeevracht' }));
+    await user.type(screen.getByRole('textbox', { name: 'Charge 1 amount' }), '100');
+
+    await user.click(screen.getByRole('button', { name: 'Save invoice' }));
+
+    expect(await screen.findByText(/already used by another invoice/)).toBeInTheDocument();
+  });
+
   it('opens a sent invoice read-only, with its own number', async () => {
     api.getInvoiceForEditing.mockResolvedValue({
       id: 3, number: 'PLSM20260003', status: 'sent', editable: false, customer: 12,
@@ -302,6 +356,9 @@ describe('InvoiceEditor', () => {
     expect(screen.getByText(/can no longer be changed/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save invoice' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Print invoice' })).toBeEnabled();
+    // A saved invoice's number cannot be typed over: it is on the customer's document.
+    expect(screen.getByLabelText('Invoice number')).toHaveValue('PLSM20260003');
+    expect(screen.getByLabelText('Invoice number')).toBeDisabled();
   });
 
   it('speaks Dutch when Nederlands is chosen in the language menu', async () => {

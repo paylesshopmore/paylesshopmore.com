@@ -25,6 +25,7 @@
 // only the word "normal" or "guided", never any of the answers.
 
 import { useEffect, useMemo, useState } from 'react';
+import { bookingReference } from '../../utils/bookingReference';
 import { Link } from 'react-router-dom';
 import {
   DESTINATIONS,
@@ -620,7 +621,7 @@ export default function Booking() {
           <h1 className={styles.doneTitle}>{t('booking.done.title')}</h1>
           <p className={styles.doneBody}>{t('booking.done.body')}</p>
           <p className={styles.doneRef}>
-            {t('booking.done.reference')} <b>#{reference.id}</b>
+            {t('booking.done.reference')} <b>{bookingReference(reference)}</b>
           </p>
           {/* Signed in: the booking is in their account, so send them
               there. Not signed in: it is not linked to any account, so say

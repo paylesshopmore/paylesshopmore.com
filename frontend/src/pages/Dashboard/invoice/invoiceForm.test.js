@@ -6,6 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildDocument,
+  chosenNumber,
   computeInvoice,
   emptyForm,
   newLine,
@@ -204,5 +205,38 @@ describe('toApiBody', () => {
 
     expect(body.volume_m3).toBeNull();
     expect(body.measurements).toEqual([{ length_cm: '120.5', width_cm: '80', height_cm: '100', count: 2 }]);
+  });
+});
+
+describe('the invoice number box', () => {
+  const fresh = (number, suggested = 'PLSM20260015') => johnsForm({ number, suggestedNumber: suggested });
+
+  it('sends nothing while the number is the suggested one', () => {
+    expect(chosenNumber(fresh('PLSM20260015'))).toBe('');
+    expect(toApiBody(fresh('PLSM20260015')).number).toBe('');
+  });
+
+  it('sends the number when it was changed (to carry on from another number)', () => {
+    expect(chosenNumber(fresh('PLSM20260031'))).toBe('PLSM20260031');
+    expect(toApiBody(fresh('  PLSM20260031 ')).number).toBe('PLSM20260031');
+  });
+
+  it('an emptied box means "the next number"', () => {
+    expect(chosenNumber(fresh('   '))).toBe('   '.trim());
+    expect(toApiBody(fresh('')).number).toBe('');
+  });
+
+  it('a saved invoice never sends a number: it keeps the one it has', () => {
+    const saved = johnsForm({ invoiceId: 7, number: 'PLSM20260014', suggestedNumber: '' });
+    expect(toApiBody(saved).number).toBe('');
+  });
+
+  it('refuses odd characters and too long a number, pointing at the box', () => {
+    expect(validate(fresh('PLSM 2026/15'), SETTINGS, { can_adjust: true }).fields.number).toBe('numberFormat');
+    expect(validate(fresh('A'.repeat(31)), SETTINGS, { can_adjust: true }).fields.number).toBe('numberLong');
+  });
+
+  it('accepts letters, digits and dashes', () => {
+    expect(validate(fresh('OLD-77'), SETTINGS, { can_adjust: true }).fields.number).toBeUndefined();
   });
 });

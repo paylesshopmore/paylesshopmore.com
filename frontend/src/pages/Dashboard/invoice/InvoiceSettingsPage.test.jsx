@@ -30,6 +30,7 @@ function config(admin) {
   return {
     settings: {
       number_prefix: 'PLSM', number_include_year: true, number_digits: 4, next_number: 'PLSM20260012',
+      next_sequence: 12,
       standard_vat_rate: '21.00', export_vat_rate: '0.00', insurance_rate_percent: null, insurance_minimum: null,
       payment_instructions: '', terms_intro: '', terms_items: '', exclusions_title: '', exclusions_items: '',
       export_vat_note: '', footer_text: '',
@@ -83,5 +84,51 @@ describe('InvoiceSettingsPage - company details', () => {
 
     expect(await screen.findByLabelText('KVK number (Chamber of Commerce)')).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Save settings' })).not.toBeInTheDocument();
+  });
+});
+
+describe('InvoiceSettingsPage - the invoice counter', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows where the numbering is, and lets an admin carry on from another number', async () => {
+    const user = userEvent.setup();
+    api.getInvoiceConfig.mockResolvedValue(config(true));
+    api.saveInvoiceSettings.mockResolvedValue(config(true));
+    renderWithProviders(<InvoiceSettingsPage />);
+
+    const counter = await screen.findByLabelText('Next number in the series');
+    expect(counter).toHaveValue(12);
+    await user.clear(counter);
+    await user.type(counter, '15');
+    await user.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() => expect(api.saveInvoiceSettings).toHaveBeenCalled());
+    expect(api.saveInvoiceSettings.mock.calls[0][0].next_sequence).toBe(15);
+  });
+
+  it('does not send the counter when it was not touched', async () => {
+    const user = userEvent.setup();
+    api.getInvoiceConfig.mockResolvedValue(config(true));
+    api.saveInvoiceSettings.mockResolvedValue(config(true));
+    renderWithProviders(<InvoiceSettingsPage />);
+
+    // Only the VAT rate is changed. The counter may be out of date by now (an
+    // invoice could have been saved), so it must not be sent back.
+    const vat = await screen.findByLabelText('Standard rate (%)');
+    await user.clear(vat);
+    await user.type(vat, '9');
+    await user.click(screen.getByRole('button', { name: 'Save settings' }));
+
+    await waitFor(() => expect(api.saveInvoiceSettings).toHaveBeenCalled());
+    expect(api.saveInvoiceSettings.mock.calls[0][0]).not.toHaveProperty('next_sequence');
+  });
+
+  it('is read-only for someone who is not an admin', async () => {
+    api.getInvoiceConfig.mockResolvedValue(config(false));
+    renderWithProviders(<InvoiceSettingsPage />);
+
+    expect(await screen.findByLabelText('Next number in the series')).toBeDisabled();
   });
 });

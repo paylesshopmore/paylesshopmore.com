@@ -32,6 +32,7 @@ import HelpDialog from '../../components/HelpDialog/HelpDialog';
 import { ChevronRightIcon } from '../../components/Icons/icons';
 import { useLanguage } from '../../i18n/useLanguage';
 import AddOrderDocument from './OrderDocuments';
+import { bookingReference } from '../../utils/bookingReference';
 import styles from './Profile.module.css';
 
 // One colour per status, in the same --group-* variables the shipments use
@@ -211,6 +212,7 @@ function BookingDetails({ booking, onOrderUpdated }) {
             kindLabel={(document) => p(`documents.kinds.${document.kind}`)}
             removeLabel={p('documents.remove')}
             onRemoveDocument={documentsOpen ? removeDocument : undefined}
+            orderNumberLabel={p('documents.kinds.order_number')}
             trackingLabel={p('documents.kinds.tracking')}
             onRemoveTracking={documentsOpen ? removeTracking : undefined}
             renderOrderExtra={
@@ -352,7 +354,7 @@ export default function MyBookings() {
               >
                 <span className={styles.shipmentBarMain}>
                   <span className={styles.invoiceNumber}>
-                    {booking.shipping_number || `${p('reference')} #${booking.id}`}
+                    {bookingReference(booking)}
                   </span>
                   <span className={styles.shipmentBarText}>
                     {booking.destination_label}
@@ -387,7 +389,7 @@ export default function MyBookings() {
           open
           wide
           onClose={() => setOpenId(null)}
-          title={`${p('title')} ${selected.shipping_number || `#${selected.id}`}`}
+          title={`${p('title')} ${bookingReference(selected)}`}
           closeLabel={p('close')}
           doneLabel={p('close')}
         >

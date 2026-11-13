@@ -6,9 +6,9 @@
 // product's screenshot when there is one. Shown by OrderList, so the
 // customer's booking pop-up and the office's booking list read the same.
 //
-// The office passes `renderExtra` to put its price check under each product
-// (src/pages/Dashboard/ProductCheck.jsx). The customer's API answer has no
-// checked price or notes in it at all, so there is nothing to hide here.
+// The office passes `renderExtra` to put its own controls under each product
+// (today the "Product ontvangen" button). The customer's API answer has no
+// office notes in it at all, so there is nothing to hide here.
 
 import { useContext, useState } from 'react';
 import { LanguageContext } from '../../i18n/context';

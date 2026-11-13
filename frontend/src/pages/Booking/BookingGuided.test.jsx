@@ -147,7 +147,7 @@ describe('booking modes', () => {
     ]);
 
     finish({ id: 41 });
-    expect(await screen.findByText('#41')).toBeInTheDocument();
+    expect(await screen.findByText('PLSM-0000041')).toBeInTheDocument();
   });
 
   it('keeps what was typed when switching back to the normal form', async () => {

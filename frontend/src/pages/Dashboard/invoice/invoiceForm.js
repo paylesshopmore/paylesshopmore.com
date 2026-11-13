@@ -58,6 +58,7 @@ export function emptyForm() {
   return {
     invoiceId: null, // the saved invoice's id, once there is one
     number: '', // its number (PLSM20260012), or the next one when unsaved
+    suggestedNumber: '', // the next number as offered when the form opened (a new invoice only)
     status: null, // 'pending_review', 'sent', ... for a saved invoice
     editable: true, // false once approved or sent: then read-only
     rejectionReason: '',
@@ -97,6 +98,7 @@ export function formFromDefaults(defaults) {
   return {
     ...emptyForm(),
     number: defaults.next_number ?? '',
+    suggestedNumber: defaults.next_number ?? '',
     customer: defaults.customer,
     package: defaults.package,
     bill_to: defaults.bill_to ?? '',
@@ -290,6 +292,11 @@ export function validate(form, settings, permissions) {
   const lines = {};
 
   if (!form.customer || !form.package) fields.package = 'pickShipment';
+  // A number written by hand: letters, digits and dashes (it becomes a file name).
+  const chosen = chosenNumber(form);
+  if (chosen.length > 30) fields.number = 'numberLong';
+  else if (chosen && !/^[A-Za-z0-9-]+$/.test(chosen)) fields.number = 'numberFormat';
+
   if (!form.invoice_date) fields.invoice_date = 'date';
   else if (form.invoice_date > today()) fields.invoice_date = 'futureDate';
 
@@ -344,6 +351,20 @@ function apiNumber(text) {
   return value;
 }
 
+/**
+ * The invoice number the person CHOSE, or '' for "the next one".
+ *
+ * A new invoice's number box starts with the next number (say PLSM20260015).
+ * Only a number that was changed is sent to the server. Left as suggested, the
+ * server hands out the next number itself when it saves, so two people writing
+ * invoices at the same moment never fight over the same suggestion.
+ */
+export function chosenNumber(form) {
+  if (form.invoiceId) return ''; // a saved invoice keeps its number
+  const typed = String(form.number ?? '').trim();
+  return typed === form.suggestedNumber ? '' : typed;
+}
+
 /** The form as the server's InvoiceEditorSerializer expects it. */
 export function toApiBody(form, status = 'pending_review') {
   const money = (text) => {
@@ -355,6 +376,7 @@ export function toApiBody(form, status = 'pending_review') {
     customer: form.customer?.id,
     package: form.package,
     status,
+    number: chosenNumber(form),
     invoice_date: form.invoice_date,
     bill_to: form.bill_to,
     phone: form.phone,

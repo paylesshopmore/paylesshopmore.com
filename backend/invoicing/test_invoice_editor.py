@@ -23,6 +23,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 
 from accounts.models import Package, User
@@ -752,3 +753,163 @@ class AutomaticInvoiceTests(EditorTestCase):
         response = self.client.get(reverse("staff-invoice-edit", args=[invoice.pk]))
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+
+
+class ChosenNumberTests(EditorTestCase):
+    """Writing the invoice number yourself, and setting where the counter is.
+
+    The number box on a NEW invoice starts with the next number (say
+    PLSM20260015) and may be changed, to carry on from invoices written
+    elsewhere. An admin can also set the counter on the settings page.
+    """
+
+    def edit(self, invoice, **overrides):
+        return self.client.put(
+            reverse("staff-invoice-edit", args=[invoice.pk]),
+            self.payload(**overrides),
+            format="json",
+        )
+
+    def test_the_counter_moves_up_to_a_number_typed_in_our_format(self):
+        InvoiceNumberSequence.objects.create(year=2026, last_number=11)
+
+        response = self.compose(number="PLSM20260014")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED, response.data)
+        self.compose(customer=self.mary.pk, package=self.marys.pk)
+
+        # 14 was typed, so the invoice after it is 15 - numbering carries on.
+        self.assertEqual(
+            sorted(Invoice.objects.values_list("reference", flat=True)),
+            ["PLSM20260014", "PLSM20260015"],
+        )
+
+    def test_a_lower_number_does_not_move_the_counter_back(self):
+        InvoiceNumberSequence.objects.create(year=2026, last_number=11)
+
+        self.compose(number="PLSM20260003")
+
+        self.assertEqual(InvoiceNumberSequence.objects.get(year=2026).last_number, 11)
+
+    def test_a_custom_reference_is_kept_and_leaves_the_counter_alone(self):
+        InvoiceNumberSequence.objects.create(year=2026, last_number=11)
+
+        self.compose(number="OLD-77")
+
+        self.assertEqual(Invoice.objects.get().reference, "OLD-77")
+        self.assertEqual(InvoiceNumberSequence.objects.get(year=2026).last_number, 11)
+
+    def test_a_blank_number_means_the_next_one(self):
+        InvoiceNumberSequence.objects.create(year=2026, last_number=11)
+
+        self.compose(number="  ")
+
+        self.assertEqual(Invoice.objects.get().reference, "PLSM20260012")
+
+    def test_a_number_already_used_is_refused_and_nothing_is_saved(self):
+        self.compose()  # takes PLSM20260001
+
+        response = self.compose(customer=self.mary.pk, package=self.marys.pk, number="plsm20260001")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("number", response.data)
+        self.assertEqual(Invoice.objects.count(), 1)
+        # The refused try did not use up a counter value either.
+        self.assertEqual(InvoiceNumberSequence.objects.get(year=2026).last_number, 1)
+
+    def test_odd_characters_are_refused(self):
+        for bad in ("PLSM 2026/15", "../etc/passwd", "<b>1</b>"):
+            with self.subTest(number=bad):
+                response = self.compose(number=bad)
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn("number", response.data)
+        self.assertFalse(Invoice.objects.exists())
+
+    def test_the_preview_shows_the_typed_number(self):
+        response = self.post("staff-invoice-preview", number="PLSM20260014")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data["number"], "PLSM20260014")
+        # Previewing takes nothing.
+        self.assertFalse(InvoiceNumberSequence.objects.exists())
+
+    def test_a_saved_invoice_keeps_its_number_whatever_is_sent(self):
+        self.compose()
+        invoice = Invoice.objects.get()
+
+        self.edit(invoice, number="PLSM20260099")
+
+        invoice.refresh_from_db()
+        self.assertEqual(invoice.reference, "PLSM20260001")
+
+    def test_our_own_format_is_recognised_exactly(self):
+        settings_row = InvoiceSettings.load()
+        self.assertEqual(settings_row.parse_number(2026, "PLSM20260015"), 15)
+        self.assertIsNone(settings_row.parse_number(2026, "PLSM2026015"))  # not padded like ours
+        self.assertIsNone(settings_row.parse_number(2026, "PLSM20250015"))  # another year
+        self.assertIsNone(settings_row.parse_number(2026, "OLD-77"))
+
+
+class CounterSettingTests(EditorTestCase):
+    """The settings page: an admin sets the number the next invoice gets."""
+
+    URL = "staff-invoice-settings"
+
+    def today(self):
+        return timezone.localdate().isoformat()
+
+    def test_the_settings_show_the_counter(self):
+        InvoiceNumberSequence.objects.create(year=timezone.localdate().year, last_number=14)
+
+        data = self.client.get(reverse(self.URL)).data["settings"]
+
+        self.assertEqual(data["next_sequence"], 15)
+        self.assertTrue(data["next_number"].endswith("0015"))
+
+    def test_an_admin_sets_where_the_next_invoice_starts(self):
+        self.client.force_authenticate(self.admin)
+
+        response = self.client.put(reverse(self.URL), {"next_sequence": 15}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data["settings"]["next_sequence"], 15)
+        self.compose(user=self.staff, invoice_date=self.today())
+        self.assertTrue(Invoice.objects.get().reference.endswith("0015"))
+
+    def test_an_office_worker_cannot_change_it(self):
+        response = self.client.put(reverse(self.URL), {"next_sequence": 500}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(InvoiceNumberSequence.objects.exists())
+
+    def test_saving_other_settings_does_not_touch_the_counter(self):
+        InvoiceNumberSequence.objects.create(year=timezone.localdate().year, last_number=14)
+        self.client.force_authenticate(self.admin)
+
+        # The page sends the whole form back, counter included, unchanged.
+        self.client.put(reverse(self.URL), {"standard_vat_rate": "9", "next_sequence": 15}, format="json")
+
+        self.assertEqual(InvoiceNumberSequence.objects.get().last_number, 14)
+
+    def test_a_number_below_one_is_refused(self):
+        self.client.force_authenticate(self.admin)
+        for bad in (0, -3, "abc"):
+            with self.subTest(value=bad):
+                response = self.client.put(reverse(self.URL), {"next_sequence": bad}, format="json")
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_going_back_never_reuses_an_issued_number(self):
+        year = timezone.localdate().year
+        self.compose(invoice_date=self.today())  # takes ...0001
+        self.client.force_authenticate(self.admin)
+
+        self.client.put(reverse(self.URL), {"next_sequence": 1}, format="json")
+        self.compose(user=self.staff, customer=self.mary.pk, package=self.marys.pk, invoice_date=self.today())
+
+        numbers = sorted(Invoice.objects.values_list("reference", flat=True))
+        self.assertEqual(numbers, [f"PLSM{year}0001", f"PLSM{year}0002"])
+
+    def test_the_change_is_written_to_the_log(self):
+        self.client.force_authenticate(self.admin)
+        with self.assertLogs("staff.invoice_config", level="INFO") as logged:
+            self.client.put(reverse(self.URL), {"next_sequence": 40}, format="json")
+        self.assertIn("changed from 1 to 40", logged.output[0])

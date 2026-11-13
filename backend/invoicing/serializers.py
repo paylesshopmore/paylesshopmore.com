@@ -360,6 +360,12 @@ class InvoiceEditorSerializer(serializers.Serializer):
     )
     invoice_date = serializers.DateField(required=False)
 
+    # The invoice number, when the person writing it chose one instead of the
+    # next number (to carry on from invoices written elsewhere). Blank or left
+    # out = the server hands out the next number when it saves. Only used for a
+    # NEW invoice: a saved invoice keeps the number it has.
+    number = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
+
     # -- header --
     bill_to = serializers.CharField(max_length=1000, allow_blank=True, default="")
     phone = serializers.CharField(max_length=30, allow_blank=True, default="")
@@ -397,6 +403,23 @@ class InvoiceEditorSerializer(serializers.Serializer):
         # for a duplicate.
         self.check_duplicates = check_duplicates
         super().__init__(*args, **kwargs)
+
+    def validate_number(self, value):
+        value = value.strip()
+        if not value:
+            return ""
+        # Letters, digits and dashes only: the number becomes a file name.
+        if not value.replace("-", "").isalnum():
+            raise serializers.ValidationError("Use only letters, digits and dashes.")
+        # Never two invoices with one number. (The same check runs again at
+        # save time, under a lock, in case somebody else just took it.)
+        used = Invoice.objects.filter(reference__iexact=value)
+        editing = self.context.get("invoice")
+        if editing is not None:
+            used = used.exclude(pk=editing.pk)
+        if used.exists():
+            raise serializers.ValidationError("That invoice number is already used by another invoice.")
+        return value
 
     def validate_invoice_date(self, value):
         return InvoiceCreateSerializer().validate_invoice_date(value)

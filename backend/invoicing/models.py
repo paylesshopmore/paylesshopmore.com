@@ -792,6 +792,65 @@ class InvoiceNumberSequence(models.Model):
         return settings_row.format_number(year, (row.last_number if row else 0) + 1)
 
     @classmethod
+    def next_value(cls, year):
+        """The plain counter behind the next number: 15 for PLSM20260015.
+
+        What the invoice settings page shows and lets an admin change.
+        """
+        settings_row = InvoiceSettings.load()
+        row = cls.objects.filter(year=cls.key_for(settings_row, year)).first()
+        return (row.last_number if row else 0) + 1
+
+    @classmethod
+    def _locked_row(cls, year):
+        """This year's counter row, created if needed and locked for the
+        rest of the transaction. Shared by take(), set_next() and claim()."""
+        key = cls.key_for(InvoiceSettings.load(), year)
+        try:
+            with transaction.atomic():
+                cls.objects.get_or_create(year=key)
+        except IntegrityError:
+            # Another request created the row between our check and our
+            # insert. It exists now, which is all we needed.
+            pass
+        return cls.objects.select_for_update().get(year=key)
+
+    @classmethod
+    def set_next(cls, year, number):
+        """Make `number` the one the NEXT invoice gets (an admin's choice on the
+        settings page). Must run inside a transaction.
+
+        Example: the paper invoices ended at 14, so set_next(2026, 15) and the
+        next invoice is PLSM20260015.
+
+        Setting it HIGHER than the real last number leaves a gap, on purpose:
+        that is how you carry on from invoices written elsewhere. Setting it
+        LOWER is safe: take() steps past any number an invoice already uses.
+        """
+        row = cls._locked_row(year)
+        row.last_number = max(int(number) - 1, 0)
+        row.save(update_fields=["last_number"])
+
+    @classmethod
+    def claim(cls, year, text):
+        """Use an invoice number somebody typed by hand. Must run inside a
+        transaction. Returns the number (unchanged).
+
+        If it is in our own format (prefix + year + digits, e.g. PLSM20260015)
+        and is higher than the counter, the counter moves up to it, so the
+        invoice after it is 0016 and numbering carries on from there.
+        A number in any other shape (a custom reference) leaves the counter
+        alone.
+        """
+        parsed = InvoiceSettings.load().parse_number(year, text)
+        if parsed is not None:
+            row = cls._locked_row(year)
+            if parsed > row.last_number:
+                row.last_number = parsed
+                row.save(update_fields=["last_number"])
+        return text
+
+    @classmethod
     def take(cls, year):
         """Hand out the next number for `year`. Must run inside a transaction.
 
@@ -972,6 +1031,24 @@ class InvoiceSettings(models.Model):
         """PLSM + 2026 + 0011, as configured."""
         year_part = str(year) if self.number_include_year else ""
         return f"{self.number_prefix}{year_part}{number:0{self.number_digits}d}"
+
+    def parse_number(self, year, text):
+        """The counter value inside a number in OUR format, or None.
+
+        parse_number(2026, "PLSM20260015") -> 15
+        parse_number(2026, "PLSM2026015")  -> None  (not padded like ours)
+        parse_number(2026, "OLD-77")       -> None  (a custom reference)
+
+        Only an exact match counts: format_number() must give the same text
+        back, so a lookalike never moves the counter.
+        """
+        year_part = str(year) if self.number_include_year else ""
+        prefix = f"{self.number_prefix}{year_part}"
+        digits = text[len(prefix):] if text.startswith(prefix) else ""
+        if not digits.isdigit():
+            return None
+        number = int(digits)
+        return number if self.format_number(year, number) == text else None
 
     def vat_rate_for(self, export_verified):
         """The rate an invoice gets. The export rate only when somebody confirmed it."""

@@ -43,6 +43,8 @@ import styles from './AttachmentList.module.css';
  * @param {string} [props.removeLabel] that button's text
  * @param {(order: object) => import('react').ReactNode} [props.renderOrderExtra]
  *   anything to show under a store - the customer's "Add document"
+ * @param {string} [props.orderNumberLabel] when given, the webshop's order number
+ *   (if there is one) is shown as a line under the store with this name
  * @param {string} [props.trackingLabel] what to call the track-and-trace line
  * @param {(order: object) => void} [props.onRemoveTracking] shows a remove
  *   button on it when given
@@ -58,6 +60,7 @@ export default function OrderList({
   onRemoveDocument,
   removeLabel = 'Remove',
   renderOrderExtra,
+  orderNumberLabel,
   trackingLabel = 'Track-and-trace',
   onRemoveTracking,
   productLabels,
@@ -93,8 +96,15 @@ export default function OrderList({
             renderExtra={renderProductExtra}
           />
 
-          {(order.documents?.length > 0 || order.tracking_code) && (
+          {(order.documents?.length > 0 || order.tracking_code || (orderNumberLabel && order.order_number)) && (
             <ul className={styles.docs}>
+              {/* The webshop's own order number, typed by the customer. */}
+              {orderNumberLabel && order.order_number && (
+                <li className={styles.doc}>
+                  <span className={styles.docKind}>{orderNumberLabel}</span>
+                  <span className={styles.docCode}>{order.order_number}</span>
+                </li>
+              )}
               {/* The track-and-trace, typed as text: a link when it is one. */}
               {order.tracking_code && (
                 <li className={styles.doc}>

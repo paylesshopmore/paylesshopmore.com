@@ -52,6 +52,7 @@ MESSAGES = {
             "courier_exception": "There is a problem with your order's delivery",
             "item_received": "An item of your order has arrived at our warehouse",
             "order_received": "Your order has arrived at our warehouse",
+            "invoice_requested": "We are missing the invoice of your order",
         },
         "lines": {
             "received": "We have received your goods at our warehouse. We will measure and pack them for shipping.",
@@ -83,6 +84,10 @@ MESSAGES = {
                 "Other items of your order may still be on their way."
             ),
             "order_received": "We have received your whole order from {shop} ({item}) at our warehouse.",
+            "invoice_requested": (
+                "We cannot find the invoice for {item} (from {shop}). Please add it to your booking "
+                "so that we can process your order."
+            ),
         },
         "default_subject": "Shipment update",
         "default_line": "There is an update on your shipment.",
@@ -95,6 +100,7 @@ MESSAGES = {
         "invoice_ready_unnumbered": "Your invoice is ready.",
         "invoice_covers": "It covers shipment {tracking}.",
         "invoice_download": "You can download it from your profile page:",
+        "invoice_upload": "You can add it to your booking on your profile page:",
         "review": "How did it go? Tell us in one click - rate your delivery:",
         "preferences": "You can change which e-mails you receive on your profile page:",
     },
@@ -117,6 +123,7 @@ MESSAGES = {
             "courier_exception": "Er is een probleem met de bezorging van uw bestelling",
             "item_received": "Een product van uw bestelling is aangekomen in ons magazijn",
             "order_received": "Uw bestelling is aangekomen in ons magazijn",
+            "invoice_requested": "Wij missen de factuur van uw bestelling",
         },
         "lines": {
             "received": (
@@ -157,6 +164,10 @@ MESSAGES = {
                 "Andere producten van uw bestelling kunnen nog onderweg zijn."
             ),
             "order_received": "Wij hebben uw hele bestelling van {shop} ({item}) ontvangen in ons magazijn.",
+            "invoice_requested": (
+                "Wij kunnen de factuur van {item} (van {shop}) niet vinden. Wilt u deze toevoegen aan "
+                "uw boeking, zodat wij uw bestelling kunnen verwerken?"
+            ),
         },
         "default_subject": "Nieuws over uw zending",
         "default_line": "Er is nieuws over uw zending.",
@@ -169,6 +180,7 @@ MESSAGES = {
         "invoice_ready_unnumbered": "Uw factuur staat klaar.",
         "invoice_covers": "Deze hoort bij zending {tracking}.",
         "invoice_download": "U kunt de factuur downloaden op uw profielpagina:",
+        "invoice_upload": "U kunt de factuur toevoegen bij uw boeking op uw profielpagina:",
         "review": "Hoe is het gegaan? Geef uw levering een beoordeling:",
         "preferences": "Op uw profielpagina kiest u welke e-mails u van ons ontvangt:",
     },
@@ -191,6 +203,7 @@ MESSAGES = {
             "courier_exception": "Tin un problema ku e entrega di bo òrdu",
             "item_received": "Un produkto di bo òrdu a yega na nos depósito",
             "order_received": "Bo òrdu a yega na nos depósito",
+            "invoice_requested": "Nos ta falta e faktura di bo òrdu",
         },
         "lines": {
             "received": "Nos a risibí bo merkansia na nos depósito. Nos lo midi i paka nan pa manda.",
@@ -222,6 +235,10 @@ MESSAGES = {
                 "Otro produktonan di bo òrdu por ainda ta na kaminda."
             ),
             "order_received": "Nos a risibí henter bo òrdu di {shop} ({item}) na nos depósito.",
+            "invoice_requested": (
+                "Nos no por haña e faktura di {item} (di {shop}). Por fabor agregá e na bo reservashon "
+                "pa nos por prosesá bo òrdu."
+            ),
         },
         "default_subject": "Notisia tokante bo enbio",
         "default_line": "Tin notisia tokante bo enbio.",
@@ -234,6 +251,7 @@ MESSAGES = {
         "invoice_ready_unnumbered": "Bo faktura ta kla.",
         "invoice_covers": "E ta pa enbio {tracking}.",
         "invoice_download": "Bo por baha e faktura for di bo página di perfil:",
+        "invoice_upload": "Bo por agregá e faktura na bo reservashon riba bo página di perfil:",
         "review": "Kon e la bai? Duna bo entrega un evaluashon:",
         "preferences": "Riba bo página di perfil bo ta skohe kua e-mail bo ke risibí di nos:",
     },
@@ -317,7 +335,10 @@ def body_for(notification):
     else:
         line = copy["lines"].get(context.get("status"), copy["default_line"])
         lines.append(_fill(line, context))
-        if tracking:
+        if context.get("status") == "invoice_requested":
+            # Not a tracking page: the place to add the invoice is the booking.
+            lines += ["", copy["invoice_upload"], f"{settings.FRONTEND_URL}/profile#bookings"]
+        elif tracking:
             lines += [
                 "",
                 copy["tracking"].format(tracking=tracking),
