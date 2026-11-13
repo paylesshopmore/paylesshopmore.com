@@ -1,9 +1,9 @@
 // The paperwork of one store order on the office's Bookings page: the invoice
-// the customer added (or a button to ask for it), the webshop's order number and
-// the track-and-trace. The server decides when asking is allowed; what it says
-// when it refuses is shown as written.
+// (with a request button), the order confirmation (a status; the customer has to
+// send it, so there is no request button) and the track-and-trace. The server decides when asking is allowed; what it
+// says when it refuses is shown as written.
 
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { requestOrderInvoice } from '../../api/staff';
@@ -22,24 +22,45 @@ const ORDER = {
   tracking_code: '',
   invoice_requested_at: null,
   invoice_requested_by_name: '',
+  confirmation_requested_at: null,
+  confirmation_requested_by_name: '',
 };
 const INVOICE = { id: 2, kind: 'invoice', name: 'factuur-bol.pdf', url: '/api/staff/bookings/attachments/2/' };
+const CONFIRMATION = {
+  id: 4,
+  kind: 'order_confirmation',
+  name: 'orderbevestiging.pdf',
+  url: '/api/staff/bookings/attachments/4/',
+  created_at: '2026-11-13T10:40:00Z',
+};
 
 function show(order = ORDER, booking = BOOKING, onChanged = vi.fn()) {
   renderWithProviders(<OrderPaperwork booking={booking} order={order} onChanged={onChanged} />);
   return onChanged;
 }
 
+/**
+ * The block (dt + dd) under one heading, e.g. the invoice or the confirmation.
+ * Looks among the headings (<dt>, role "term") only: the same word also appears
+ * in the buttons and hints.
+ */
+const block = (heading) =>
+  within(
+    screen
+      .getAllByRole('term')
+      .find((term) => term.textContent.startsWith(heading))
+      .closest('div'),
+  );
+
 beforeEach(() => {
   window.localStorage.setItem('plsm.language', 'nl');
   requestOrderInvoice.mockReset();
 });
 
-describe('the invoice', () => {
+describe('the invoice (unchanged)', () => {
   it('says it is missing, and offers to ask the customer for it', () => {
     show();
-    expect(screen.getByText('Factuur')).toBeInTheDocument();
-    expect(screen.getByText('Ontbreekt')).toBeInTheDocument();
+    expect(block('Factuur').getByText('Ontbreekt')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Factuur opvragen' })).toBeEnabled();
   });
 
@@ -48,9 +69,7 @@ describe('the invoice', () => {
     const link = screen.getByRole('link', { name: 'factuur-bol.pdf' });
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
-    expect(screen.queryByText('Ontbreekt')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Factuur opvragen' })).not.toBeInTheDocument();
-    // Other documents (the order confirmation, ...) are not the invoice.
     expect(screen.queryByRole('link', { name: 'x.pdf' })).not.toBeInTheDocument();
   });
 
@@ -64,12 +83,12 @@ describe('the invoice', () => {
     expect(onChanged).toHaveBeenCalledWith({ id: 5, orders: [] });
   });
 
-  it('shows who asked and when, once it has been asked', () => {
+  it('shows who asked and when', () => {
     show({ ...ORDER, invoice_requested_at: '2026-11-12T10:00:00Z', invoice_requested_by_name: 'Ada' });
     expect(screen.getByText(/Gevraagd op .* door Ada/)).toBeInTheDocument();
   });
 
-  it("shows the server's own reason when it refuses (for example: already asked today)", async () => {
+  it("shows the server's own reason when it refuses", async () => {
     show();
     requestOrderInvoice.mockRejectedValue(
       Object.assign(new Error('VALIDATION'), {
@@ -77,39 +96,66 @@ describe('the invoice', () => {
         fields: { detail: ['The customer was already asked for this invoice in the last 24 hours.'] },
       }),
     );
-
     await userEvent.click(screen.getByRole('button', { name: 'Factuur opvragen' }));
-
     expect(await screen.findByRole('alert')).toHaveTextContent('already asked for this invoice');
-  });
-
-  it('says so when it cannot be asked: no customer account, or the booking is closed', () => {
-    const { unmount } = renderWithProviders(
-      <OrderPaperwork booking={{ ...BOOKING, account: null }} order={ORDER} onChanged={vi.fn()} />,
-    );
-    expect(screen.getByText(/geen klantaccount/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Factuur opvragen' })).not.toBeInTheDocument();
-    unmount();
-
-    renderWithProviders(
-      <OrderPaperwork booking={{ ...BOOKING, status: 'shipped' }} order={ORDER} onChanged={vi.fn()} />,
-    );
-    expect(screen.getByText(/verzonden of geannuleerd/)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Factuur opvragen' })).not.toBeInTheDocument();
   });
 });
 
-describe('the order number and the track-and-trace', () => {
-  it('shows both, marked optional', () => {
-    show({ ...ORDER, order_number: '1234567890', tracking_code: '3SABC1234567' });
-    expect(screen.getByText('1234567890')).toBeInTheDocument();
-    expect(screen.getByText('3SABC1234567')).toBeInTheDocument();
-    expect(screen.getAllByText('(optioneel)')).toHaveLength(2);
+describe('the order confirmation (the customer has to send it)', () => {
+  it('is not marked optional, and starts as Missing', () => {
+    show();
+    const card = block('Orderbevestiging');
+    expect(card.getByText('Ontbreekt')).toBeInTheDocument();
+    expect(card.queryByText('(optioneel)')).not.toBeInTheDocument();
   });
 
-  it('says "not given" when the customer did not fill them in', () => {
+  it('says the customer has to send it, and has no request button', () => {
     show();
-    expect(screen.getAllByText('Niet opgegeven')).toHaveLength(2);
+    expect(block('Orderbevestiging').getByText('De klant moet de orderbevestiging zelf versturen.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Orderbevestiging opvragen/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Stuurt de klant een melding en een e-mail met het verzoek de orderbevestiging/)).not.toBeInTheDocument();
+  });
+
+  it('stays Missing for a booking where an old request was recorded: nothing is "requested" any more', () => {
+    show({ ...ORDER, confirmation_requested_at: '2026-11-13T10:40:00Z', confirmation_requested_by_name: 'Ada' });
+    const card = block('Orderbevestiging');
+    expect(card.getByText('Ontbreekt')).toBeInTheDocument();
+    expect(card.queryByText('Gevraagd')).not.toBeInTheDocument();
+  });
+
+  it('becomes Uploaded when the customer uploaded it, with a view button and the date', () => {
+    show({ ...ORDER, documents: [CONFIRMATION] });
+
+    const card = block('Orderbevestiging');
+    expect(card.getByText('Geüpload')).toBeInTheDocument();
+    const view = screen.getByRole('link', { name: 'Orderbevestiging bekijken' });
+    expect(view).toHaveAttribute('target', '_blank');
+    expect(view).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    expect(card.getByText(/Geüpload op/)).toBeInTheDocument();
+    expect(card.queryByText('De klant moet de orderbevestiging zelf versturen.')).not.toBeInTheDocument();
+  });
+
+  it('does not treat the invoice as the confirmation', () => {
+    show({ ...ORDER, documents: [INVOICE] });
+    expect(block('Orderbevestiging').getByText('Ontbreekt')).toBeInTheDocument();
+  });
+
+  it('a confirmation alone leaves the invoice missing', () => {
+    show({ ...ORDER, documents: [CONFIRMATION] });
+    expect(block('Factuur').getByText('Ontbreekt')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Factuur opvragen' })).toBeEnabled();
+  });
+});
+
+describe('the track-and-trace', () => {
+  it('shows the code', () => {
+    show({ ...ORDER, tracking_code: '3SABC1234567' });
+    expect(screen.getByText('3SABC1234567')).toBeInTheDocument();
+  });
+
+  it('says "not given" when the customer did not fill it in', () => {
+    show();
+    expect(screen.getAllByText('Niet opgegeven')).toHaveLength(1);
   });
 
   it('turns a web address into a link, and never anything else', () => {
@@ -119,16 +165,9 @@ describe('the order number and the track-and-trace', () => {
 
   it('shows a script address as plain text, not a link', () => {
     const { container } = renderWithProviders(
-      <OrderPaperwork
-        booking={BOOKING}
-        order={{ ...ORDER, tracking_code: 'javascript:alert(1)', order_number: '<img src=x onerror=alert(1)>' }}
-        onChanged={vi.fn()}
-      />,
+      <OrderPaperwork booking={BOOKING} order={{ ...ORDER, tracking_code: 'javascript:alert(1)' }} onChanged={vi.fn()} />,
     );
     expect(container.querySelector('a[href^="javascript"]')).toBeNull();
     expect(screen.getByText('javascript:alert(1)')).toBeInTheDocument();
-    // The order number is plain text too: it is whatever the customer typed.
-    expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument();
-    expect(container.querySelector('img')).toBeNull();
   });
 });

@@ -334,6 +334,10 @@ class _OrderSerializer(serializers.ModelSerializer):
             "received_at",
             # The webshop's order number, typed by the customer. Optional.
             "order_number",
+            # When the office asked for the ORDER CONFIRMATION, or null. The
+            # customer sees it, so their page can offer "Upload order
+            # confirmation" for the order that was asked about.
+            "confirmation_requested_at",
         ]
         read_only_fields = fields
 
@@ -387,6 +391,8 @@ class StaffOrderSerializer(_OrderSerializer):
     received_by_name = serializers.SerializerMethodField()
     # Who asked the customer for the invoice, and when (the office only).
     invoice_requested_by_name = serializers.SerializerMethodField()
+    # Who asked for the order confirmation (the office only).
+    confirmation_requested_by_name = serializers.SerializerMethodField()
 
     class Meta(_OrderSerializer.Meta):
         fields = [
@@ -394,6 +400,7 @@ class StaffOrderSerializer(_OrderSerializer):
             "received_by_name",
             "invoice_requested_at",
             "invoice_requested_by_name",
+            "confirmation_requested_by_name",
         ]
         read_only_fields = fields
 
@@ -402,6 +409,9 @@ class StaffOrderSerializer(_OrderSerializer):
 
     def get_invoice_requested_by_name(self, order):
         return _person(order.invoice_requested_by)
+
+    def get_confirmation_requested_by_name(self, order):
+        return _person(order.confirmation_requested_by)
 
 # What the sender fills in. Listed by hand: built from `exclude`, this would
 # start accepting `status` the day somebody added a field to the model.

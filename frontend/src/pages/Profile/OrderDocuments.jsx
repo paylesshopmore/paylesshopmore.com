@@ -17,7 +17,12 @@
 // text for the office, as before.
 
 import { useEffect, useRef, useState } from 'react';
-import { addOrderDocument, setOrderNumber as saveOrderNumber, setOrderTracking } from '../../api/booking';
+import {
+  addOrderDocument,
+  removeBookingDocument,
+  setOrderNumber as saveOrderNumber,
+  setOrderTracking,
+} from '../../api/booking';
 import { getCarriers } from '../../api/tracking';
 import { useLanguage } from '../../i18n/useLanguage';
 import styles from './Profile.module.css';
@@ -39,6 +44,25 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
   const [tracking, setTracking] = useState('');
   // The webshop's own order number (optional).
   const [orderNumber, setOrderNumber] = useState('');
+  // Opened by the "Upload Order Confirmation" / "Replace" buttons: the type of
+  // document is already decided, so the type list is not shown.
+  const [locked, setLocked] = useState(false);
+  // "Replace": the old order confirmation is removed once the new one is saved.
+  const [replacing, setReplacing] = useState(false);
+
+  // The order confirmations already on this store, and whether the office asked
+  // for one that has not arrived yet.
+  const confirmations = (order.documents ?? []).filter((document) => document.kind === 'order_confirmation');
+  const asked = Boolean(order.confirmation_requested_at) && confirmations.length === 0;
+
+  /** Open the form for the order confirmation straight away. */
+  function openConfirmation(replace) {
+    setKind('order_confirmation');
+    setLocked(true);
+    setReplacing(replace);
+    setError('');
+    setOpen(true);
+  }
   // The courier's code ("postnl"), or '' for none.
   const [carrier, setCarrier] = useState('');
   // The courier list from the server; null until it has loaded.
@@ -66,6 +90,8 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
 
   function reset() {
     setKind('');
+    setLocked(false);
+    setReplacing(false);
     setFile(null);
     setTracking('');
     setOrderNumber('');
@@ -84,11 +110,18 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
     setBusy(true);
     setError('');
     try {
-      const updated = isTracking
+      let updated = isTracking
         ? await setOrderTracking(bookingId, order.id, tracking.trim(), carrier)
         : isOrderNumber
           ? await saveOrderNumber(bookingId, order.id, orderNumber.trim())
           : await addOrderDocument(bookingId, order.id, { kind, file });
+      // "Replace": the new file is saved, so the old confirmation(s) can go. If
+      // removing one fails the customer simply keeps both - nothing is lost.
+      if (replacing) {
+        const oldIds = confirmations.map((document) => document.id);
+        await Promise.all(oldIds.map((id) => removeBookingDocument(bookingId, id).catch(() => null)));
+        updated = { ...updated, documents: (updated.documents ?? []).filter((document) => !oldIds.includes(document.id)) };
+      }
       onUpdated(updated);
       reset();
       setOpen(false);
@@ -106,9 +139,26 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
 
   if (!open) {
     return (
-      <button type="button" className={styles.docAdd} onClick={() => setOpen(true)}>
-        + {d('add')}
-      </button>
+      <div className={styles.docButtons}>
+        {/* The office asked for the order confirmation and it is not here yet.
+            It stays optional: the booking carries on without it. */}
+        {asked && (
+          <div className={styles.docAsked} role="status">
+            <p>{d('confirmationAsked')}</p>
+            <button type="button" className={styles.submit} onClick={() => openConfirmation(false)}>
+              {d('uploadConfirmation')}
+            </button>
+          </div>
+        )}
+        {confirmations.length > 0 && (
+          <button type="button" className={styles.docAdd} onClick={() => openConfirmation(true)}>
+            {d('replaceConfirmation')}
+          </button>
+        )}
+        <button type="button" className={styles.docAdd} onClick={() => setOpen(true)}>
+          + {d('add')}
+        </button>
+      </div>
     );
   }
 
@@ -121,6 +171,9 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
   return (
     <form className={styles.docForm} onSubmit={submit} noValidate>
       <div className={styles.docFields}>
+        {locked ? (
+          <p className={styles.label}>{replacing ? d('replaceConfirmation') : d('uploadConfirmation')}</p>
+        ) : (
         <label className={styles.docField} htmlFor={kindId}>
           <span className={styles.label}>{d('kind')}</span>
           <select
@@ -147,6 +200,7 @@ export default function AddOrderDocument({ bookingId, order, onUpdated }) {
             ))}
           </select>
         </label>
+        )}
 
         {isTracking && (
           // Which courier brings it: lets the server follow the parcel.

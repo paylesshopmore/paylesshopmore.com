@@ -5576,20 +5576,28 @@ button.bkAction:disabled {
 /* ---- The paperwork of one store order (OrderPaperwork.jsx): the invoice, the
    webshop's order number and the track-and-trace, under the store's name. */
 .paperwork {
-  display: grid;
-  gap: 0.6rem;
   margin-top: 0.6rem;
-  padding: 0.75rem 0.9rem;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #ffffff;
 }
 
+/* The three document cards: side by side when there is room, stacked when there
+   is not (a phone). */
 .paperworkList {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.6rem 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.75rem;
   margin: 0;
+}
+
+/* One document: a quiet card holding its label, status, button and history. */
+.paperworkItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #ffffff;
 }
 
 .paperworkList dt {
@@ -5597,11 +5605,25 @@ button.bkAction:disabled {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--cyan-text, #0369a1);
+}
+
+/* "(optional)" under the label instead of making the label wrap awkwardly. */
+.paperworkOptional {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--muted);
 }
 
 .paperworkList dd {
-  margin: 0.2rem 0 0;
+  display: grid;
+  justify-items: start;
+  gap: 0.55rem;
+  margin: 0;
   font-size: 0.92rem;
   overflow-wrap: anywhere;
 }
@@ -5612,9 +5634,41 @@ button.bkAction:disabled {
   list-style: none;
 }
 
+/* The button and its notes, under a document's status. */
 .paperworkAction {
+  display: grid;
+  justify-items: start;
+  gap: 0.4rem;
+}
+
+/* The "Request ..." buttons: the same blue as before (they share .intakeRelease),
+   a little smaller so three cards fit comfortably. Both use this one class, so
+   the invoice's and the confirmation's always look the same. */
+.paperworkButton {
+  composes: intakeRelease;
+  padding: 0.5rem 0.95rem;
+  font-size: 0.85rem;
+}
+
+.paperworkHint,
+.paperworkHistory {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.paperworkHistory {
+  font-weight: 600;
+  color: #475569;
+}
+
+/* The uploaded order confirmation: its "View Order Confirmation" button and the
+   upload date, under the status chip (OrderPaperwork.jsx). */
+.paperworkUploaded {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 0.75rem;
+  margin-top: 0.45rem;
 }

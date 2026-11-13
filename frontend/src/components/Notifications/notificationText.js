@@ -34,16 +34,22 @@ export function describeNotification(notification, t) {
   // News about one store order on a booking (backend notifications/services.py):
   //   item_received / order_received  an admin confirmed it arrived at the warehouse
   //   invoice_requested               the office is missing its invoice
+  //   confirmation_requested          the office asks for the order confirmation
   // The sentence names the order: "Stage Decks (from bol.com)". "View" opens
   // the customer's bookings - where the green "Received" label is, and where
   // the invoice is added.
-  const ORDER_NEWS = ['item_received', 'order_received', 'invoice_requested'];
+  const ORDER_NEWS = ['item_received', 'order_received', 'invoice_requested', 'confirmation_requested'];
   if (ORDER_NEWS.includes(context.status)) {
+    // The request for an order confirmation also names the BOOKING, so the
+    // customer sees which one it is about.
+    const sentence =
+      context.status === 'confirmation_requested' ? 'notifications.confirmationRequested' : 'notifications.receivedItem';
     return {
       title: t(`notifications.status.${context.status}`),
-      text: fill(t('notifications.receivedItem'), {
+      text: fill(t(sentence), {
         item: context.item ?? '',
         shop: context.shop ?? '',
+        booking: context.booking_number ?? '',
       }),
       link: '/profile#bookings',
     };

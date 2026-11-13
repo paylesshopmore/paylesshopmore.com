@@ -695,3 +695,186 @@ class InvoiceRequestTests(ReceiptsTestCase):
             self.assertIn("invoice_requested", copy["subjects"], language)
             self.assertIn("{item}", copy["lines"]["invoice_requested"], language)
             self.assertIn("invoice_upload", copy, language)
+
+
+class ConfirmationRequestTests(InvoiceRequestTests):
+    """The office's "Request Order Confirmation" button.
+
+    Inherits the invoice-request tests' helpers (and, on purpose, re-runs them:
+    the invoice request must behave exactly as before now that both buttons
+    share one helper). Everything below is about the ORDER CONFIRMATION.
+    """
+
+    def ask_confirmation(self, user=None):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.force_authenticate(user or self.office)
+            response = self.client.post(
+                reverse("staff-booking-order-request-confirmation", args=[self.booking.pk, self.order.pk])
+            )
+        self.client.force_authenticate(None)
+        return response
+
+    def confirmation_notes(self):
+        from notifications.models import Notification
+
+        return list(Notification.objects.filter(user=self.customer, context__status="confirmation_requested"))
+
+    def attach_confirmation(self):
+        from django.core.files.base import ContentFile
+
+        from bookings.models import BookingAttachment
+
+        attachment = BookingAttachment(
+            booking=self.booking,
+            order=self.order,
+            kind=BookingAttachment.Kind.ORDER_CONFIRMATION,
+            original_name="orderbevestiging.pdf",
+            content_type="application/pdf",
+        )
+        attachment.file.save("c.pdf", ContentFile(b"%PDF-1.4"), save=True)
+        return attachment
+
+    def test_asking_records_when_and_by_whom_and_notifies_the_customer(self):
+        response = self.ask_confirmation()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        order = response.data["orders"][0]
+        self.assertIsNotNone(order["confirmation_requested_at"])
+        self.assertEqual(order["confirmation_requested_by_name"], "kantoor@example.com")
+        [note] = self.confirmation_notes()
+        # The notification names the booking, so the customer sees which one it is.
+        self.assertEqual(note.context["booking_number"], self.booking.reference)
+        self.assertTrue(self.booking.reference.startswith("PLSM-"))
+
+    def test_the_e_mail_asks_for_the_document_and_names_the_booking(self):
+        from django.core import mail
+
+        self.customer.language = "en"
+        self.customer.save(update_fields=["language"])
+
+        self.ask_confirmation()
+
+        [message] = mail.outbox
+        self.assertEqual(message.subject, "Order Confirmation Required | Pay Less Shop More")
+        self.assertIn("We are processing your booking.", message.body)
+        self.assertIn("upload your order confirmation", message.body)
+        self.assertIn(f"Booking Number: {self.booking.reference}", message.body)
+        self.assertIn("/profile#bookings", message.body)
+        self.assertIn("Pay Less Shop More Team", message.body)
+
+    def test_the_e_mail_is_in_the_customers_language(self):
+        from django.core import mail
+
+        self.ask_confirmation()  # no language set: Dutch
+        self.assertEqual(mail.outbox[0].subject, "Orderbevestiging vereist | Pay Less Shop More")
+        self.assertIn(f"Boekingsnummer: {self.booking.reference}", mail.outbox[0].body)
+
+    def test_a_stray_brace_in_the_booking_text_does_not_break_it(self):
+        from django.core import mail
+
+        self.order.description = "Laptop {booking} {0}"
+        self.order.save(update_fields=["description"])
+        self.ask_confirmation()
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_it_is_not_asked_twice_within_a_day(self):
+        self.ask_confirmation()
+        again = self.ask_confirmation()
+
+        self.assertEqual(again.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("24 hours", again.data["detail"][0])
+        self.assertEqual(len(self.confirmation_notes()), 1)
+
+    def test_it_can_be_asked_again_after_a_day(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        self.ask_confirmation()
+        type(self.order).objects.filter(pk=self.order.pk).update(
+            confirmation_requested_at=timezone.now() - timedelta(hours=25)
+        )
+        self.assertEqual(self.ask_confirmation().status_code, status.HTTP_200_OK)
+        self.assertEqual(len(self.confirmation_notes()), 2)
+
+    def test_nothing_is_asked_when_the_confirmation_is_already_uploaded(self):
+        self.attach_confirmation()
+        response = self.ask_confirmation()
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("already has an order confirmation", response.data["detail"][0])
+        self.assertEqual(self.confirmation_notes(), [])
+
+    def test_an_invoice_does_not_count_as_the_confirmation(self):
+        self.attach_invoice()
+        self.assertEqual(self.ask_confirmation().status_code, status.HTTP_200_OK)
+
+    def test_asking_for_one_document_does_not_touch_the_other(self):
+        self.ask_confirmation()
+        self.order.refresh_from_db()
+        self.assertIsNone(self.order.invoice_requested_at)
+
+        self.ask()  # the invoice
+        self.order.refresh_from_db()
+        self.assertIsNotNone(self.order.invoice_requested_at)
+        self.assertIsNotNone(self.order.confirmation_requested_at)
+
+    def test_no_account_and_closed_bookings_are_refused(self):
+        self.booking.status = "shipped"
+        self.booking.save(update_fields=["status"])
+        self.assertEqual(self.ask_confirmation().status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.booking.status = "confirmed"
+        self.booking.user = None
+        self.booking.save(update_fields=["status", "user"])
+        response = self.ask_confirmation()
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("without an account", response.data["detail"][0])
+
+    def test_only_staff_can_ask(self):
+        for user in (self.customer, self.worker, self.manager):
+            with self.subTest(user=user.email):
+                self.assertEqual(self.ask_confirmation(user).status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(self.confirmation_notes(), [])
+
+    def test_somebody_elses_order_is_not_found(self):
+        other_booking = make_booking(self.other, "PLSM-00098")
+        theirs = self.add_product(other_booking, "Chair", 1)
+        self.client.force_authenticate(self.office)
+        response = self.client.post(
+            reverse("staff-booking-order-request-confirmation", args=[self.booking.pk, theirs.order.pk])
+        )
+        # The order belongs to another booking, so it is not found under this one.
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_the_customer_sees_that_it_was_asked_but_not_by_whom(self):
+        self.booking.package = None
+        self.booking.save(update_fields=["package"])
+        self.ask_confirmation()
+
+        self.client.force_authenticate(self.customer)
+        data = self.client.get(reverse("my-bookings")).data
+        rows = data["results"] if isinstance(data, dict) else data
+        order = rows[0]["orders"][0]
+        self.assertIsNotNone(order["confirmation_requested_at"])
+        self.assertNotIn("confirmation_requested_by_name", order)
+
+    def test_the_customer_can_upload_it_to_their_own_booking_only(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        url = reverse("my-order-documents", args=[self.booking.pk, self.order.pk])
+        pdf = SimpleUploadedFile("orderbevestiging.pdf", b"%PDF-1.4 hello", content_type="application/pdf")
+
+        self.client.force_authenticate(self.other)
+        refused = self.client.post(url, {"kind": "order_confirmation", "file": pdf}, format="multipart")
+        self.assertEqual(refused.status_code, status.HTTP_404_NOT_FOUND)
+
+        self.client.force_authenticate(self.customer)
+        pdf = SimpleUploadedFile("orderbevestiging.pdf", b"%PDF-1.4 hello", content_type="application/pdf")
+        accepted = self.client.post(url, {"kind": "order_confirmation", "file": pdf}, format="multipart")
+        self.assertEqual(accepted.status_code, status.HTTP_201_CREATED, accepted.data)
+        # Uploaded: the office now reads it as a document of that order.
+        self.client.force_authenticate(self.office)
+        data = self.client.get(reverse("staff-booking-detail", args=[self.booking.pk])).data
+        [document] = data["orders"][0]["documents"]
+        self.assertEqual((document["kind"], document["name"]), ("order_confirmation", "orderbevestiging.pdf"))
+        self.assertIsNotNone(document["created_at"])

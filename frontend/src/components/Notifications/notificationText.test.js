@@ -54,3 +54,29 @@ describe('"we are missing the invoice" notifications', () => {
     expect(describeNotification(requested, tFor('pap')).text).toBe('Laptop (di Bol.com)');
   });
 });
+
+describe('"order confirmation required" notifications', () => {
+  const asked = {
+    kind: 'shipment_status',
+    tracking_number: 'PLSM-0000010',
+    context: {
+      tracking_number: 'PLSM-0000010',
+      status: 'confirmation_requested',
+      booking_number: 'PLSM-0000010',
+      item: 'Laptop',
+      shop: 'Bol.com',
+    },
+  };
+
+  it('names the booking and the order, in each language, and opens the bookings', () => {
+    const nl = describeNotification(asked, tFor('nl'));
+    expect(nl.title).toBe('Orderbevestiging gevraagd');
+    expect(nl.text).toBe('PLSM-0000010 \u00b7 Laptop (van Bol.com)');
+    expect(nl.link).toBe('/profile#bookings');
+
+    const en = describeNotification(asked, tFor('en'));
+    expect(en.title).toBe('Order confirmation required');
+    expect(en.text).toBe('PLSM-0000010 \u00b7 Laptop (from Bol.com)');
+    expect(describeNotification(asked, tFor('pap')).text).toBe('PLSM-0000010 \u00b7 Laptop (di Bol.com)');
+  });
+});

@@ -4,7 +4,7 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { addOrderDocument, setOrderNumber, setOrderTracking } from '../../api/booking';
+import { addOrderDocument, removeBookingDocument, setOrderNumber, setOrderTracking } from '../../api/booking';
 import { API_ERRORS, ApiError } from '../../api/client';
 import { getCarriers } from '../../api/tracking';
 import OrderList from '../../components/AttachmentList/OrderList';
@@ -14,6 +14,7 @@ import AddOrderDocument from './OrderDocuments';
 vi.mock('../../api/booking', async (importOriginal) => ({
   ...(await importOriginal()),
   addOrderDocument: vi.fn(),
+  removeBookingDocument: vi.fn(),
   setOrderNumber: vi.fn(),
   setOrderTracking: vi.fn(),
 }));
@@ -32,6 +33,7 @@ beforeEach(() => {
   addOrderDocument.mockReset();
   setOrderTracking.mockReset();
   setOrderNumber.mockReset();
+  removeBookingDocument.mockReset().mockResolvedValue(null);
   getCarriers.mockReset().mockResolvedValue([
     { code: 'postnl', name: 'PostNL', trackable: true },
     { code: 'dhl-parcel-nl', name: 'DHL Parcel (NL)', trackable: true },
@@ -269,5 +271,78 @@ describe("the webshop's order number (optional)", () => {
   it('is not shown on pages that give no label (the office has its own block)', () => {
     renderWithProviders(<OrderList orders={[{ ...ORDER, order_number: '1234567890' }]} />);
     expect(screen.queryByText('1234567890')).not.toBeInTheDocument();
+  });
+});
+
+describe('the order confirmation the office asked for', () => {
+  const ASKED = { ...ORDER, confirmation_requested_at: '2026-11-13T10:40:00Z' };
+  const CONFIRMATION = { id: 8, kind: 'order_confirmation', name: 'oud.pdf', url: '/api/x/8/' };
+
+  it('shows which store was asked about, with an Upload Order Confirmation button', () => {
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ASKED} onUpdated={vi.fn()} />);
+    expect(screen.getByRole('status')).toHaveTextContent('order confirmation');
+    // Optional: the text says the booking carries on without it.
+    expect(screen.getByRole('status')).toHaveTextContent('not required');
+    expect(screen.getByRole('button', { name: 'Upload Order Confirmation' })).toBeInTheDocument();
+  });
+
+  it('shows nothing special when it was not asked for', () => {
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ORDER} onUpdated={vi.fn()} />);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Upload Order Confirmation' })).not.toBeInTheDocument();
+  });
+
+  it('uploads straight away as an order confirmation, without asking for the type', async () => {
+    const user = userEvent.setup();
+    const onUpdated = vi.fn();
+    const updated = { ...ASKED, documents: [{ ...CONFIRMATION, name: 'orderbevestiging.pdf' }] };
+    addOrderDocument.mockResolvedValue(updated);
+    renderWithProviders(<AddOrderDocument bookingId={3} order={ASKED} onUpdated={onUpdated} />);
+
+    await user.click(screen.getByRole('button', { name: 'Upload Order Confirmation' }));
+    expect(screen.queryByLabelText('Type of document')).not.toBeInTheDocument();
+    await user.upload(screen.getByLabelText('File'), pdf());
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(addOrderDocument).toHaveBeenCalledWith(3, 5, { kind: 'order_confirmation', file: expect.any(File) });
+    expect(removeBookingDocument).not.toHaveBeenCalled();
+    expect(onUpdated).toHaveBeenCalledWith(updated);
+  });
+
+  it('offers to replace an uploaded one, and removes the old one once the new one is saved', async () => {
+    const user = userEvent.setup();
+    const onUpdated = vi.fn();
+    const order = { ...ORDER, documents: [CONFIRMATION] };
+    addOrderDocument.mockResolvedValue({
+      ...order,
+      documents: [CONFIRMATION, { id: 9, kind: 'order_confirmation', name: 'nieuw.pdf', url: '/api/x/9/' }],
+    });
+    renderWithProviders(<AddOrderDocument bookingId={3} order={order} onUpdated={onUpdated} />);
+
+    // Uploaded already, so there is no "asked" prompt - only a way to replace it.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Replace Order Confirmation' }));
+    await user.upload(screen.getByLabelText('File'), pdf());
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(addOrderDocument).toHaveBeenCalledWith(3, 5, { kind: 'order_confirmation', file: expect.any(File) });
+    expect(removeBookingDocument).toHaveBeenCalledWith(3, 8);
+    // The customer's list ends with the new document only.
+    const shown = onUpdated.mock.calls[0][0];
+    expect(shown.documents.map((document) => document.name)).toEqual(['nieuw.pdf']);
+  });
+
+  it('keeps the old one when the new one could not be saved', async () => {
+    const user = userEvent.setup();
+    const order = { ...ORDER, documents: [CONFIRMATION] };
+    addOrderDocument.mockRejectedValue(new ApiError(API_ERRORS.VALIDATION, { file: ['Too big.'] }, 400));
+    renderWithProviders(<AddOrderDocument bookingId={3} order={order} onUpdated={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Replace Order Confirmation' }));
+    await user.upload(screen.getByLabelText('File'), pdf());
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Too big.');
+    expect(removeBookingDocument).not.toHaveBeenCalled();
   });
 });

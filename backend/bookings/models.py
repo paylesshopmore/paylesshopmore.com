@@ -242,6 +242,16 @@ class Booking(models.Model):
         return f"{self.shipping_number or 'unnumbered'} — {who}"
 
     @property
+    def reference(self):
+        """The number the booking is called by (in e-mails and on screen).
+
+        Its shipping number once the office gave one (PLSM-00004), otherwise
+        PLSM- and its id padded to seven digits (PLSM-0000010). The same rule as
+        frontend/src/utils/bookingReference.js: keep the two in step.
+        """
+        return self.shipping_number.strip() or f"PLSM-{self.pk:07d}"
+
+    @property
     def destination_label(self):
         """The destination as written, including a free-text "Overig"."""
         if self.destination == self.Destination.OTHER:
@@ -315,6 +325,19 @@ class BookingOrder(models.Model):
     # allows another request after a day.
     invoice_requested_at = models.DateTimeField(null=True, blank=True)
     invoice_requested_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    # The same, for the webshop's ORDER CONFIRMATION (the "Request Order
+    # Confirmation" button). It is optional paperwork: a booking never waits for
+    # it. These two fields are the request history - when it was asked for and
+    # by whom; whether it was uploaded is read from the documents themselves.
+    confirmation_requested_at = models.DateTimeField(null=True, blank=True)
+    confirmation_requested_by = models.ForeignKey(
         "accounts.User",
         on_delete=models.SET_NULL,
         null=True,

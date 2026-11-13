@@ -2046,3 +2046,29 @@
     justify-content: center;
   }
 }
+
+/* ---- "The office asked for your order confirmation" (OrderDocuments.jsx) ---- */
+.docButtons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+}
+
+/* The notice with its "Upload Order Confirmation" button: stands out from the
+   quiet "+ Add document" link, in the shipment pop-up's own colours. */
+.docAsked {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border-left: 4px solid #0ea5e9;
+  border-radius: 6px;
+  background: #f0f9ff;
+}
+
+.docAsked p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #075985;
+}

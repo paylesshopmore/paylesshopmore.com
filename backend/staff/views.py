@@ -734,6 +734,7 @@ class BookingViewSet(StaffViewSet):
                 # Who pressed "received" / "request invoice": names on the page.
                 "orders__received_by",
                 "orders__invoice_requested_by",
+                "orders__confirmation_requested_by",
                 "orders__products__received_by",
                 "package__intake_sheets__measurements",
                 "package__intake_sheets__created_by",
@@ -812,14 +813,67 @@ class BookingViewSet(StaffViewSet):
         url_name="order-request-invoice",
     )
     def request_invoice(self, request, pk=None, order_id=None):
+        """POST: ask the customer to add the INVOICE of this store order."""
+        return self._request_document(request, pk, order_id, "invoice")
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"orders/(?P<order_id>[0-9]+)/request-confirmation",
+        url_name="order-request-confirmation",
+    )
+    def request_confirmation(self, request, pk=None, order_id=None):
+        """POST: ask the customer to upload the webshop's ORDER CONFIRMATION of
+        this store order ("Request Order Confirmation").
+
+        Exactly the same rules as the invoice request - one shared helper below.
+        The confirmation stays OPTIONAL: nothing about the booking waits for it.
+        """
+        return self._request_document(request, pk, order_id, "order_confirmation")
+
+    def _request_document(self, request, pk, order_id, which):
+        """Ask the customer for one kind of document: the invoice or the order
+        confirmation. Shared, so the two buttons can never behave differently.
+
+        Step by step:
+          1. Find the booking and its store order.
+          2. Refuse when asking makes no sense: the document is already there,
+             the booking has no customer account, or it is shipped/cancelled.
+          3. Record WHEN and WHO asked - but only if nobody asked in the last
+             24 hours. This is one conditional UPDATE, so two quick presses (or
+             two colleagues at once) send ONE request, not two.
+          4. Tell the customer (bell + e-mail). A problem there never undoes
+             step 3: the request is recorded either way.
+          5. Answer the whole booking, so the page redraws in one go.
+        """
         from bookings.models import BookingOrder
-        from notifications.services import notify_invoice_requested
+        from notifications import services
+
+        # What differs between the two documents, in one place.
+        wanted = {
+            "invoice": {
+                "kind": BookingAttachment.Kind.INVOICE,
+                "at": "invoice_requested_at",
+                "by": "invoice_requested_by",
+                "notify": services.notify_invoice_requested,
+                "article": "an invoice",
+                "this": "this invoice",
+            },
+            "order_confirmation": {
+                "kind": BookingAttachment.Kind.ORDER_CONFIRMATION,
+                "at": "confirmation_requested_at",
+                "by": "confirmation_requested_by",
+                "notify": services.notify_confirmation_requested,
+                "article": "an order confirmation",
+                "this": "this order confirmation",
+            },
+        }[which]
 
         booking = self.get_object()
         order = get_object_or_404(booking.orders, pk=order_id)
 
-        if order.screenshots.filter(kind=BookingAttachment.Kind.INVOICE).exists():
-            raise ValidationError({"detail": ["This order already has an invoice."]})
+        if order.screenshots.filter(kind=wanted["kind"]).exists():
+            raise ValidationError({"detail": [f"This order already has {wanted['article']}."]})
         if booking.user_id is None:
             raise ValidationError(
                 {
@@ -835,22 +889,25 @@ class BookingViewSet(StaffViewSet):
             )
 
         now = timezone.now()
-        # A conditional UPDATE: it only goes through when nobody asked within
-        # the cooldown, so two quick presses (or two colleagues) send ONE request.
-        changed = BookingOrder.objects.filter(pk=order.pk).filter(
-            Q(invoice_requested_at__isnull=True) | Q(invoice_requested_at__lt=now - self.INVOICE_REQUEST_COOLDOWN)
-        ).update(invoice_requested_at=now, invoice_requested_by=request.user)
+        asked_at, asked_by = wanted["at"], wanted["by"]
+        changed = (
+            BookingOrder.objects.filter(pk=order.pk)
+            .filter(
+                Q(**{f"{asked_at}__isnull": True})
+                | Q(**{f"{asked_at}__lt": now - self.INVOICE_REQUEST_COOLDOWN})
+            )
+            .update(**{asked_at: now, asked_by: request.user})
+        )
         if not changed:
             raise ValidationError(
-                {"detail": ["The customer was already asked for this invoice in the last 24 hours."]}
+                {"detail": [f"The customer was already asked for {wanted['this']} in the last 24 hours."]}
             )
 
-        # A problem with the message must never undo the request being recorded.
         try:
             order.refresh_from_db()
-            notify_invoice_requested(order)
+            wanted["notify"](order)
         except Exception:  # noqa: BLE001
-            logger.exception("Could not notify the customer about the missing invoice of order %s.", order.pk)
+            logger.exception("Could not notify the customer about the missing %s of order %s.", which, order.pk)
 
         fresh = self.get_queryset().get(pk=booking.pk)
         return Response(self.get_serializer(fresh).data)

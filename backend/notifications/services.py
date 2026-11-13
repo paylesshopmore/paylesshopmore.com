@@ -148,15 +148,16 @@ def notify_item_received(row):
     return notification
 
 
-def notify_invoice_requested(order):
-    """Tell the customer the office is missing the invoice of one of their
-    store orders and ask them to add it (the "Factuur opvragen" button on
-    Dashboard -> Bookings, staff/views.py request_invoice).
+def _notify_order_document_requested(order, status):
+    """Tell the customer the office wants a document for one of their store
+    orders. Shared by the two requests below; `status` is the notification's
+    own code ("invoice_requested" or "confirmation_requested").
 
-    `order` is a BookingOrder. A "shipment status" notification with its own
-    status code, like notify_item_received: the facts go in `context`, the words
-    are made later (notifications/messages.py, notificationText.js). Returns the
-    notification, or None when the booking has no customer account.
+    A "shipment status" notification, like notify_item_received: the facts go in
+    `context` (shop, item, and the BOOKING NUMBER so the customer sees which
+    booking it is about) and the words are made later - notifications/messages.py
+    for the e-mail, notificationText.js for the bell. Returns the notification,
+    or None when the booking has no customer account.
     """
     booking = order.booking
     if booking.user_id is None:
@@ -169,14 +170,27 @@ def notify_invoice_requested(order):
         package=package,
         context={
             "tracking_number": (package.tracking_number if package else booking.shipping_number) or "",
-            "status": "invoice_requested",
+            "status": status,
             "shop": order.shop_name,
             "item": order.description,
+            "booking_number": booking.reference,
         },
     )
 
     _queue_email(notification)
     return notification
+
+
+def notify_invoice_requested(order):
+    """The office is missing the invoice of this store order ("Factuur
+    opvragen" on Dashboard -> Bookings). `order` is a BookingOrder."""
+    return _notify_order_document_requested(order, "invoice_requested")
+
+
+def notify_confirmation_requested(order):
+    """The office asks for the webshop's ORDER CONFIRMATION ("Request Order
+    Confirmation"). `order` is a BookingOrder."""
+    return _notify_order_document_requested(order, "confirmation_requested")
 
 
 def notify_shipment_status(package, previous_status):
