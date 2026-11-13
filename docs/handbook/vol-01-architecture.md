@@ -702,6 +702,7 @@ App Platform scheduled jobs (all commented out in the spec — §16):
 | `python manage.py backup_database` | `0 3 * * *` | Nightly `pg_dump` (`ops/backup.py`, `docs/BACKUPS.md`) |
 | `python manage.py send_warehouse_report --yesterday` + `send_office_summary` | `0 6 * * *` | Daily reports |
 | `python manage.py sync_carrier_tracking` | `15 */2 * * *` | Poll couriers (`tracking/sync.py`) |
+| `python manage.py purge_login_activity` | `30 3 * * *` | Delete login records past `LOGIN_ACTIVITY_RETENTION_DAYS` (`loginactivity/`) |
 
 ### 6.7 External services the backend calls
 

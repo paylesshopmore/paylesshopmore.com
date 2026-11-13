@@ -443,3 +443,93 @@ class OfficeReceivedButtonTests(ReceiptsTestCase):
             self.assertEqual([(d["kind"], d["name"]) for d in order["documents"]], [("invoice", "factuur-bol.pdf")])
         finally:
             attachment.file.delete(save=False)
+
+
+class ReceivedNotificationTests(OfficeReceivedButtonTests):
+    """Pressing "Product ontvangen" / "Bestelling ontvangen" tells the customer
+    (notifications/services.py notify_item_received): a bell row and an
+    e-mail in their language, once per press."""
+
+    def press(self, *args, **kwargs):
+        # The e-mail is sent from a transaction.on_commit hook, which a test
+        # only runs when asked to (as in notifications/test_language_and_received.py).
+        with self.captureOnCommitCallbacks(execute=True):
+            return super().press(*args, **kwargs)
+
+    def notes(self):
+        from notifications.models import Notification
+
+        return list(Notification.objects.filter(user=self.customer).order_by("id"))
+
+    def test_pressing_a_product_notifies_the_customer_once(self):
+        from django.core import mail
+
+        self.press("product", self.lamp)
+        [note] = self.notes()
+        self.assertEqual(note.context["status"], "item_received")
+        self.assertEqual((note.context["item"], note.context["shop"]), ("Lamp", "Ikea"))
+        self.assertEqual(note.package, self.package)
+        # The e-mail names what arrived, in Dutch (no language set yet).
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Een product van uw bestelling is aangekomen", mail.outbox[0].subject)
+        self.assertIn("Lamp (van Ikea)", mail.outbox[0].body)
+
+    def test_pressing_again_does_not_notify_twice(self):
+        self.press("product", self.lamp)
+        self.press("product", self.lamp)  # already received: nothing changes
+        self.assertEqual(len(self.notes()), 1)
+
+    def test_undo_sends_nothing_and_a_new_press_notifies_again(self):
+        self.press("product", self.lamp)
+        self.press("product", self.lamp, received=False)
+        self.assertEqual(len(self.notes()), 1)
+        self.press("product", self.lamp)
+        self.assertEqual(len(self.notes()), 2)
+
+    def test_the_whole_order_has_its_own_message(self):
+        self.press("order", self.order)
+        [note] = self.notes()
+        self.assertEqual(note.context["status"], "order_received")
+
+    def test_english_and_papiamentu_customers_get_their_language(self):
+        from django.core import mail
+
+        for language, expected in (("en", "has arrived at our warehouse"), ("pap", "a yega na nos depósito")):
+            with self.subTest(language=language):
+                mail.outbox.clear()
+                self.customer.language = language
+                self.customer.save(update_fields=["language"])
+                self.press("product", self.lamp)
+                self.assertIn(expected, mail.outbox[-1].subject)
+                self.assertIn("Lamp", mail.outbox[-1].body)
+                self.press("product", self.lamp, received=False)
+
+    def test_a_stray_brace_in_the_item_name_does_not_break_the_mail(self):
+        from django.core import mail
+
+        self.lamp.description = "Lamp {shop} {0}"
+        self.lamp.save(update_fields=["description"])
+        self.press("product", self.lamp)
+        self.assertIn("Lamp {shop} {0}", mail.outbox[0].body)
+
+    def test_the_shipping_e_mail_preference_is_respected_but_the_bell_row_stays(self):
+        from django.core import mail
+
+        self.customer.notify_shipping = False
+        self.customer.save(update_fields=["notify_shipping"])
+        self.press("product", self.lamp)
+        self.assertEqual(len(self.notes()), 1)
+        self.assertEqual(mail.outbox, [])
+
+    def test_a_booking_without_an_account_notifies_nobody(self):
+        from notifications.models import Notification
+
+        self.booking.user = None
+        self.booking.save(update_fields=["user"])
+        response = self.press("product", self.lamp)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_a_refused_press_notifies_nobody(self):
+        self.press("product", self.lamp, user=self.office)
+        self.assertEqual(self.notes(), [])

@@ -31,6 +31,21 @@ export function describeNotification(notification, t) {
     };
   }
 
+  // An admin confirmed an item (or a whole store order) arrived at the
+  // warehouse (backend notifications/services.py notify_item_received). The
+  // sentence names what arrived: "Stage Decks (from bol.com)". "View" opens
+  // the customer's bookings, where the green "Received" label is.
+  if (context.status === 'item_received' || context.status === 'order_received') {
+    return {
+      title: t(`notifications.status.${context.status}`),
+      text: fill(t('notifications.receivedItem'), {
+        item: context.item ?? '',
+        shop: context.shop ?? '',
+      }),
+      link: '/profile#bookings',
+    };
+  }
+
   // shipment_status, and anything newer the site does not know yet.
   const key = `notifications.status.${context.status}`;
   const title = t(key);

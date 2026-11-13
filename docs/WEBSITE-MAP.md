@@ -168,6 +168,7 @@ All pages use `api/staff.js` unless noted.
 | `/dashboard/courier-tracking` | `CourierTracking.jsx` | Every courier number we follow: incoming (webshop orders on their way to our warehouse) and outgoing (our shipments on their way to the island). Register and correct numbers (office). `api/staff.js`, backend `tracking/`. Office and warehouse manager. See [TRACKING.md](TRACKING.md) |
 | `/dashboard/blog` | `Blog.jsx` | Write blog posts; links to the post on the website (`api/blog.js`) |
 | `/dashboard/website` | `WebsiteSettings.jsx` | Admins: switch the public Calculator page on or off (`api/staff.js`, backend `staff/site_settings.py`) |
+| `/dashboard/login-activity` | `LoginActivity.jsx` | Office staff and admins: a map of where people sign in from, cards, a filterable table and a CSV export, with suspicious attempts flagged for review (`api/loginActivity.js`, backend `loginactivity/`) |
 | `/dashboard/security` | `Security.jsx` | Admins: two-factor sign-in off / optional / required, and its history (`api/twoFactor.js`) |
 | `/dashboard/system` | `SystemStatus.jsx` | Admins: recent database backups, error monitoring (Sentry), e-mail. See [BACKUPS.md](BACKUPS.md) |
 

@@ -110,6 +110,9 @@ export function useCollection(fetcher, initialFilters = {}, initialSearch = '') 
       hasPrevious: Boolean(data.hasPrevious),
       filters,
       setFilter,
+      // The term the current results were fetched with (debounced), for pages
+      // that ask other endpoints the same question - e.g. Login activity's map.
+      search,
       searchInput,
       setSearchInput,
       page,
@@ -118,6 +121,6 @@ export function useCollection(fetcher, initialFilters = {}, initialSearch = '') 
       reload,
       replaceRow,
     }),
-    [data, filters, setFilter, searchInput, page, state, reload, replaceRow],
+    [data, filters, setFilter, search, searchInput, page, state, reload, replaceRow],
   );
 }

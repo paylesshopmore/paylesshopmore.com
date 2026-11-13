@@ -140,6 +140,9 @@ const GROUPS = [
       { to: '/dashboard/website', labelKey: 'dashboard.office.nav.website', icon: GearIcon, adminOnly: true },
       // Two-factor sign-in: off, optional or required. Admins only - see Security.jsx.
       { to: '/dashboard/security', labelKey: 'dashboard.office.nav.security', icon: GearIcon, adminOnly: true },
+      // Where people sign in from (a map) and which attempts look wrong. Office
+      // staff and admins - see LoginActivity.jsx.
+      { to: '/dashboard/login-activity', labelKey: 'dashboard.office.nav.loginActivity', icon: ShieldIcon },
       // Backups, error monitoring and e-mail at a glance. Admins only - see
       // SystemStatus.jsx.
       { to: '/dashboard/system', labelKey: 'dashboard.office.nav.system', icon: ShieldIcon, adminOnly: true },

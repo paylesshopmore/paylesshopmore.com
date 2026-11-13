@@ -106,6 +106,48 @@ def notify_shipment_received(package):
     return notification
 
 
+def notify_item_received(row):
+    """Tell the customer an admin confirmed that something they ordered has
+    arrived at the warehouse (the "Product ontvangen" / "Bestelling ontvangen"
+    buttons on Dashboard -> Bookings, staff/views.py BookingViewSet).
+
+    `row` is a BookingProduct (one item) or a BookingOrder (everything from one
+    store). One notification per press: the caller only calls this when the
+    press really changed the row from "not received" to "received", so a
+    double-click or a retry never produces a second one.
+
+    It is a "shipment status" notification with its own status code, the same
+    way courier news is ("courier_delivered", tracking/sync.py). The facts go
+    in `context`; the words are made later (notifications/messages.py for the
+    e-mail, notificationText.js for the bell). Returns the notification, or
+    None when the booking has no customer account (it was sent without
+    signing in), so there is nobody to tell.
+    """
+    # A product knows its order; a store order is the row itself.
+    is_product = hasattr(row, "order")
+    booking = row.booking
+    if booking.user_id is None:
+        return None
+
+    package = booking.package
+    notification = Notification.objects.create(
+        user=booking.user,
+        kind=Notification.Kind.SHIPMENT_STATUS,
+        package=package,
+        context={
+            # The shipment's number once there is one, else the booking's.
+            "tracking_number": (package.tracking_number if package else booking.shipping_number) or "",
+            "status": "item_received" if is_product else "order_received",
+            "shop": row.order.shop_name if is_product else row.shop_name,
+            # What was received: the product, or the store order's description.
+            "item": row.description,
+        },
+    )
+
+    _queue_email(notification)
+    return notification
+
+
 def notify_shipment_status(package, previous_status):
     """Tell the customer their shipment has moved.
 

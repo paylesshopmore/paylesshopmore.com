@@ -30,6 +30,10 @@ from rest_framework.throttling import ScopedRateThrottle, SimpleRateThrottle
 from rest_framework.views import APIView
 
 from config import abuse
+from loginactivity import recorder as login_log
+from loginactivity import security as login_security
+from loginactivity.client import client_ip
+from loginactivity.models import LoginActivity
 
 from . import floor, lockout, reauth, twofactor
 from .emails import send_handover_changed, send_password_reset
@@ -139,12 +143,49 @@ class SignupView(generics.CreateAPIView):
         )
 
 
+def refuse_blocked_address(request, method, identifier=""):
+    """A 401 for a sign-in from an address on the office's block list, or None.
+
+    Same status and the same vague sentence as a wrong password, so a blocked
+    address learns nothing from the answer. The attempt is still written to the
+    login log (flagged "blocked_ip"), which is how the office sees it tried.
+    The block list is edited in Django's admin (loginactivity.BlockedIP).
+    """
+    if not login_security.is_blocked(client_ip(request)):
+        return None
+    login_log.record(
+        request, status=LoginActivity.Status.FAILED, method=method, identifier=identifier
+    )
+    return Response(
+        {"detail": "Unable to log in with the credentials provided."},
+        status=status.HTTP_401_UNAUTHORIZED,
+    )
+
+
+def log_failed_sign_in(request, method, identifier=""):
+    """Write a failed code / PIN sign-in to the login log.
+
+    These sign-ins fail without going through Django's authenticate(), so the
+    "login failed" signal never fires for them. Only the account name that was
+    typed is passed on - never the PIN or the code.
+    """
+    login_log.record(
+        request, status=LoginActivity.Status.FAILED, method=method, identifier=str(identifier)[:254]
+    )
+
+
 class LoginView(APIView):
     permission_classes = [AllowAny]
     throttle_scope = "login"
     throttle_classes = [ScopedRateThrottle]
 
     def post(self, request):
+        blocked = refuse_blocked_address(
+            request, "password", str(request.data.get("username") or "")
+        )
+        if blocked is not None:
+            return blocked
+
         # Per account as well as per address: see accounts/lockout.py. The
         # throttle above is only as good as the address it is told.
         failures = lockout.account_key(str(request.data.get("username") or ""))
@@ -195,6 +236,12 @@ class WarehouseCodeLoginView(APIView):
     throttle_classes = [ScopedRateThrottle]
 
     def post(self, request):
+        blocked = refuse_blocked_address(
+            request, "email_code", str(request.data.get("email") or "")
+        )
+        if blocked is not None:
+            return blocked
+
         body = CodeLoginSerializer(data=request.data)
 
         user = None
@@ -204,6 +251,7 @@ class WarehouseCodeLoginView(APIView):
             )
 
         if user is None:
+            log_failed_sign_in(request, "email_code", request.data.get("email") or "")
             return Response(
                 {"detail": "Unable to log in with the credentials provided."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -353,6 +401,9 @@ class PinLoginView(APIView):
             )
 
         if user is None:
+            # The worker is tapped from a list, so there is no address typed:
+            # their id is the only name there is.
+            log_failed_sign_in(request, "pin", f"worker #{request.data.get('worker')}")
             return Response(
                 {"detail": "Unable to log in with the credentials provided."},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -383,6 +434,12 @@ class WarehouseLoginView(APIView):
     throttle_classes = [ScopedRateThrottle]
 
     def post(self, request):
+        blocked = refuse_blocked_address(
+            request, "email_pin", str(request.data.get("email") or "")
+        )
+        if blocked is not None:
+            return blocked
+
         device = floor.device_for(request)
         try:
             user = floor.sign_in_with_email(
@@ -397,6 +454,7 @@ class WarehouseLoginView(APIView):
             )
 
         if user is None:
+            log_failed_sign_in(request, "email_pin", request.data.get("email") or "")
             return Response(
                 {"detail": "That e-mail address or PIN is not right."},
                 status=status.HTTP_401_UNAUTHORIZED,

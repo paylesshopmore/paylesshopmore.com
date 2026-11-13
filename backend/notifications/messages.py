@@ -15,6 +15,8 @@ Kept apart from tasks.py so that what a message says can be tested without an
 outbox, and apart from models.py so that a wording change is not a migration.
 """
 
+import re
+
 from django.conf import settings
 
 from .models import Notification
@@ -48,6 +50,8 @@ MESSAGES = {
             "courier_delayed": "Your order is delayed",
             "courier_returned": "Your order is being returned to the shop",
             "courier_exception": "There is a problem with your order's delivery",
+            "item_received": "An item of your order has arrived at our warehouse",
+            "order_received": "Your order has arrived at our warehouse",
         },
         "lines": {
             "received": "We have received your goods at our warehouse. We will measure and pack them for shipping.",
@@ -74,6 +78,11 @@ MESSAGES = {
             "courier_delayed": "The courier reports that your order is delayed.",
             "courier_returned": "The courier is returning your order to the shop. Please contact the shop.",
             "courier_exception": "The courier reports a problem with your order. Please contact the shop or us.",
+            "item_received": (
+                "We have received {item} (from {shop}) at our warehouse. "
+                "Other items of your order may still be on their way."
+            ),
+            "order_received": "We have received your whole order from {shop} ({item}) at our warehouse.",
         },
         "default_subject": "Shipment update",
         "default_line": "There is an update on your shipment.",
@@ -106,6 +115,8 @@ MESSAGES = {
             "courier_delayed": "Uw bestelling heeft vertraging",
             "courier_returned": "Uw bestelling gaat terug naar de winkel",
             "courier_exception": "Er is een probleem met de bezorging van uw bestelling",
+            "item_received": "Een product van uw bestelling is aangekomen in ons magazijn",
+            "order_received": "Uw bestelling is aangekomen in ons magazijn",
         },
         "lines": {
             "received": (
@@ -141,6 +152,11 @@ MESSAGES = {
                 "De koerier meldt een probleem met uw bestelling. Neem contact op met de winkel "
                 "of met ons."
             ),
+            "item_received": (
+                "Wij hebben {item} (van {shop}) ontvangen in ons magazijn. "
+                "Andere producten van uw bestelling kunnen nog onderweg zijn."
+            ),
+            "order_received": "Wij hebben uw hele bestelling van {shop} ({item}) ontvangen in ons magazijn.",
         },
         "default_subject": "Nieuws over uw zending",
         "default_line": "Er is nieuws over uw zending.",
@@ -173,6 +189,8 @@ MESSAGES = {
             "courier_delayed": "Bo òrdu tin atraso",
             "courier_returned": "Bo òrdu ta bai bèk na e tienda",
             "courier_exception": "Tin un problema ku e entrega di bo òrdu",
+            "item_received": "Un produkto di bo òrdu a yega na nos depósito",
+            "order_received": "Bo òrdu a yega na nos depósito",
         },
         "lines": {
             "received": "Nos a risibí bo merkansia na nos depósito. Nos lo midi i paka nan pa manda.",
@@ -199,6 +217,11 @@ MESSAGES = {
                 "E kurier ta reportá un problema ku bo òrdu. Por fabor tuma kontakto ku e tienda "
                 "òf ku nos."
             ),
+            "item_received": (
+                "Nos a risibí {item} (di {shop}) na nos depósito. "
+                "Otro produktonan di bo òrdu por ainda ta na kaminda."
+            ),
+            "order_received": "Nos a risibí henter bo òrdu di {shop} ({item}) na nos depósito.",
         },
         "default_subject": "Notisia tokante bo enbio",
         "default_line": "Tin notisia tokante bo enbio.",
@@ -233,6 +256,22 @@ def _copy(notification):
 
 def _tracking(context):
     return context.get("tracking_number") or ""
+
+
+def _fill(line, context):
+    """Put the facts in a line that asks for them: {item} and {shop}.
+
+    Not str.format, and not two replaces one after the other: the item name
+    is what the customer typed, and a "{" or even a "{shop}" in it must come
+    out exactly as typed. So the line is read once, left to right, and each
+    placeholder is swapped for its fact in that single pass. A fact we do not
+    have becomes an empty word rather than a visible "{shop}".
+    """
+    return re.sub(
+        r"\{(item|shop)\}",
+        lambda match: str(context.get(match.group(1)) or ""),
+        line,
+    )
 
 
 def subject_for(notification):
@@ -276,7 +315,8 @@ def body_for(notification):
             f"{settings.FRONTEND_URL}/profile#invoices",
         ]
     else:
-        lines.append(copy["lines"].get(context.get("status"), copy["default_line"]))
+        line = copy["lines"].get(context.get("status"), copy["default_line"])
+        lines.append(_fill(line, context))
         if tracking:
             lines += [
                 "",

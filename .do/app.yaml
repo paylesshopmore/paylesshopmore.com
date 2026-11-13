@@ -128,6 +128,15 @@ services:
       - key: DJANGO_NUM_PROXIES
         value: "1"
         scope: RUN_TIME
+      # Where login attempts are placed on the Login activity map
+      # (backend loginactivity/geo.py). "none" = no lookups, every place stays
+      # unknown. Without the Celery worker below the lookup would run inside
+      # the sign-in request, and "ipwhois" sends visitors' IP addresses to
+      # ipwho.is (the privacy statement says so). Switch to "ipwhois" only
+      # once the worker is on, or use "maxmind" with a local database file.
+      - key: LOGIN_GEO_PROVIDER
+        value: none
+        scope: RUN_TIME
       # Short on purpose for the first deploy. Browsers remember HSTS and it
       # cannot be withdrawn early. Raise it to 31536000 (a year) once the site
       # works on its final domain.
@@ -210,4 +219,16 @@ services:
 #     source_dir: backend
 #     dockerfile_path: backend/Dockerfile
 #     run_command: python manage.py backup_database
+#     instance_size_slug: apps-s-1vcpu-0.5gb
+#   # Deletes login records older than LOGIN_ACTIVITY_RETENTION_DAYS (90 by
+#   # default), so sign-in data is not kept longer than needed (GDPR).
+#   - name: purge-login-activity
+#     kind: SCHEDULED
+#     schedule:
+#       cron: "30 3 * * *"
+#       time_zone: UTC
+#     github: { repo: paylesshopmore/paylesshopmore.com, branch: main }
+#     source_dir: backend
+#     dockerfile_path: backend/Dockerfile
+#     run_command: python manage.py purge_login_activity
 #     instance_size_slug: apps-s-1vcpu-0.5gb

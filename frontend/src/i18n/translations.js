@@ -1397,7 +1397,7 @@ export const translations = {
         pickup: 'Haal uw bestellingen op',
       },
       shopAndShip: {
-        title: 'Shop and ship naar Bonaire en Curaçao',
+        title: 'Shop and ship naar Aruba, Bonaire en Curaçao',
         readMore: 'Lees meer',
         readMoreAbout: 'over',
         particulier: {
@@ -1628,6 +1628,7 @@ export const translations = {
       open: 'Bekijken',
       closeAlert: 'Melding sluiten',
       shipment: 'Zending {tracking}',
+      receivedItem: '{item} (van {shop})',
       status: {
         received: 'Uw zending is aangekomen in ons magazijn',
         quoted: 'Uw offerte staat klaar',
@@ -1643,6 +1644,8 @@ export const translations = {
         courier_delayed: "Uw bestelling heeft vertraging",
         courier_returned: "Uw bestelling gaat terug naar de winkel",
         courier_exception: "Er is een probleem met de bezorging van uw bestelling",
+        item_received: 'Een product van uw bestelling is aangekomen in ons magazijn',
+        order_received: 'Uw bestelling is aangekomen in ons magazijn',
         prealert_submitted: "Uw vooraanmelding is geregistreerd",
         other: 'Er is nieuws over uw zending',
       },
@@ -1942,6 +1945,14 @@ export const translations = {
           body: [
             'Wij bewaren uw persoonsgegevens niet langer dan nodig is voor de doeleinden waarvoor ze zijn verzameld of worden gebruikt en/of zolang de wet dat vereist.',
             'Wilt u dat uw gegevens worden verwijderd? Neem dan contact op met ons kantoor. Op uw verzoek verwijderen wij uw persoonsgegevens zonder onnodige vertraging, met uitzondering van gegevens die wij wettelijk moeten bewaren. Zo zijn wij wettelijk verplicht gegevens zoals kopieën van facturen zeven jaar te bewaren.',
+          ],
+        },
+        loginMonitoring: {
+          heading: 'Beveiliging en inlogcontrole',
+          body: [
+            'Om ons platform en uw account te beschermen, registreren wij elke inlogpoging, gelukt of mislukt. Per poging bewaren wij het account of e-mailadres dat is ingevoerd, uw IP-adres, het land en de plaats die daar bij benadering bij horen, het tijdstip, het soort browser, besturingssysteem en apparaat en de manier van inloggen. Wachtwoorden, pincodes en codes slaan wij nooit op, ook niet als ze onjuist zijn.',
+            'Het doel is misbruik op te sporen, bijvoorbeeld veel mislukte pogingen of een inlog vanaf een onverwacht apparaat. Alleen medewerkers van ons kantoor met een beheerrol kunnen deze gegevens inzien. Een ongebruikelijke plaats of een nieuw apparaat is voor ons alleen een signaal om te kijken, geen bewijs van misbruik, en wij nemen op die grond geen geautomatiseerde beslissingen over uw account.',
+            'De plaats bepalen wij bij benadering uit uw IP-adres. Wij gebruiken nooit GPS of de locatie van uw apparaat. Voor die bepaling kan uw IP-adres worden voorgelegd aan een geolocatiedienst (ipwho.is). Deze inloggegevens bewaren wij maximaal 90 dagen en verwijderen wij daarna. Onze rechtsgrond is ons gerechtvaardigde belang bij de beveiliging van onze diensten en van uw account.',
           ],
         },
         legalBasis: {
@@ -4388,7 +4399,7 @@ export const translations = {
         pickup: 'Pick up your orders',
       },
       shopAndShip: {
-        title: 'Shop and ship to Bonaire and Curaçao',
+        title: 'Shop and ship to Aruba, Bonaire and Curaçao',
         readMore: 'Read more',
         readMoreAbout: 'about',
         particulier: {
@@ -4617,6 +4628,7 @@ export const translations = {
       open: 'View',
       closeAlert: 'Close notification',
       shipment: 'Shipment {tracking}',
+      receivedItem: '{item} (from {shop})',
       status: {
         received: 'Your shipment has arrived at our warehouse',
         quoted: 'Your quote is ready',
@@ -4632,6 +4644,8 @@ export const translations = {
         courier_delayed: "Your order is delayed",
         courier_returned: "Your order is being returned to the shop",
         courier_exception: "There is a problem with your order's delivery",
+        item_received: 'An item of your order has arrived at our warehouse',
+        order_received: 'Your order has arrived at our warehouse',
         prealert_submitted: "Your pre-alert has been registered",
         other: 'There is news about your shipment',
       },
@@ -4930,6 +4944,14 @@ export const translations = {
           body: [
             'We retain your personal data only for as long as it is necessary for the purposes for which it was collected or is used and/or as long as required by law.',
             'If you wish to have your data deleted, please contact our office. Upon request, we will delete your personal data without undue delay, with the exception of information that we are legally obliged to retain. For example, we are legally required to retain data such as copies of invoices for seven years.',
+          ],
+        },
+        loginMonitoring: {
+          heading: 'Security and sign-in monitoring',
+          body: [
+            'To protect our platform and your account, we record every sign-in attempt, successful or failed. For each attempt we keep the account or e-mail address that was entered, your IP address, the country and city that roughly belong to it, the time, the type of browser, operating system and device, and the way you signed in. We never store passwords, PINs or codes, not even wrong ones.',
+            'The purpose is to detect misuse, for example many failed attempts or a sign-in from an unexpected device. Only office staff with an administrator role can see this data. An unusual place or a new device is only a signal for us to take a look, not proof of misuse, and we make no automated decisions about your account on that basis.',
+            'We work out the place approximately from your IP address. We never use GPS or your device\'s location. For that, your IP address may be submitted to a geolocation service (ipwho.is). We keep these sign-in records for at most 90 days and delete them afterwards. Our legal basis is our legitimate interest in the security of our services and of your account.',
           ],
         },
         legalBasis: {
@@ -7377,7 +7399,7 @@ export const translations = {
         pickup: 'Buska bo òrdunan',
       },
       shopAndShip: {
-        title: 'Shop and ship pa Boneiru i Kòrsou',
+        title: 'Shop and ship pa Aruba, Boneiru i Kòrsou',
         readMore: 'Lesa mas',
         readMoreAbout: 'tokante',
         particulier: {
@@ -7605,6 +7627,7 @@ export const translations = {
       open: 'Mira',
       closeAlert: 'Sera notifikashon',
       shipment: 'Enbio {tracking}',
+      receivedItem: '{item} (di {shop})',
       status: {
         received: 'Bo enbio a yega na nos depósito',
         quoted: 'Bo ofèrta ta kla',
@@ -7620,6 +7643,8 @@ export const translations = {
         courier_delayed: "Bo òrdu tin atraso",
         courier_returned: "Bo òrdu ta bai bèk na e tienda",
         courier_exception: "Tin un problema ku e entrega di bo òrdu",
+        item_received: 'Un produkto di bo òrdu a yega na nos depósito',
+        order_received: 'Bo òrdu a yega na nos depósito',
         prealert_submitted: "Bo pre-alerta a wòrdu registrá",
         other: 'Tin notisia tokante bo enbio',
       },
@@ -7921,6 +7946,14 @@ export const translations = {
           body: [
             'Nos ta warda bo datonan personal solamente tantu tempu ku ta nesesario pa e propósitonan pa kua nan a wordu kolektá òf ta wordu usá i/òf tantu tempu ku lei ta eksigí.',
             'Si bo ke pa nos kita bo datonan, tuma kontakto ku nos ofisina. Riba bo petishon, nos ta kita bo datonan personal sin tardansa innesesario, ku eksepshon di informashon ku lei ta obligá nos pa warda. Por ehempel, lei ta obligá nos pa warda datonan manera kopia di faktura pa shete aña.',
+          ],
+        },
+        loginMonitoring: {
+          heading: 'Sigurided i kontròl di login',
+          body: [
+            'Pa protehá nos plataforma i bo kuenta, nos ta registrá kada intento di login, ku éksito òf fayá. Pa kada intento nos ta warda e kuenta òf adrès di e-mail ku a wordu pusha, bo adrès IP, e pais i siudat ku aproximadamente ta pertenesé na dje, e ora, e tipo di browser, sistema operativo i aparato i e manera di login. Nos nunka ta warda wachtwoord, PIN òf kódigo, ni ora nan ta robes.',
+            'E meta ta pa deskubrí abusu, por ehèmpel hopi intento fayá òf un login for di un aparato inesperá. Solamente empleadonan di nos kantor ku un rol di admin por mira e datos aki. Un lugá ku no ta normal òf un aparato nobo ta solamente un señal pa nos wak, no prueba di abusu, i nos no ta tuma desishon outomátiko tokante bo kuenta riba e base aki.',
+            'Nos ta determiná e lugá aproximadamente for di bo adrès IP. Nos nunka ta usa GPS òf e lokalisashon di bo aparato. Pa esei, bo adrès IP por wordu presentá na un servisio di geolokalisashon (ipwho.is). Nos ta warda e registronan di login aki pa maksimo 90 dia i despues nos ta eliminá nan. Nos base legal ta nos interes legítimo den sigurided di nos servisionan i di bo kuenta.',
           ],
         },
         legalBasis: {

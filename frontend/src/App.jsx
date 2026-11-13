@@ -100,6 +100,8 @@ const MeasurementsList = lazy(() => import('./pages/Dashboard/MeasurementsList')
 // API keys and webhooks for other software. Admins only.
 // The admin's two-factor policy. Admins only.
 const Security = lazy(() => import('./pages/Dashboard/Security'));
+// The map of where people sign in from (office staff and admins).
+const LoginActivity = lazy(() => import('./pages/Dashboard/LoginActivity'));
 // Which pages of the public site are on, e.g. the Calculator (admins).
 const WebsiteSettings = lazy(() => import('./pages/Dashboard/WebsiteSettings'));
 // The carriers' own tracking APIs (backend/tracking/adapters/). Admins only.
@@ -331,6 +333,8 @@ export default function App() {
               <Route path="prealerts" element={<PreAlertsPage />} />
               <Route path="blog" element={<DashboardBlog />} />
               <Route path="security" element={<Security />} />
+              {/* Where people sign in from, and which attempts look wrong. */}
+              <Route path="login-activity" element={<LoginActivity />} />
               {/* Which pages of the public site are on (admins). */}
               <Route path="website" element={<WebsiteSettings />} />
               {/* How one month went (Reports.jsx); backups and error monitoring (admins). */}

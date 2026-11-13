@@ -44,6 +44,7 @@ const SECTIONS = [
   'sharing',
   'location',
   'retention',
+  'loginMonitoring',
   'legalBasis',
   'complaints',
   'controller',

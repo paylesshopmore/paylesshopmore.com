@@ -5287,3 +5287,288 @@ button.bkAction:disabled {
   color: #991b1b;
   font-size: 0.85rem;
 }
+
+/* ---- Login activity: the map, cards and table (LoginActivity.jsx) ------- */
+
+/* The map and everything it draws. Leaflet gives its own layers z-index
+   values up to 1000; `isolation: isolate` keeps all of them INSIDE this box,
+   so the map can never float over the sidebar, the top bar or a dialog. */
+.loginMapSection {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1.25rem 0;
+}
+
+.loginMapBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1.25rem;
+}
+
+.loginLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.loginLegend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.loginDot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.25);
+}
+
+.loginToggles {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.loginMapFrame {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #e2e8f0;
+  box-shadow: var(--shadow);
+}
+
+.loginMap {
+  width: 100%;
+  height: 480px;
+}
+
+.loginMapLoading {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  background: rgba(241, 245, 249, 0.8);
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* Leaflet's own classes are global, so the styles for what is drawn inside the
+   map are too. */
+:global(.loginMapCluster) div {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: 2px;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35);
+}
+
+:global(.loginMapPopup) {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 14rem;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* The cards: a suspicious count above zero is worth noticing. */
+.loginStatWarn {
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+
+.loginStatWarn .statValue {
+  color: #c2410c;
+}
+
+/* One-of-several buttons: the period and the result. */
+.loginSegmentsBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.loginSegments {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.loginSegment {
+  min-height: 38px;
+  padding: 0.4rem 0.8rem;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.loginSegment:last-child {
+  border-right: 0;
+}
+
+.loginSegment:hover {
+  background: #f1f5f9;
+}
+
+.loginSegment[aria-pressed='true'] {
+  background: var(--navy);
+  color: #ffffff;
+}
+
+.loginSegment:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+}
+
+/* Status and security as small coloured labels. The words are always there,
+   so colour is never the only signal. */
+.loginBadge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.loginBadge[data-tone='success'],
+.loginBadge[data-tone='normal'] {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.loginBadge[data-tone='failed'] {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.loginBadge[data-tone='notice'] {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.loginBadge[data-tone='suspicious'] {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.loginBadge[data-tone='blocked'] {
+  background: #fecaca;
+  color: #7f1d1d;
+}
+
+.loginFlags {
+  margin: 0.3rem 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.loginTableBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 1.25rem 0 0.6rem;
+}
+
+.loginTableTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.loginNewBar {
+  margin: 0 0 0.6rem;
+  padding: 0.6rem 0.9rem;
+  border-left: 4px solid #0ea5e9;
+  border-radius: 4px;
+  background: #f0f9ff;
+  color: #075985;
+  font-size: 0.9rem;
+}
+
+/* A column heading that sorts when clicked. */
+.loginSortButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.loginSortButton:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* The cards fade in rather than jumping into place. */
+@media (prefers-reduced-motion: no-preference) {
+  .stats > .stat {
+    animation: loginCardIn 0.3s ease both;
+  }
+}
+
+@keyframes loginCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Tablets and phones: a shorter map, and the controls stack. */
+@media (max-width: 900px) {
+  .loginMap {
+    height: 400px;
+  }
+}
+
+@media (max-width: 560px) {
+  .loginMap {
+    height: 320px;
+  }
+
+  .loginMapBar {
+    align-items: flex-start;
+  }
+
+  .loginSegment {
+    flex: 1 1 auto;
+  }
+}

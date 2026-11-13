@@ -114,6 +114,8 @@ INSTALLED_APPS = [
     'assistant',
     # Feedback from visitors and delivery reviews from customers.
     'feedback',
+    # Who signed in (or tried to) and from where: the office's login map.
+    'loginactivity',
 ]
 
 # Must be set before the first migration is applied: Django cannot swap the
@@ -462,6 +464,9 @@ REST_FRAMEWORK = {
         # what enumerating the API would take.
         'user': '1000/hour',
         'login': '10/hour',
+        # Downloading the login log as CSV (loginactivity/views.py Export), per
+        # account. A person needs this a few times a month, not a few times a minute.
+        'login_activity_export': '10/hour',
         # Signing in with a warehouse code, per IP address. Deliberately far
         # looser than 'login': a warehouse is one building behind one public
         # address, and at the start of a shift a couple of dozen workers type
@@ -1296,3 +1301,26 @@ if TESTING:
     # accounts in an "hour" than any real site, so the run gets ceilings it
     # cannot reach; the tests of the ceilings set their own small ones.
     SITE_WIDE_LIMITS = dict.fromkeys(SITE_WIDE_LIMITS, 10**9)
+
+
+# ---------------------------------------------------------------------------
+# Login activity: the office's map of who signed in from where
+# (loginactivity/). See loginactivity/models.py for what is stored.
+# ---------------------------------------------------------------------------
+
+# How long a sign-in record is kept, in days. After that the daily command
+# `python manage.py purge_login_activity` deletes it. 90 days is enough to
+# investigate a problem and short enough to honour "keep personal data no
+# longer than necessary" (GDPR). Say the same number in the privacy statement.
+LOGIN_ACTIVITY_RETENTION_DAYS = int(os.environ.get("LOGIN_ACTIVITY_RETENTION_DAYS", "90"))
+
+# Where an IP address is on the map (loginactivity/geo.py):
+#   "maxmind"  a GeoLite2 City file on our own server - nothing leaves it
+#              (set LOGIN_GEO_MAXMIND_PATH; needs `pip install geoip2`)
+#   "ipwhois"  the ipwho.is web service over HTTPS - the visitor's IP address
+#              IS sent to it, which the privacy statement says
+#   "none"     no lookups; every place stays unknown
+# Off while running the tests, so a test never reaches the internet.
+LOGIN_GEO_PROVIDER = "none" if TESTING else os.environ.get("LOGIN_GEO_PROVIDER", "ipwhois")
+LOGIN_GEO_MAXMIND_PATH = os.environ.get("LOGIN_GEO_MAXMIND_PATH", "")
+LOGIN_GEO_TIMEOUT_SECONDS = 3

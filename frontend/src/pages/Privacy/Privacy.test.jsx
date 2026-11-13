@@ -51,6 +51,7 @@ describe('the privacy page', () => {
       'With whom do we share your personal data?',
       'Where is your personal data processed?',
       'How long do we retain your personal data?',
+      'Security and sign-in monitoring',
       'Legal basis for data processing',
       'Questions and complaints',
       'Responsible entity',

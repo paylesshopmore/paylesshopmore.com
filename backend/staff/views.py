@@ -800,13 +800,26 @@ class BookingViewSet(StaffViewSet):
         if not isinstance(received, bool):
             raise ValidationError({"received": ["Send true or false."]})
 
+        model = type(row)
         if received:
-            row.received_at = timezone.now()
-            row.received_by = request.user
+            # A conditional UPDATE: it changes the row only if it was NOT
+            # received yet, so two quick presses (a double-click, two admins)
+            # produce one change - and so exactly one notification below.
+            changed = model.objects.filter(pk=row.pk, received_at__isnull=True).update(
+                received_at=timezone.now(), received_by=request.user
+            )
+            if changed:
+                # Tell the customer (bell + e-mail, if they allow it). A problem
+                # here must never undo the press, so it is only logged.
+                try:
+                    from notifications.services import notify_item_received
+
+                    row.refresh_from_db()
+                    notify_item_received(row)
+                except Exception:  # noqa: BLE001
+                    logger.exception("Could not notify the customer about received %s %s.", model.__name__, row.pk)
         else:
-            row.received_at = None
-            row.received_by = None
-        row.save(update_fields=["received_at", "received_by"])
+            model.objects.filter(pk=row.pk).update(received_at=None, received_by=None)
 
         # Read again through the queryset, so every prefetch is fresh.
         fresh = self.get_queryset().get(pk=booking.pk)

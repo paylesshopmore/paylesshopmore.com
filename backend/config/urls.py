@@ -54,6 +54,8 @@ urlpatterns = [
     # The chat assistant on the website (assistant/views.py).
     path('api/', include('assistant.urls')),
     path('api/', include('feedback.urls')),
+    # The office's login activity map (loginactivity/). Staff only.
+    path('api/admin/login-activity/', include('loginactivity.urls')),
 ]
 
 if settings.DEBUG:
