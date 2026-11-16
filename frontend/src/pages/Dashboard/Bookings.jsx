@@ -21,7 +21,14 @@ import { bookingReference } from '../../utils/bookingReference';
 import { useLanguage } from '../../i18n/useLanguage';
 import { warehouseSummary } from './bookingMeasurements';
 import { Chip, Field, Group, Progress } from './sheet';
-import { BOOKING_STATUSES, listBookings, sendBookingToWarehouse, updateBooking } from '../../api/staff';
+import {
+  BOOKING_STATUSES,
+  deleteBooking,
+  listBookings,
+  sendBookingToWarehouse,
+  updateBooking,
+} from '../../api/staff';
+import { useAuth } from '../../auth/useAuth';
 import { useCollection } from './useCollection';
 import { formatDate, formatDateTime, formatMoney } from './format';
 import {
@@ -626,6 +633,7 @@ export default function Bookings() {
   const [params] = useSearchParams();
   const d = usePageText('bookings');
   const c = usePageText('common');
+  const { user } = useAuth();
   const statuses = translatedOptions(BOOKING_STATUSES, c, 'bookingStatus');
 
   const list = useCollection(
@@ -663,6 +671,28 @@ export default function Bookings() {
       setDone(d('sentToWarehouse', { number: sent.shipping_number }));
     } catch (failure) {
       setError(failure?.fields?.detail ? String(failure.fields.detail) : c('changeFailed'));
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  /** Admin only: permanently delete a cancelled booking, after asking. */
+  async function remove(booking) {
+    const number = bookingReference(booking);
+    if (!window.confirm(d('deleteBookingConfirm', { number }))) return;
+
+    setSavingId(booking.id);
+    setError('');
+    setDone('');
+
+    try {
+      await deleteBooking(booking.id);
+      // Close the pop-up if it was showing this booking, then drop the row.
+      setOpenId((current) => (current === booking.id ? null : current));
+      list.removeRow(booking.id);
+      setDone(d('bookingDeleted', { number }));
+    } catch {
+      setError(d('deleteBookingFailed'));
     } finally {
       setSavingId(null);
     }
@@ -826,6 +856,19 @@ export default function Bookings() {
                           {labelFor(c, 'bookingStatus', booking.status, booking.status_display)}
                         </StatusBadge>
                       </div>
+                      {/* Admins only (the server checks too): a cancelled
+                          booking can be removed for good. */}
+                      {user?.isAdmin && booking.status === 'cancelled' && (
+                        <button
+                          type="button"
+                          className={styles.rowButton}
+                          style={{ marginTop: '0.35rem' }}
+                          disabled={savingId === booking.id}
+                          onClick={() => remove(booking)}
+                        >
+                          {d('deleteBooking')}
+                        </button>
+                      )}
                       {/* The office's cue: measured by the warehouse, no
                           invoice yet. */}
                       {booking.shipment?.ready_to_invoice && (

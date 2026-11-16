@@ -227,6 +227,11 @@ export async function updateBooking(id, changes) {
   return request(`/staff/bookings/${id}/`, { method: 'PATCH', body: changes });
 }
 
+/** Delete a cancelled booking. Admins only; the server refuses anything else. */
+export async function deleteBooking(id) {
+  return request(`/staff/bookings/${id}/`, { method: 'DELETE' });
+}
+
 /**
  * The office's price check on one product of a booking: the price found on
  * the webshop, the status and internal notes. The customer's own price is

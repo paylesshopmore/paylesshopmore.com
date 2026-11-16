@@ -102,6 +102,18 @@ export function useCollection(fetcher, initialFilters = {}, initialSearch = '') 
     }));
   }, []);
 
+  /** Drop one row from the table after it was deleted on the server. */
+  const removeRow = useCallback((id) => {
+    setAnswer((current) => ({
+      ...current,
+      data: {
+        ...current.data,
+        count: Math.max(0, current.data.count - 1),
+        results: current.data.results.filter((item) => item.id !== id),
+      },
+    }));
+  }, []);
+
   return useMemo(
     () => ({
       rows: data.results,
@@ -120,7 +132,8 @@ export function useCollection(fetcher, initialFilters = {}, initialSearch = '') 
       state,
       reload,
       replaceRow,
+      removeRow,
     }),
-    [data, filters, setFilter, search, searchInput, page, state, reload, replaceRow],
+    [data, filters, setFilter, search, searchInput, page, state, reload, replaceRow, removeRow],
   );
 }

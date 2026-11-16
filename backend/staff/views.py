@@ -758,6 +758,26 @@ class BookingViewSet(StaffViewSet):
         follow_booking_status(booking, actor=self.request.user)
         send_to_warehouse(booking, actor=self.request.user)
 
+    def destroy(self, request, *args, **kwargs):
+        """Delete a CANCELLED booking. Admins only.
+
+        StaffViewSet normally never deletes, so this is deliberately narrow:
+        only an admin, and only a booking whose status is Cancelled - a live
+        booking must be cancelled first, which is the "are you sure" step.
+        The shipment it may have made is kept (the link is SET_NULL), so no
+        invoice or warehouse record is lost.
+        """
+        if not request.user.is_admin:
+            raise PermissionDenied("Only an admin can delete bookings.")
+
+        booking = self.get_object()
+        if booking.status != "cancelled":
+            raise ValidationError({"detail": "Only a cancelled booking can be deleted."})
+
+        logger.info("Admin %s deleted cancelled booking %s.", request.user.pk, booking.pk)
+        booking.delete()
+        return Response(status=http_status.HTTP_204_NO_CONTENT)
+
     # ---- "We have received it": the office's buttons ---------------------
     #
     # POST {"received": true} marks a whole store order, or one product, as
