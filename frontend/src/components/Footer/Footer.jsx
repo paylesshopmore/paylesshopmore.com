@@ -40,6 +40,8 @@ const SOCIAL_LINKS = [
   { label: 'Instagram', href: 'https://www.instagram.com/plsm.vatfree' },
 ];
 
+
+
 export default function Footer() {
   const year = new Date().getFullYear();
   const { t } = useLanguage();
