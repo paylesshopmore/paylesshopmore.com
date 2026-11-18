@@ -36,8 +36,8 @@ const FOOTER_LINKS = [
 ];
 
 const SOCIAL_LINKS = [
-  { label: 'Facebook', href: 'https://facebook.com' },
-  { label: 'Instagram', href: 'https://instagram.com' },
+  { label: 'Facebook', href: 'https://www.facebook.com/share/1CcyS3cpT9/?mibextid=wwXIfr' },
+  { label: 'Instagram', href: 'https://www.instagram.com/plsm.vatfree' },
 ];
 
 export default function Footer() {
