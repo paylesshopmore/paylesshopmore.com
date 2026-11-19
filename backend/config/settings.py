@@ -787,13 +787,11 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_flag("EMAIL_USE_TLS", default=True)
 
 DEFAULT_FROM_EMAIL = os.environ.get(
-    "DJANGO_FROM_EMAIL", "PayLesShopMore.com <noreply@paylesshopmore.com>"
+    "DJANGO_FROM_EMAIL", "PayLesShopMore.com <app@paylesshopmore.com>"
 )
 
 # Where a customer's answer goes when they press "Reply" on an e-mail the office
 # sent from the dashboard (enquiries/replies.py). The From address above is a
-# noreply box, so without this their answer would be lost. Set it to the
-# mailbox the office actually reads.
 OFFICE_REPLY_TO_EMAIL = os.environ.get("DJANGO_REPLY_TO_EMAIL", "info@paylesshopmore.com")
 
 # Who is e-mailed when somebody sends the booking form (bookings/notify.py):
