@@ -1311,3 +1311,16 @@ export async function getSiteSettings() {
 export async function saveSiteSettings(switches) {
   return request('/staff/site-settings/', { method: 'PUT', body: switches });
 }
+
+/**
+ * The About us page's words (admins): years_in_business and a headline, intro
+ * and story in Dutch (_nl) and English (_en). Empty text = the standard text.
+ */
+export async function getAboutSettings() {
+  return request('/staff/about-page/');
+}
+
+/** Change any of them; answers with all of them as they are now. */
+export async function saveAboutSettings(fields) {
+  return request('/staff/about-page/', { method: 'PUT', body: fields });
+}

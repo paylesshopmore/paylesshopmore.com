@@ -23,7 +23,7 @@ from rest_framework.views import APIView
 
 from enquiries.models import QuoteRequest
 
-from .models import Package, SiteSettings
+from .models import AboutPage, Package, SiteSettings
 
 User = get_user_model()
 
@@ -263,6 +263,27 @@ def _own_courier_shipment(user, typed):
     except InvalidTrackingNumber:
         return None
     return shipments.filter(tracking_number=number).first()
+
+
+class AboutPageView(APIView):
+    """GET /api/about/ — the words of the About us page an admin has changed.
+
+    An empty text means "use the wording built into the website"; the page
+    decides that, so this only hands over what the admin typed.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        about = AboutPage.load()
+        return Response(
+            {
+                "years_in_business": about.years_in_business,
+                "headline": {"nl": about.headline_nl, "en": about.headline_en},
+                "intro": {"nl": about.intro_nl, "en": about.intro_en},
+                "story": {"nl": about.story_nl, "en": about.story_en},
+            }
+        )
 
 
 class SiteSwitchesView(APIView):

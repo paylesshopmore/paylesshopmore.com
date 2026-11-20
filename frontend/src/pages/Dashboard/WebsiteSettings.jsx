@@ -22,6 +22,7 @@ import { useAuth } from '../../auth/useAuth';
 import ConnectionError from '../../components/ConnectionError/ConnectionError';
 import Loading from '../../components/Loading/Loading';
 import { resetSiteSwitches } from '../../hooks/useSiteSwitches';
+import AboutPageEditor from './AboutPageEditor';
 import { Banner } from './ui';
 import styles from './Dashboard.module.css';
 import { usePageText } from './usePageText';
@@ -165,6 +166,8 @@ export default function WebsiteSettings() {
           </li>
         </ul>
       </section>
+
+      <AboutPageEditor />
     </>
   );
 }

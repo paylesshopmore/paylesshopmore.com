@@ -55,6 +55,8 @@ const ForgotPassword = lazy(
 const ResetPassword = lazy(() => import('./pages/PasswordReset/ResetPassword'));
 const Privacy = lazy(() => import('./pages/Privacy/Privacy'));
 const Terms = lazy(() => import('./pages/Terms/Terms'));
+// About us, linked from the footer.
+const About = lazy(() => import('./pages/About/About'));
 const Faq = lazy(() => import('./pages/Faq/Faq'));
 // The shipping cost calculator, linked from the header and the footer.
 const Calculator = lazy(() => import('./pages/Calculator/Calculator'));
@@ -260,6 +262,7 @@ export default function App() {
             <Route path="/privacy" element={<Privacy />} />
             {/* Linked from the footer and from the sign-up form. */}
             <Route path="/terms" element={<Terms />} />
+            <Route path="/about-us" element={<About />} />
             {/* Linked from the footer of every page. */}
             <Route path="/faq" element={<Faq />} />
             {/* Linked from the header and footer; until now it led nowhere. */}

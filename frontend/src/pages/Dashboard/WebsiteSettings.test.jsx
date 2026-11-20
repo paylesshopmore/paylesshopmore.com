@@ -12,6 +12,8 @@ vi.mock('../../api/staff', async (importOriginal) => ({
   ...(await importOriginal()),
   getSiteSettings: vi.fn(),
   saveSiteSettings: vi.fn(),
+  // The About us editor under the switches; these tests are about the switches.
+  getAboutSettings: vi.fn().mockResolvedValue({ years_in_business: 14 }),
 }));
 
 const auth = { user: { isAdmin: true } };

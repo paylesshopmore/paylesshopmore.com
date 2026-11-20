@@ -67,3 +67,61 @@ class SiteSettingsTests(APITestCase):
         self.assertIn(response.status_code, (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN))
 
         self.assertTrue(SiteSettings.load().show_calculator)
+
+
+class AboutPageEditorTests(APITestCase):
+    """The Website page's About us editor: admins only, and all or nothing."""
+
+    client_class = ReauthenticatedAPIClient
+
+    def setUp(self):
+        self.url = reverse("staff-about-page")
+        self.admin = User.objects.create_user(
+            username="admin@example.com",
+            email="admin@example.com",
+            password="a-long-enough-password",
+            role=User.Role.ADMIN,
+        )
+        self.office = User.objects.create_user(
+            username="office@example.com",
+            email="office@example.com",
+            password="a-long-enough-password",
+            role=User.Role.OFFICE,
+        )
+
+    def test_an_admin_can_change_the_years_and_the_words(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.put(
+            self.url,
+            {"years_in_business": 15, "headline_nl": "  Nieuwe kop ", "story_en": "Our story."},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["years_in_business"], 15)
+        self.assertEqual(response.data["headline_nl"], "Nieuwe kop")
+        # The public page sees it straight away; what was not sent is untouched.
+        public = self.client.get(reverse("about-page")).data
+        self.assertEqual(public["years_in_business"], 15)
+        self.assertEqual(public["story"]["en"], "Our story.")
+        self.assertEqual(public["intro"]["nl"], "")
+
+    def test_one_bad_value_saves_nothing(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.put(
+            self.url, {"headline_nl": "Fine", "years_in_business": True}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("years_in_business", response.data)
+        self.assertEqual(self.client.get(self.url).data["headline_nl"], "")
+
+    def test_only_an_admin_may_open_or_change_it(self):
+        for user in (self.office, None):
+            self.client.force_authenticate(user)
+            self.assertIn(
+                self.client.get(self.url).status_code,
+                (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
+            )
+            self.assertIn(
+                self.client.put(self.url, {"years_in_business": 20}, format="json").status_code,
+                (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
+            )

@@ -12,7 +12,7 @@ from rest_framework import status
 
 from enquiries.models import QuoteRequest
 
-from .models import Address, Package, SiteSettings
+from .models import AboutPage, Address, Package, SiteSettings
 from .test_api import ApiTestCase, make_user
 
 
@@ -357,3 +357,24 @@ class SiteSwitchesTests(ApiTestCase):
         site.save()
 
         self.assertFalse(self.client.get(reverse("site-switches")).data["show_calculator"])
+
+
+class AboutPageTests(ApiTestCase):
+    """The About us page's words, editable in the Django admin."""
+
+    def test_a_fresh_install_hands_over_the_default_years_and_empty_texts(self):
+        response = self.client.get(reverse("about-page"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["years_in_business"], 14)
+        # Empty means "use the wording built into the website".
+        self.assertEqual(response.data["headline"], {"nl": "", "en": ""})
+
+    def test_what_the_admin_types_is_what_the_site_gets(self):
+        about = AboutPage.load()
+        about.years_in_business = 15
+        about.story_en = "Our own story."
+        about.save()
+
+        data = self.client.get(reverse("about-page")).data
+        self.assertEqual(data["years_in_business"], 15)
+        self.assertEqual(data["story"]["en"], "Our own story.")

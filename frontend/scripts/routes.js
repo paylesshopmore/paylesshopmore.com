@@ -123,6 +123,13 @@ export const PUBLIC_ROUTES = [
       'pick-up and delivery, packing, local costs, insurance and payment.',
   },
   {
+    path: '/about-us',
+    title: 'About us',
+    description:
+      'PayLesShopMore has been in business for 14 years: shopping from Dutch ' +
+      'webshops and shipping to Aruba, Bonaire and Curaçao, without VAT.',
+  },
+  {
     path: '/terms',
     title: 'Terms and conditions',
     description:

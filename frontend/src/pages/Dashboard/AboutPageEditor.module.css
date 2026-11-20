@@ -1,0 +1,119 @@
+/* src/pages/Dashboard/AboutPageEditor.module.css
+ *
+ * The About us card on the Website page and its pop-up. The buttons and the
+ * fields reuse Dashboard.module.css; this file is only the card's summary row
+ * and the pop-up window itself.
+ */
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.summaryText {
+  margin: 0;
+  color: #0b2545;
+}
+
+/* ------------------------------------------------------------ pop-up */
+
+.dialog {
+  width: min(52rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #0b2545;
+  box-shadow: 0 24px 60px rgba(5, 7, 10, 0.35);
+}
+
+/* The dimmed page behind the window. */
+.dialog::backdrop {
+  background: rgba(5, 7, 10, 0.55);
+}
+
+/* Title and buttons stay in view; only the middle scrolls. */
+.form {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+}
+
+.title {
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 1.25rem;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+}
+
+.years {
+  max-width: 8rem;
+}
+
+.language {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.legend {
+  padding: 0 0.4rem;
+  font-weight: 800;
+  color: #075985;
+}
+
+.error {
+  margin: 0;
+  padding: 0.75rem 1.5rem;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.cancel {
+  padding: 0.8rem 1.4rem;
+  border: 1px solid #94a3b8;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0b2545;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancel:hover {
+  background: #f1f5f9;
+}
+
+.cancel:focus-visible {
+  outline: 3px solid #0369a1;
+  outline-offset: 2px;
+}

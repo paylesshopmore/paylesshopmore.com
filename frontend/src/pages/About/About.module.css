@@ -1,0 +1,227 @@
+/* src/pages/About/About.module.css
+ *
+ * The About us page. Same family as the other public pages: the dark banner,
+ * white rounded cards, the brand yellow and ink. Mobile first.
+ */
+
+.page {
+  padding-bottom: 4rem;
+}
+
+/* ------------------------------------------------------------ banner */
+
+.banner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem 1rem 0;
+}
+
+.bannerInner {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2.5rem 2rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  background: #05070a;
+  background-image:
+    linear-gradient(115deg, rgba(56, 160, 220, 0.55) 0 6%, transparent 6%),
+    linear-gradient(115deg, rgba(56, 160, 220, 0.3) 0 11%, transparent 11%),
+    linear-gradient(115deg, rgba(56, 160, 220, 0.16) 0 18%, transparent 18%);
+}
+
+@media (min-width: 800px) {
+  .bannerInner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.label {
+  margin: 0 0 0.5rem;
+  color: var(--brand-yellow);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.bannerText {
+  max-width: 38rem;
+  margin: 1rem 0 0;
+  color: #e5e7eb;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+/* The big "14" in a yellow circle. */
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 11rem;
+  height: 11rem;
+  border-radius: 50%;
+  background: var(--brand-yellow);
+  color: var(--brand-ink);
+  text-align: center;
+}
+
+.statNumber {
+  font-size: 4.5rem;
+  font-weight: 900;
+  line-height: 1;
+  /* Equal-width digits, so the circle does not jiggle while counting. */
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  max-width: 7rem;
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+/* Read aloud by screen readers, not shown. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------ body */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 0;
+  color: #374151;
+}
+
+.sectionTitle {
+  margin: 0 0 0.75rem;
+  color: var(--brand-ink);
+  font-size: 1.5rem;
+}
+
+.text {
+  max-width: 52rem;
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #1f2937;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 800px) {
+  .cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.card {
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-top: 4px solid var(--brand-yellow);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(5, 7, 10, 0.06);
+}
+
+.cardTitle {
+  margin: 0 0 0.5rem;
+  color: #111827;
+  font-size: 1.15rem;
+}
+
+.cardText {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------------------ call to action */
+
+.cta {
+  padding: 2rem 1.5rem;
+  border-radius: 14px;
+  background: var(--brand-yellow-pale);
+  text-align: center;
+}
+
+.ctaTitle {
+  margin: 0 0 1rem;
+  color: var(--brand-ink);
+  font-size: 1.4rem;
+}
+
+.ctaButtons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.button,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0 1.5rem;
+  border-radius: 10px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.button {
+  background: var(--brand-yellow);
+  color: var(--brand-ink);
+}
+
+.button:hover {
+  background: var(--brand-yellow-deep);
+}
+
+.secondary {
+  border: 2px solid var(--brand-ink);
+  color: var(--brand-ink);
+}
+
+.secondary:hover {
+  background: var(--brand-ink);
+  color: #ffffff;
+}
+
+.button:focus-visible,
+.secondary:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}

@@ -96,6 +96,40 @@ export const translations = {
       choose: 'Kies een taal',
     },
     // The shipping calculator (pages/Calculator). Prices: src/calculator/rates.js.
+    about: {
+      title: 'Over ons',
+      summary:
+        'PayLesShopMore is al {years} jaar in bedrijf: bestellen bij Nederlandse webshops en verzenden naar Aruba, Bonaire en Curaçao, zonder btw.',
+      label: 'Over ons',
+      headline: 'Al {years} jaar uw betrouwbare partner',
+      intro:
+        'Wij helpen u bestellen bij Nederlandse webshops en brengen uw pakketten naar Aruba, Bonaire en Curaçao. Ervaring waar u op kunt rekenen.',
+      statLabel: 'jaar in bedrijf',
+      story: {
+        title: 'Ons verhaal',
+        text:
+          'PayLesShopMore bestaat al {years} jaar. In die tijd hebben wij ontelbare pakketten voor particulieren en ondernemingen verzonden. Wij weten wat er bij een zending komt kijken en nemen u het werk uit handen, van bestelling tot aflevering.',
+      },
+      highlights: {
+        experience: {
+          title: '{years} jaar ervaring',
+          text: 'Al {years} jaar in bedrijf. U weet waar u aan toe bent en wij kennen de weg.',
+        },
+        oneplace: {
+          title: 'Alles op één plek',
+          text: 'Uw bestellingen komen bij ons magazijn binnen en worden samen naar u verzonden. U volgt elke zending.',
+        },
+        vat: {
+          title: 'Shop en betaal geen btw',
+          text: 'Ook als u verhuist naar Aruba, Bonaire of Curaçao en nieuwe spullen wilt meenemen, betaalt u geen btw.',
+        },
+      },
+      cta: {
+        title: 'Klaar om te beginnen?',
+        booking: 'Zending boeken',
+        contact: 'Neem contact op',
+      },
+    },
     // Paying an invoice online (pages/Pay). Dutch and English only; the
     // Papiamentu falls back to the Dutch below until someone translates it.
     pay: {
@@ -3179,6 +3213,40 @@ export const translations = {
       choose: 'Choose a language',
     },
     // The shipping calculator (pages/Calculator). Prices: src/calculator/rates.js.
+    about: {
+      title: 'About us',
+      summary:
+        'PayLesShopMore has been in business for {years} years: ordering from Dutch webshops and shipping to Aruba, Bonaire and Curaçao, without VAT.',
+      label: 'About us',
+      headline: 'Your reliable partner for {years} years',
+      intro:
+        'We help you order from Dutch webshops and bring your parcels to Aruba, Bonaire and Curaçao. Experience you can count on.',
+      statLabel: 'years in business',
+      story: {
+        title: 'Our story',
+        text:
+          'PayLesShopMore has been around for {years} years. In that time we have shipped countless parcels for private customers and businesses. We know what a shipment involves and take the work off your hands, from order to delivery.',
+      },
+      highlights: {
+        experience: {
+          title: '{years} years of experience',
+          text: 'In business for {years} years. You know where you stand and we know the way.',
+        },
+        oneplace: {
+          title: 'Everything in one place',
+          text: 'Your orders arrive at our warehouse and are shipped to you together. You can follow every shipment.',
+        },
+        vat: {
+          title: 'Shop and pay no VAT',
+          text: 'Even if you are moving to Aruba, Bonaire or Curaçao and want to take new items with you, you pay no VAT.',
+        },
+      },
+      cta: {
+        title: 'Ready to get started?',
+        booking: 'Book a shipment',
+        contact: 'Contact us',
+      },
+    },
     pay: {
       title: 'Pay an invoice online',
       summary:

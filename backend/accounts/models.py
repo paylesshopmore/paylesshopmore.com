@@ -1853,6 +1853,45 @@ class SiteSettings(models.Model):
         return settings_row
 
 
+class AboutPage(models.Model):
+    """The words on the About us page that an admin can change.
+
+    Edited in the Django admin under "About page". There is only ever one row
+    (pk=1): read it with AboutPage.load(). A text left empty means "use the
+    wording built into the website", so a new install shows a complete page
+    and the admin only fills in what they want to change.
+
+    The website reads this from GET /api/about/ (accounts/public.py).
+    """
+
+    years_in_business = models.PositiveSmallIntegerField(
+        default=14,
+        help_text="Shown in the big circle and wherever the text says {years}.",
+    )
+
+    # One text per language the page is written in. Papiamentu visitors see
+    # the Dutch one until a Papiamentu version is added.
+    headline_nl = models.CharField("headline (Dutch)", max_length=200, blank=True)
+    headline_en = models.CharField("headline (English)", max_length=200, blank=True)
+    intro_nl = models.TextField("short introduction (Dutch)", blank=True)
+    intro_en = models.TextField("short introduction (English)", blank=True)
+    story_nl = models.TextField("our story (Dutch)", blank=True)
+    story_en = models.TextField("our story (English)", blank=True)
+
+    class Meta:
+        verbose_name = "About page"
+        verbose_name_plural = "About page"
+
+    def __str__(self):
+        return "About page"
+
+    @classmethod
+    def load(cls):
+        """The row, created empty (so: all defaults) the first time it is read."""
+        row, _ = cls.objects.get_or_create(pk=1)
+        return row
+
+
 # ---- Two-factor sign-in (accounts/twofactor.py explains the whole feature) ----
 
 

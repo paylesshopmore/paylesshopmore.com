@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .models import (
+    AboutPage,
     Address,
     DeliveryConfirmation,
     FloorDevice,
@@ -257,6 +258,41 @@ class FloorEventAdmin(admin.ModelAdmin):
     # The audit trail is only worth something if nobody can tidy it up
     # afterwards - not even an admin. The warehouse manager's activity log
     # (warehouse/manager.py) reads these rows.
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AboutPage)
+class AboutPageAdmin(admin.ModelAdmin):
+    """The editable words of the About us page. One row: it can be changed,
+    not added to or deleted."""
+
+    fieldsets = (
+        (
+            "Numbers",
+            {"fields": ("years_in_business",)},
+        ),
+        (
+            "Dutch",
+            {
+                "fields": ("headline_nl", "intro_nl", "story_nl"),
+                "description": "Leave a box empty to keep the standard text. "
+                "Write {years} where the number of years should appear.",
+            },
+        ),
+        (
+            "English",
+            {
+                "fields": ("headline_en", "intro_en", "story_en"),
+                "description": "Leave a box empty to keep the standard text. "
+                "Write {years} where the number of years should appear.",
+            },
+        ),
+    )
+
+    def has_add_permission(self, request):
+        return not AboutPage.objects.exists()
+
     def has_delete_permission(self, request, obj=None):
         return False
 

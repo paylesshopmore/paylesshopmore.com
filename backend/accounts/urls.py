@@ -30,6 +30,8 @@ urlpatterns = [
     path("stats/", public.SiteStatsView.as_view(), name="site-stats"),
     # Which parts of the public site an admin has switched on (SiteSettings).
     path("site/", public.SiteSwitchesView.as_view(), name="site-switches"),
+    # The About us page's editable words (AboutPage, "About page" in the admin).
+    path("about/", public.AboutPageView.as_view(), name="about-page"),
 
     path("auth/csrf/", views.CsrfView.as_view(), name="csrf"),
     path("auth/signup/", views.SignupView.as_view(), name="signup"),

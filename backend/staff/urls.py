@@ -15,7 +15,7 @@ from warehouse import review as warehouse_review
 from warehouse import shipments as warehouse_shipments
 from warehouse import views as warehouse_views
 
-from . import floor, invoice_config, reports, security, site_settings, views
+from . import about_page, floor, invoice_config, reports, security, site_settings, views
 
 router = DefaultRouter()
 router.register("quotes", views.QuoteRequestViewSet, basename="staff-quote")
@@ -154,6 +154,8 @@ urlpatterns = [
     ),
     # Which pages of the public site are on (admins): the Website page.
     path("site-settings/", site_settings.SiteSettingsView.as_view(), name="staff-site-settings"),
+    # The About us page's words, edited on the dashboard's Website page (admins).
+    path("about-page/", about_page.AboutPageEditorView.as_view(), name="staff-about-page"),
     # The Integrations page: API keys and webhooks. Admins only.
     path("integrations/", include("integrations.staff_urls")),
     path("", include(router.urls)),
