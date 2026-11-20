@@ -54,6 +54,8 @@ urlpatterns = [
     # The chat assistant on the website (assistant/views.py).
     path('api/', include('assistant.urls')),
     path('api/', include('feedback.urls')),
+    # Online invoice payment: the checkout and Stripe's webhook (payments/).
+    path('api/payments/', include('payments.urls')),
     # The office's login activity map (loginactivity/). Staff only.
     path('api/admin/login-activity/', include('loginactivity.urls')),
 ]

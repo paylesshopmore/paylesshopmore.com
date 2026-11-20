@@ -11,7 +11,9 @@
 import { useEffect, useState } from 'react';
 import { getSiteSwitches } from '../api/site';
 
-const DEFAULTS = { showCalculator: true };
+// The Pay online page is OFF until an admin switches it on (and, until the
+// answer arrives, it counts as off - so its link never flashes up and away).
+const DEFAULTS = { showCalculator: true, showPayOnline: false };
 
 // One request for the whole visit, started by whichever component asks first.
 let pending = null;
@@ -19,7 +21,10 @@ let pending = null;
 function loadSwitches() {
   if (!pending) {
     pending = getSiteSwitches()
-      .then((data) => ({ showCalculator: data?.show_calculator !== false }))
+      .then((data) => ({
+        showCalculator: data?.show_calculator !== false,
+        showPayOnline: data?.show_pay_online === true,
+      }))
       .catch(() => DEFAULTS);
   }
   return pending;
@@ -30,7 +35,7 @@ export function resetSiteSwitches() {
   pending = null;
 }
 
-/** @returns {{ showCalculator: boolean }} */
+/** @returns {{ showCalculator: boolean, showPayOnline: boolean }} */
 export function useSiteSwitches() {
   const [switches, setSwitches] = useState(DEFAULTS);
 

@@ -276,7 +276,12 @@ class SiteSwitchesView(APIView):
 
     def get(self, request):
         site = SiteSettings.load()
-        return Response({"show_calculator": site.show_calculator})
+        return Response(
+            {
+                "show_calculator": site.show_calculator,
+                "show_pay_online": site.show_pay_online,
+            }
+        )
 
 
 class SiteStatsView(APIView):

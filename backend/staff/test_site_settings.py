@@ -42,6 +42,15 @@ class SiteSettingsTests(APITestCase):
         self.client.put(self.url, {"show_calculator": True}, format="json")
         self.assertTrue(SiteSettings.load().show_calculator)
 
+    def test_the_pay_online_page_starts_off_and_an_admin_can_switch_it_on(self):
+        self.client.force_authenticate(self.admin)
+        self.assertFalse(self.client.get(self.url).data["show_pay_online"])
+        self.assertFalse(self.client.get(reverse("site-switches")).data["show_pay_online"])
+
+        self.client.put(self.url, {"show_pay_online": True}, format="json")
+        self.assertTrue(SiteSettings.load().show_pay_online)
+        self.assertTrue(self.client.get(reverse("site-switches")).data["show_pay_online"])
+
     def test_only_a_real_true_or_false_is_accepted(self):
         self.client.force_authenticate(self.admin)
         response = self.client.put(self.url, {"show_calculator": "false"}, format="json")

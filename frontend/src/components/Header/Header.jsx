@@ -25,6 +25,7 @@ const NAV_LINKS = [
   // tour: the data-tour hook the onboarding tour highlights this link by.
   { key: 'nav.booking', href: '/booking', tour: 'booking' },
   { key: 'nav.calculator', href: '/calculator' },
+  { key: 'nav.pay', href: '/pay' },
   { key: 'nav.contact', href: '/contact' },
 ];
 
@@ -50,9 +51,12 @@ export default function Header() {
   const { isAuthenticated, user, signOut } = useAuth();
   const navigate = useNavigate();
   // An admin can hide the Calculator page (Site settings in the Django admin).
-  const { showCalculator } = useSiteSwitches();
+  // The same goes for the Pay online page (off until an admin turns it on).
+  const { showCalculator, showPayOnline } = useSiteSwitches();
   const navLinks = NAV_LINKS.filter(
-    (link) => showCalculator || link.href !== '/calculator',
+    (link) =>
+      (showCalculator || link.href !== '/calculator') &&
+      (showPayOnline || link.href !== '/pay'),
   );
 
   // Every link closes the menu: navigating with it open would leave the sheet

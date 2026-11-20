@@ -19,6 +19,9 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
+  /* start, not the default stretch: a card that is opened grows by itself and
+     the other two keep their size, instead of all three growing together. */
+  align-items: start;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -58,6 +61,30 @@
   color: #1f2937;
 }
 
+/* Cut to 7 lines, with "..." where it stops, until "Toon meer" is clicked. */
+.textClamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 7;
+  line-clamp: 7;
+  overflow: hidden;
+  /* The button below takes over the gap, so the card keeps its spacing. */
+  margin-bottom: 0.75rem;
+}
+
+/* Shown under the opened text: where to read about the services. */
+.servicesLink {
+  align-self: flex-start;
+  margin: 0 0 1.5rem;
+  color: var(--brand-ink);
+  font-weight: 700;
+}
+
+.servicesLink:focus-visible {
+  outline: 3px solid #0b2b3d;
+  outline-offset: 2px;
+}
+
 /* margin-top:auto keeps the buttons aligned when the copy runs short */
 .button {
   align-self: flex-start;
@@ -69,6 +96,9 @@
   font-weight: 700;
   text-decoration: none;
   transition: background 0.15s ease;
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .button:hover {

@@ -62,6 +62,7 @@ export const translations = {
       tracking: 'Track & Trace',
       booking: 'Boeking',
       calculator: 'Calculator',
+      pay: 'Online betalen',
       contact: 'Contact',
       label: 'Hoofdnavigatie',
     },
@@ -95,6 +96,77 @@ export const translations = {
       choose: 'Kies een taal',
     },
     // The shipping calculator (pages/Calculator). Prices: src/calculator/rates.js.
+    // Paying an invoice online (pages/Pay). Dutch and English only; the
+    // Papiamentu falls back to the Dutch below until someone translates it.
+    pay: {
+      title: 'Factuur online betalen',
+      summary:
+        'Betaal uw PayLesShopMore-factuur veilig online met iDEAL, creditcard of Apple Pay.',
+      label: 'Online betalen',
+      headline: 'Betaal uw factuur veilig',
+      intro:
+        'Vul het factuurnummer in dat op uw factuur van PayLesShopMore staat. U rondt de betaling af op de beveiligde betaalpagina van Stripe.',
+      badges: {
+        secure: 'Veilig betalen',
+        fast: 'Snel verwerkt',
+        number: 'Factuurnummer nodig',
+      },
+      card: {
+        title: 'Uw factuur betalen',
+        label: 'Factuurnummer',
+        hint: 'Te vinden op uw factuur, bijvoorbeeld PLSM-10231.',
+        button: 'Verder naar betaling',
+        busy: 'Even geduld...',
+        secured: 'Beveiligd door Stripe',
+        methods: 'Betaalmethoden: iDEAL, creditcard en Apple Pay',
+      },
+      errors: {
+        empty: 'Vul uw factuurnummer in.',
+        format: 'Dit factuurnummer klopt niet. Het begint met PLSM- en daarna 4 tot 8 cijfers.',
+        notFound:
+          'We vonden geen openstaande factuur met dit nummer. Controleer het nummer, of de factuur is misschien al betaald.',
+        busy: 'Er zijn te veel pogingen gedaan. Probeer het over een uur opnieuw.',
+        unavailable: 'Online betalen is nu niet beschikbaar. Probeer het later opnieuw of neem contact met ons op.',
+      },
+      cancelled:
+        'De betaling is niet afgerond en er is niets afgeschreven. U kunt het hieronder opnieuw proberen.',
+      steps: {
+        title: 'Zo werkt het',
+        check: 'Controleer uw factuur',
+        checkText: 'Zoek het factuurnummer (PLSM-...) op de factuur die wij u stuurden.',
+        pay: 'Betaal via Stripe',
+        payText: 'Kies iDEAL, creditcard of Apple Pay op de beveiligde betaalpagina.',
+        keep: 'Bewaar uw bevestiging',
+        keepText: 'Bewaar de bevestiging van Stripe tot u uw zending heeft ontvangen.',
+      },
+      what: {
+        title: 'Wat kunt u online betalen?',
+        items: {
+          shipping: 'Verzendkosten van uw zending naar het Caribisch gebied',
+          other: 'Overige kosten die op uw PayLesShopMore-factuur staan',
+        },
+      },
+      fraud: {
+        title: 'Let op voor nepfacturen',
+        text:
+          'Wij sturen u altijd eerst een officiële factuur met een factuurnummer dat met PLSM- begint. Twijfelt u over een betaalverzoek? Betaal dan niet, maar neem eerst contact met ons op.',
+      },
+      contact: {
+        title: 'Hulp nodig?',
+        text: 'Vragen over uw factuur of betaling? Wij helpen u graag.',
+        email: 'E-mail ons',
+        phone: 'Bel ons',
+      },
+      success: {
+        title: 'Bedankt voor uw betaling',
+        summary: 'Uw betaling wordt verwerkt.',
+        headline: 'Bedankt voor uw betaling',
+        text:
+          'Stripe heeft uw betaling doorgegeven. Uw factuur wordt binnen enkele minuten als betaald gemarkeerd. U ontvangt een bevestiging van Stripe; bewaar die goed.',
+        note: 'Staat uw factuur na een uur nog open? Neem dan contact met ons op.',
+        home: 'Naar de homepage',
+      },
+    },
     calculator: {
       title: 'Verzendkosten berekenen',
       summary:
@@ -1399,9 +1471,11 @@ export const translations = {
         title: 'Shop and ship naar Aruba, Bonaire en Curaçao',
         readMore: 'Lees meer',
         readMoreAbout: 'over',
+        readLess: 'Lees minder',
+        toServices: 'Bekijk onze diensten',
         particulier: {
           title: 'Particulier',
-          body: 'Wij zijn er voor u wanneer u naar het buitenland wilt verhuizen! Een internationale verhuizing vergt veel tijd en energie. Wij hebben hier veel ervaring mee en helpen u om goed voorbereid naar het buitenland te vertrekken. Het is bij ons mogelijk om uw goederen van huis tot huis te transporteren.',
+          body: 'Wij zijn er voor u wanneer u naar het buitenland wilt verhuizen! Een internationale verhuizing vergt veel tijd en energie. Wij hebben hier veel ervaring mee en helpen u om goed voorbereid naar het buitenland te vertrekken. Het is bij ons mogelijk om uw goederen van huis tot huis te transporteren. Ook als u verhuist naar Aruba, Bonaire of Curaçao en nieuwe spullen wilt meenemen, kunt u gebruik maken van de diensten van PayLessShopMore en betaalt u geen BTW.',
         },
         zakelijk: {
           title: 'Zakelijk',
@@ -3071,6 +3145,7 @@ export const translations = {
       tracking: 'Tracking',
       booking: 'Booking',
       calculator: 'Calculator',
+      pay: 'Pay online',
       contact: 'Contact',
       label: 'Main navigation',
     },
@@ -3104,6 +3179,75 @@ export const translations = {
       choose: 'Choose a language',
     },
     // The shipping calculator (pages/Calculator). Prices: src/calculator/rates.js.
+    pay: {
+      title: 'Pay an invoice online',
+      summary:
+        'Pay your PayLesShopMore invoice securely online with iDEAL, credit card or Apple Pay.',
+      label: 'Pay online',
+      headline: 'Pay your invoice securely',
+      intro:
+        'Enter the invoice number printed on your PayLesShopMore invoice. You complete the payment on the secure payment page of Stripe.',
+      badges: {
+        secure: 'Secure payment',
+        fast: 'Fast processing',
+        number: 'Invoice number required',
+      },
+      card: {
+        title: 'Pay your invoice',
+        label: 'Invoice number',
+        hint: 'You can find it on your invoice, for example PLSM-10231.',
+        button: 'Continue to payment',
+        busy: 'One moment...',
+        secured: 'Secured by Stripe',
+        methods: 'Payment methods: iDEAL, credit card and Apple Pay',
+      },
+      errors: {
+        empty: 'Enter your invoice number.',
+        format: 'This invoice number is not right. It starts with PLSM- followed by 4 to 8 digits.',
+        notFound:
+          'We could not find an open invoice with this number. Check the number, or the invoice may already be paid.',
+        busy: 'Too many attempts. Please try again in an hour.',
+        unavailable: 'Online payment is not available right now. Try again later or contact us.',
+      },
+      cancelled:
+        'The payment was not completed and nothing was charged. You can try again below.',
+      steps: {
+        title: 'How it works',
+        check: 'Check your invoice',
+        checkText: 'Find the invoice number (PLSM-...) on the invoice we sent you.',
+        pay: 'Pay via Stripe',
+        payText: 'Choose iDEAL, credit card or Apple Pay on the secure payment page.',
+        keep: 'Keep your confirmation',
+        keepText: 'Keep the confirmation from Stripe until you have received your shipment.',
+      },
+      what: {
+        title: 'What can you pay online?',
+        items: {
+          shipping: 'Shipping costs for your shipment to the Caribbean',
+          other: 'Other costs listed on your PayLesShopMore invoice',
+        },
+      },
+      fraud: {
+        title: 'Beware of fake invoices',
+        text:
+          'We always send you an official invoice first, with an invoice number starting with PLSM-. Unsure about a payment request? Do not pay; contact us first.',
+      },
+      contact: {
+        title: 'Need help?',
+        text: 'Questions about your invoice or payment? We are happy to help.',
+        email: 'Email us',
+        phone: 'Call us',
+      },
+      success: {
+        title: 'Thank you for your payment',
+        summary: 'Your payment is being processed.',
+        headline: 'Thank you for your payment',
+        text:
+          'Stripe has passed on your payment. Your invoice will be marked as paid within a few minutes. You will receive a confirmation from Stripe; please keep it.',
+        note: 'Is your invoice still open after an hour? Please contact us.',
+        home: 'Back to the homepage',
+      },
+    },
     calculator: {
       title: 'Shipping cost calculator',
       summary:
@@ -4401,9 +4545,11 @@ export const translations = {
         title: 'Shop and ship to Aruba, Bonaire and Curaçao',
         readMore: 'Read more',
         readMoreAbout: 'about',
+        readLess: 'Read less',
+        toServices: 'View our services',
         particulier: {
           title: 'Private customers',
-          body: 'We are here for you when you are moving abroad. An international move takes a great deal of time and energy. We have long experience with it and will help you leave well prepared. We can transport your belongings door to door.',
+          body: 'We are here for you when you are moving abroad. An international move takes a great deal of time and energy. We have long experience with it and will help you leave well prepared. We can transport your belongings door to door. Even if you are moving to Aruba, Bonaire or Curaçao and want to take new items with you, you can use the services of PayLessShopMore and you pay no VAT.',
         },
         zakelijk: {
           title: 'Business',
@@ -6071,6 +6217,7 @@ export const translations = {
       tracking: 'Track & Trace',
       booking: 'Boeking',
       calculator: 'Kalkulador',
+      pay: 'Paga online',
       contact: 'Kontakto',
       label: 'Navegashon prinsipal',
     },
@@ -7401,9 +7548,11 @@ export const translations = {
         title: 'Shop and ship pa Aruba, Boneiru i Kòrsou',
         readMore: 'Lesa mas',
         readMoreAbout: 'tokante',
+        readLess: 'Lesa menos',
+        toServices: 'Mira nos servisionan',
         particulier: {
           title: 'Partikular',
-          body: 'Nos ta einan pa bo ora bo ke muda pa eksterior. Un mudansa internashonal ta pidi hopi tempu i energia. Nos tin hopi eksperensia ku esaki i ta yuda bo sali bon prepará. Serka nos ta posibel pa transportá bo kosnan di kas pa kas.',
+          body: 'Nos ta einan pa bo ora bo ke muda pa eksterior. Un mudansa internashonal ta pidi hopi tempu i energia. Nos tin hopi eksperensia ku esaki i ta yuda bo sali bon prepará. Serka nos ta posibel pa transportá bo kosnan di kas pa kas. Even si bo ta muda pa Aruba, Boneiru o Kòrsou i bo ke hib kos nobo, bo por usa e servisionan di PayLessShopMore i bo no ta paga BTW.',
         },
         zakelijk: {
           title: 'Komersial',

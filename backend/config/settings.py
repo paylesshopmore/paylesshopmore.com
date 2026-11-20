@@ -116,6 +116,8 @@ INSTALLED_APPS = [
     'feedback',
     # Who signed in (or tried to) and from where: the office's login map.
     'loginactivity',
+    # Paying an invoice online with Stripe Checkout (payments/views.py).
+    'payments',
 ]
 
 # Must be set before the first migration is applied: Django cannot swap the
@@ -464,6 +466,10 @@ REST_FRAMEWORK = {
         # what enumerating the API would take.
         'user': '1000/hour',
         'login': '10/hour',
+        # Starting an online invoice payment (payments/views.py), per IP
+        # address. A customer needs a try or two; somebody guessing invoice
+        # numbers needs thousands, so this is what makes guessing pointless.
+        'payment_checkout': '20/hour',
         # Downloading the login log as CSV (loginactivity/views.py Export), per
         # account. A person needs this a few times a month, not a few times a minute.
         'login_activity_export': '10/hour',
@@ -633,6 +639,14 @@ PASSWORD_RESET_MAIL_WINDOW_SECONDS = 60 * 60
 # trusted below for CORS and CSRF so that the one URL does not have to be
 # repeated across three variables that can drift apart.
 FRONTEND_URL = os.environ.get("DJANGO_FRONTEND_URL", "http://localhost:5173").rstrip("/")
+
+# Stripe, for paying invoices online (payments/). Both come from the
+# environment and are never written into code. Empty means "payments are
+# switched off": the checkout answers 503 and the webhook refuses everything.
+# STRIPE_SECRET_KEY: sk_test_... while testing, sk_live_... in production.
+# STRIPE_WEBHOOK_SECRET: whsec_..., from `stripe listen` or the dashboard.
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "").strip()
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "").strip()
 
 # The Vite dev server runs on a different origin from Django, so the browser
 # treats API calls as cross-origin. Only these origins may call the API, and

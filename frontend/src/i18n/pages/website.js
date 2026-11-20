@@ -15,6 +15,10 @@ export const website = {
     off: 'Off',
     calculatorShown: 'Saved. Visitors can see the Calculator page again.',
     calculatorHidden: 'Saved. The Calculator page is hidden from visitors.',
+    payOnline: 'Pay online page',
+    payOnlineAbout: 'Customers pay an invoice with Stripe at /pay. Off by default: switch it on once Stripe is set up.',
+    payOnlineShown: 'Saved. Visitors can see the Pay online page.',
+    payOnlineHidden: 'Saved. The Pay online page is hidden from visitors.',
     saveFailed: 'That could not be saved. Check the connection and try again.',
   },
   nl: {
@@ -29,6 +33,10 @@ export const website = {
     off: 'Uit',
     calculatorShown: 'Opgeslagen. Bezoekers zien de Calculatorpagina weer.',
     calculatorHidden: 'Opgeslagen. De Calculatorpagina is verborgen voor bezoekers.',
+    payOnline: 'Pagina Online betalen',
+    payOnlineAbout: 'Klanten betalen een factuur met Stripe op /pay. Standaard uit: zet hem aan zodra Stripe is ingesteld.',
+    payOnlineShown: 'Opgeslagen. Bezoekers zien de pagina Online betalen.',
+    payOnlineHidden: 'Opgeslagen. De pagina Online betalen is verborgen voor bezoekers.',
     saveFailed: 'Dat kon niet worden opgeslagen. Controleer de verbinding en probeer het opnieuw.',
   },
   pap: {
@@ -43,6 +51,10 @@ export const website = {
     off: 'Paga',
     calculatorShown: 'Wardá. Bishitantenan por mira e página di kalkuladó atrobe.',
     calculatorHidden: 'Wardá. E página di kalkuladó ta skondí pa bishitantenan.',
+    payOnline: 'Página di paga online',
+    payOnlineAbout: 'Kliente ta paga un faktura ku Stripe na /pay. Paga di standaard: pone e na ora Stripe ta konfigurá.',
+    payOnlineShown: 'Wardá. Bishitantenan por mira e página di paga online.',
+    payOnlineHidden: 'Wardá. E página di paga online ta skondí pa bishitantenan.',
     saveFailed: 'No por a warda esaki. Kontrolá e konekshon i purba atrobe.',
   },
 };

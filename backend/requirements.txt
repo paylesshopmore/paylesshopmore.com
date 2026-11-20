@@ -25,3 +25,4 @@ openai==3.37.0
 # The text layer of a PDF, used to double-check what the AI read
 # (docreview/pipeline.py, pdf_text). Pure Python.
 pypdf==6.21.2
+stripe==17.1.0

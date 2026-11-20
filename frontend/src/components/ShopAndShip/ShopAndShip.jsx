@@ -1,4 +1,5 @@
 // src/components/ShopAndShip/ShopAndShip.jsx
+import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { boxCart, boxes, containerShip } from '../../images/optimized/photos';
 import { useLanguage } from '../../i18n/useLanguage';
@@ -31,6 +32,85 @@ const CARDS = [
   },
 ];
 
+// One card's copy and its single yellow button.
+//
+// The text is cut to a few lines so the three cards stay the same height.
+// While it is cut off, the yellow button opens the rest ("Lees meer") and
+// then closes it again ("Lees minder"); once opened, a link to the services
+// page appears under the text. If the text is short enough to fit, nothing is
+// cut off, so the yellow button is simply the link to the services page.
+function CardCopy({ card, title }) {
+  const { t } = useLanguage();
+  const textId = useId();
+  const textRef = useRef(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const body = t(`home.shopAndShip.${card.id}.body`);
+
+  // Is the text taller than the box it is cut to? Measured while it is cut
+  // (not expanded), and again whenever the card changes width, because a
+  // narrower card wraps into more lines.
+  useLayoutEffect(() => {
+    const element = textRef.current;
+    if (!element || expanded) return undefined;
+
+    const measure = () =>
+      setOverflows(element.scrollHeight > element.clientHeight + 1);
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [body, expanded]);
+
+  const canToggle = overflows || expanded;
+
+  return (
+    <div className={styles.body}>
+      <h3 className={styles.cardTitle}>{title}</h3>
+      <p
+        id={textId}
+        ref={textRef}
+        className={expanded ? styles.text : `${styles.text} ${styles.textClamped}`}
+      >
+        {body}
+      </p>
+
+      {expanded && (
+        <Link to={card.href} className={styles.servicesLink}>
+          {t('home.shopAndShip.toServices')}
+        </Link>
+      )}
+
+      {/* Pushed to the bottom so the buttons line up across cards */}
+      {canToggle ? (
+        <button
+          type="button"
+          className={styles.button}
+          aria-expanded={expanded}
+          aria-controls={textId}
+          onClick={() => setExpanded((current) => !current)}
+        >
+          {expanded ? t('home.shopAndShip.readLess') : t('home.shopAndShip.readMore')}
+          <span className={styles.srOnly}>
+            {' '}
+            {t('home.shopAndShip.readMoreAbout')} {title}
+          </span>
+        </button>
+      ) : (
+        <Link to={card.href} className={styles.button}>
+          {t('home.shopAndShip.readMore')}
+          <span className={styles.srOnly}>
+            {' '}
+            {t('home.shopAndShip.readMoreAbout')} {title}
+          </span>
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default function ShopAndShip() {
   const { t } = useLanguage();
 
@@ -44,21 +124,7 @@ export default function ShopAndShip() {
 
           return (
             <li key={card.id} className={styles.card}>
-              <div className={styles.body}>
-                <h3 className={styles.cardTitle}>{title}</h3>
-                <p className={styles.text}>
-                  {t(`home.shopAndShip.${card.id}.body`)}
-                </p>
-
-                {/* Pushed to the bottom so the buttons line up across cards */}
-                <Link to={card.href} className={styles.button}>
-                  {t('home.shopAndShip.readMore')}
-                  <span className={styles.srOnly}>
-                    {' '}
-                    {t('home.shopAndShip.readMoreAbout')} {title}
-                  </span>
-                </Link>
-              </div>
+              <CardCopy card={card} title={title} />
 
               {card.image ? (
                 <img

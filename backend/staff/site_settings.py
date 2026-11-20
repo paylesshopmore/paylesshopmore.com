@@ -20,7 +20,7 @@ from accounts.models import SiteSettings
 from .permissions import IsAdmin
 
 # The switches this page may change. Anything else in the request is ignored.
-SWITCHES = ("show_calculator",)
+SWITCHES = ("show_calculator", "show_pay_online")
 
 
 def state(site):

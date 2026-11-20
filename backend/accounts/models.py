@@ -1807,6 +1807,14 @@ class SiteSettings(models.Model):
         help_text="The Calculator page and its links in the menu and footer. "
         "Off: visitors do not see it; staff can still open /calculator.",
     )
+    # Off until an admin switches it on, so the payment page is never public
+    # before Stripe is set up.
+    show_pay_online = models.BooleanField(
+        "show the online payment page",
+        default=False,
+        help_text="The Pay online page (/pay) and its link in the menu. "
+        "Off: visitors do not see it; staff can still open /pay.",
+    )
 
     # ---- the company, as printed on every invoice -----------------------
     #

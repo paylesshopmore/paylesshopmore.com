@@ -58,6 +58,9 @@ const Terms = lazy(() => import('./pages/Terms/Terms'));
 const Faq = lazy(() => import('./pages/Faq/Faq'));
 // The shipping cost calculator, linked from the header and the footer.
 const Calculator = lazy(() => import('./pages/Calculator/Calculator'));
+// Paying an invoice online (Stripe), and the thank-you page after it.
+const Pay = lazy(() => import('./pages/Pay/Pay'));
+const PaySuccess = lazy(() => import('./pages/Pay/PaySuccess'));
 // The blog: its index and one article. The posts come from the server, where
 // the office writes them in the dashboard.
 const Blog = lazy(() => import('./pages/Blog/Blog'));
@@ -180,6 +183,22 @@ function CalculatorPage() {
   return <Calculator />;
 }
 
+// The Pay online page, only while an admin has it switched on (Site settings
+// in the Django admin, or Dashboard > Website). Staff can always open it, to
+// check it before it goes live. /pay/success is NOT guarded: a customer who
+// has just paid must still see their confirmation if the page is switched off
+// a minute later.
+function PayPage() {
+  const { user } = useAuth();
+  const { showPayOnline } = useSiteSwitches();
+
+  if (!showPayOnline && !user?.isStaff) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Pay />;
+}
+
 export default function App() {
   const { pathname } = useLocation();
 
@@ -245,6 +264,9 @@ export default function App() {
             <Route path="/faq" element={<Faq />} />
             {/* Linked from the header and footer; until now it led nowhere. */}
             <Route path="/calculator" element={<CalculatorPage />} />
+            {/* Linked from the header while an admin has it switched on. */}
+            <Route path="/pay" element={<PayPage />} />
+            <Route path="/pay/success" element={<PaySuccess />} />
             {/* Also linked from the footer of every page. */}
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />

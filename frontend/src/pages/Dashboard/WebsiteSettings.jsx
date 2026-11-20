@@ -35,6 +35,8 @@ export default function WebsiteSettings() {
   const [state, setState] = useState('loading');
   const [attempt, setAttempt] = useState(0);
   const [showCalculator, setShowCalculator] = useState(true);
+  // The Pay online page starts switched off (backend SiteSettings.show_pay_online).
+  const [showPayOnline, setShowPayOnline] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -46,6 +48,7 @@ export default function WebsiteSettings() {
       .then((settings) => {
         if (!live) return;
         setShowCalculator(settings.show_calculator);
+        setShowPayOnline(Boolean(settings.show_pay_online));
         setState('ready');
       })
       .catch(() => {
@@ -84,19 +87,22 @@ export default function WebsiteSettings() {
     );
   }
 
-  // Saved the moment the switch is flipped: there is only one, so a separate
-  // Save button would just be one more click to forget.
-  async function toggle(next) {
+  // Saved the moment a switch is flipped: a separate Save button would just
+  // be one more click to forget. `field` is the server's name for the switch.
+  async function toggle(field, next) {
     setBusy(true);
     setMessage(null);
     try {
-      const settings = await saveSiteSettings({ show_calculator: next });
+      const settings = await saveSiteSettings({ [field]: next });
       setShowCalculator(settings.show_calculator);
+      setShowPayOnline(Boolean(settings.show_pay_online));
       // This tab's header and footer ask again, so they follow the change.
       resetSiteSwitches();
+      const shown = field === 'show_pay_online' ? settings.show_pay_online : settings.show_calculator;
+      const key = field === 'show_pay_online' ? 'payOnline' : 'calculator';
       setMessage({
         tone: 'success',
-        text: settings.show_calculator ? d('calculatorShown') : d('calculatorHidden'),
+        text: shown ? d(`${key}Shown`) : d(`${key}Hidden`),
       });
     } catch {
       setMessage({ tone: 'error', text: d('saveFailed') });
@@ -127,12 +133,34 @@ export default function WebsiteSettings() {
                 role="switch"
                 checked={showCalculator}
                 disabled={busy}
-                onChange={(event) => toggle(event.target.checked)}
+                onChange={(event) => toggle('show_calculator', event.target.checked)}
               />
               <span className={styles.switchTrack} aria-hidden="true" />
             </span>
             <span className={showCalculator ? styles.accessOn : styles.accessOff}>
               {busy ? c('saving') : showCalculator ? d('on') : d('off')}
+            </span>
+          </li>
+          <li className={styles.accessRow}>
+            <label htmlFor="website-pay-online" className={styles.accessText}>
+              <span className={styles.accessTitle}>{d('payOnline')}</span>
+              <span className={styles.accessDescription}>
+                {d('payOnlineAbout')} <Link to="/pay">{d('open')}</Link>
+              </span>
+            </label>
+            <span className={styles.switch}>
+              <input
+                id="website-pay-online"
+                type="checkbox"
+                role="switch"
+                checked={showPayOnline}
+                disabled={busy}
+                onChange={(event) => toggle('show_pay_online', event.target.checked)}
+              />
+              <span className={styles.switchTrack} aria-hidden="true" />
+            </span>
+            <span className={showPayOnline ? styles.accessOn : styles.accessOff}>
+              {busy ? c('saving') : showPayOnline ? d('on') : d('off')}
             </span>
           </li>
         </ul>
