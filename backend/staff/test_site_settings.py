@@ -125,3 +125,54 @@ class AboutPageEditorTests(APITestCase):
                 self.client.put(self.url, {"years_in_business": 20}, format="json").status_code,
                 (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN),
             )
+
+
+class MaintenanceModeTests(AboutPageEditorTests):
+    """The maintenance switch: off by default, admins only, public to read."""
+
+    def test_it_starts_off_and_an_admin_can_switch_it_on_and_off(self):
+        site_url = reverse("staff-site-settings")
+        self.client.force_authenticate(self.admin)
+        self.assertFalse(self.client.get(reverse("site-switches")).data["maintenance_mode"])
+
+        self.client.put(site_url, {"maintenance_mode": True}, format="json")
+        # Anyone can read it: the website needs to know whether to close.
+        self.client.force_authenticate(None)
+        self.assertTrue(self.client.get(reverse("site-switches")).data["maintenance_mode"])
+
+        self.client.force_authenticate(self.admin)
+        self.client.put(site_url, {"maintenance_mode": False}, format="json")
+        self.assertFalse(SiteSettings.load().maintenance_mode)
+
+    def test_office_workers_cannot_close_the_website(self):
+        self.client.force_authenticate(self.office)
+        response = self.client.put(
+            reverse("staff-site-settings"), {"maintenance_mode": True}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(SiteSettings.load().maintenance_mode)
+
+
+class AboutSwitchTests(AboutPageEditorTests):
+    """The About us page's on/off switch: on by default, admins only."""
+
+    def test_it_starts_on_and_an_admin_can_switch_it_off_and_on(self):
+        site_url = reverse("staff-site-settings")
+        self.client.force_authenticate(self.admin)
+        self.assertTrue(self.client.get(reverse("site-switches")).data["show_about_page"])
+
+        self.client.put(site_url, {"show_about_page": False}, format="json")
+        self.client.force_authenticate(None)
+        self.assertFalse(self.client.get(reverse("site-switches")).data["show_about_page"])
+
+        self.client.force_authenticate(self.admin)
+        self.client.put(site_url, {"show_about_page": True}, format="json")
+        self.assertTrue(SiteSettings.load().show_about_page)
+
+    def test_office_workers_cannot_switch_it(self):
+        self.client.force_authenticate(self.office)
+        response = self.client.put(
+            reverse("staff-site-settings"), {"show_about_page": False}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(SiteSettings.load().show_about_page)

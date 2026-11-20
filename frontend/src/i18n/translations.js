@@ -130,6 +130,14 @@ export const translations = {
         contact: 'Neem contact op',
       },
     },
+    maintenance: {
+      title: 'Even geen toegang',
+      headline: 'We zijn zo terug',
+      text:
+        'Onze website is tijdelijk niet beschikbaar vanwege onderhoud. Probeer het later opnieuw.',
+      contact: 'Dringende vraag? Mail ons via',
+      staff: 'Medewerkers: inloggen',
+    },
     // Paying an invoice online (pages/Pay). Dutch and English only; the
     // Papiamentu falls back to the Dutch below until someone translates it.
     pay: {
@@ -3213,6 +3221,14 @@ export const translations = {
       choose: 'Choose a language',
     },
     // The shipping calculator (pages/Calculator). Prices: src/calculator/rates.js.
+    maintenance: {
+      title: 'Temporarily unavailable',
+      headline: 'We will be back soon',
+      text:
+        'Our website is temporarily unavailable due to maintenance. Please try again later.',
+      contact: 'Urgent question? Email us at',
+      staff: 'Staff: sign in',
+    },
     about: {
       title: 'About us',
       summary:

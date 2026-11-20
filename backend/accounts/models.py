@@ -1815,6 +1815,21 @@ class SiteSettings(models.Model):
         help_text="The Pay online page (/pay) and its link in the menu. "
         "Off: visitors do not see it; staff can still open /pay.",
     )
+    show_about_page = models.BooleanField(
+        "show the About us page",
+        default=True,
+        help_text="The About us page and its link in the footer. "
+        "Off: visitors do not see it; staff can still open /about-us.",
+    )
+    # The emergency brake: closes the public site for everyone who is not
+    # signed in as staff. Only the website pages close; the API keeps running,
+    # so Stripe's payment webhook and the warehouse keep working.
+    maintenance_mode = models.BooleanField(
+        "maintenance mode (close the website)",
+        default=False,
+        help_text="On: visitors see a 'we will be back soon' page instead of the "
+        "website. Staff and the warehouse can still sign in and work.",
+    )
 
     # ---- the company, as printed on every invoice -----------------------
     #

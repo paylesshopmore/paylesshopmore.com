@@ -302,9 +302,27 @@ class SiteSettingsAdmin(admin.ModelAdmin):
     """Switches for the public website. One row: it can be changed, not added
     to or deleted."""
 
-    list_display = ("__str__", "show_stats_band", "show_calculator", "show_pay_online")
+    list_display = (
+        "__str__",
+        "show_stats_band",
+        "show_calculator",
+        "show_pay_online",
+        "show_about_page",
+        "maintenance_mode",
+    )
     fieldsets = (
-        ("Website", {"fields": ("show_stats_band", "show_calculator", "show_pay_online")}),
+        (
+            "Website",
+            {
+                "fields": (
+                    "maintenance_mode",
+                    "show_stats_band",
+                    "show_calculator",
+                    "show_pay_online",
+                    "show_about_page",
+                )
+            },
+        ),
         (
             "Company details on invoices",
             {

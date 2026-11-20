@@ -13,7 +13,9 @@ import { getSiteSwitches } from '../api/site';
 
 // The Pay online page is OFF until an admin switches it on (and, until the
 // answer arrives, it counts as off - so its link never flashes up and away).
-const DEFAULTS = { showCalculator: true, showPayOnline: false };
+// Maintenance mode is off by default, and also when the answer cannot be
+// loaded: a broken API must not close the website.
+const DEFAULTS = { showCalculator: true, showPayOnline: false, showAboutPage: true, maintenance: false };
 
 // One request for the whole visit, started by whichever component asks first.
 let pending = null;
@@ -24,6 +26,8 @@ function loadSwitches() {
       .then((data) => ({
         showCalculator: data?.show_calculator !== false,
         showPayOnline: data?.show_pay_online === true,
+        showAboutPage: data?.show_about_page !== false,
+        maintenance: data?.maintenance_mode === true,
       }))
       .catch(() => DEFAULTS);
   }
@@ -35,7 +39,7 @@ export function resetSiteSwitches() {
   pending = null;
 }
 
-/** @returns {{ showCalculator: boolean, showPayOnline: boolean }} */
+/** @returns {{ showCalculator: boolean, showPayOnline: boolean, showAboutPage: boolean, maintenance: boolean }} */
 export function useSiteSwitches() {
   const [switches, setSwitches] = useState(DEFAULTS);
 

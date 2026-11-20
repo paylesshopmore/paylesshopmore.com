@@ -60,6 +60,8 @@ const About = lazy(() => import('./pages/About/About'));
 const Faq = lazy(() => import('./pages/Faq/Faq'));
 // The shipping cost calculator, linked from the header and the footer.
 const Calculator = lazy(() => import('./pages/Calculator/Calculator'));
+// What visitors see while an admin has maintenance mode on.
+const Maintenance = lazy(() => import('./pages/Maintenance/Maintenance'));
 // Paying an invoice online (Stripe), and the thank-you page after it.
 const Pay = lazy(() => import('./pages/Pay/Pay'));
 const PaySuccess = lazy(() => import('./pages/Pay/PaySuccess'));
@@ -185,6 +187,20 @@ function CalculatorPage() {
   return <Calculator />;
 }
 
+// The About us page, unless an admin has switched it off (Dashboard > Website,
+// or Site settings in the Django admin). Staff can still open it, to check it
+// before switching it back on; everyone else is sent to the home page.
+function AboutPage() {
+  const { user } = useAuth();
+  const { showAboutPage } = useSiteSwitches();
+
+  if (!showAboutPage && !user?.isStaff) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <About />;
+}
+
 // The Pay online page, only while an admin has it switched on (Site settings
 // in the Django admin, or Dashboard > Website). Staff can always open it, to
 // check it before it goes live. /pay/success is NOT guarded: a customer who
@@ -213,6 +229,36 @@ export default function App() {
   const isDashboard = ['/dashboard', '/warehouse', '/driver'].some(
     (root) => pathname === root || pathname.startsWith(`${root}/`),
   );
+
+  // Maintenance mode (Dashboard > Website): the public pages close for
+  // everyone except signed-in staff and warehouse workers. What stays open:
+  //   - the staff screens (isDashboard above), which check the role themselves;
+  //   - the sign-in and password pages, so staff can sign in to switch it off.
+  // Only the website closes. The API keeps running, so Stripe's payment
+  // webhook and the warehouse carry on. Until we know who is signed in we do
+  // not close anything, or a staff member would see the page flash on refresh.
+  const { user, isChecking } = useAuth();
+  const { maintenance } = useSiteSwitches();
+  const isSignInPage = ['/login', '/two-factor', '/forgot-password', '/reset-password'].some(
+    (root) => pathname === root || pathname.startsWith(`${root}/`),
+  );
+  const closed =
+    maintenance &&
+    !isChecking &&
+    !isDashboard &&
+    !isSignInPage &&
+    !user?.isStaff &&
+    !user?.isWarehouse;
+
+  if (closed) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<Loading />}>
+          <Maintenance />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
 
   return (
     // The onboarding tour wraps the whole site, so the robot's "Help" list
@@ -262,7 +308,7 @@ export default function App() {
             <Route path="/privacy" element={<Privacy />} />
             {/* Linked from the footer and from the sign-up form. */}
             <Route path="/terms" element={<Terms />} />
-            <Route path="/about-us" element={<About />} />
+            <Route path="/about-us" element={<AboutPage />} />
             {/* Linked from the footer of every page. */}
             <Route path="/faq" element={<Faq />} />
             {/* Linked from the header and footer; until now it led nowhere. */}

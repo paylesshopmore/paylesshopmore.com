@@ -47,7 +47,7 @@ export default function Footer() {
   const { t } = useLanguage();
   const { isAuthenticated } = useAuth();
   // An admin can hide the Calculator page (Site settings in the Django admin).
-  const { showCalculator } = useSiteSwitches();
+  const { showCalculator, showAboutPage } = useSiteSwitches();
 
   return (
     <footer className={styles.footer}>
@@ -82,7 +82,7 @@ export default function Footer() {
               <div key={col.heading} className={styles.column}>
                 <h3 className={styles.heading}>{t(col.heading)}</h3>
                 <ul className={styles.linkList}>
-                  {col.links.filter((link) => (!link.signedIn || isAuthenticated) && (showCalculator || link.href !== '/calculator')).map((link) => (
+                  {col.links.filter((link) => (!link.signedIn || isAuthenticated) && (showCalculator || link.href !== '/calculator') && (showAboutPage || link.href !== '/about-us')).map((link) => (
                     <li key={link.href}>
                       <NavLink
                         to={link.href}

@@ -1,0 +1,71 @@
+/* src/pages/Maintenance/Maintenance.module.css
+ *
+ * The "we will be back soon" page: one centred card on the dark banner colour.
+ */
+
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 1.5rem 1rem;
+  box-sizing: border-box;
+  background: #05070a;
+  background-image:
+    linear-gradient(115deg, rgba(56, 160, 220, 0.55) 0 6%, transparent 6%),
+    linear-gradient(115deg, rgba(56, 160, 220, 0.3) 0 11%, transparent 11%),
+    linear-gradient(115deg, rgba(56, 160, 220, 0.16) 0 18%, transparent 18%);
+}
+
+.card {
+  width: min(32rem, 100%);
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  color: #374151;
+}
+
+.logo {
+  width: 5.5rem;
+  height: auto;
+}
+
+.brand {
+  margin: 0.5rem 0 1.5rem;
+  color: var(--brand-ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.dot {
+  color: #6b7280;
+}
+
+.title {
+  margin: 0 0 1rem;
+  color: var(--brand-ink);
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.text {
+  margin: 0 0 1rem;
+  line-height: 1.6;
+}
+
+.text a {
+  color: var(--brand-ink);
+  font-weight: 700;
+}
+
+.staff {
+  margin: 1.5rem 0 0;
+  font-size: 0.85rem;
+}
+
+.staff a {
+  color: #6b7280;
+}

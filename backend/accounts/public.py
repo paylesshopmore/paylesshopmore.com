@@ -301,6 +301,8 @@ class SiteSwitchesView(APIView):
             {
                 "show_calculator": site.show_calculator,
                 "show_pay_online": site.show_pay_online,
+                "show_about_page": site.show_about_page,
+                "maintenance_mode": site.maintenance_mode,
             }
         )
 

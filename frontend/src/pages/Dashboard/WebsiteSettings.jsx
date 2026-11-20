@@ -38,6 +38,10 @@ export default function WebsiteSettings() {
   const [showCalculator, setShowCalculator] = useState(true);
   // The Pay online page starts switched off (backend SiteSettings.show_pay_online).
   const [showPayOnline, setShowPayOnline] = useState(false);
+  // Maintenance mode starts off (backend SiteSettings.maintenance_mode).
+  const [maintenance, setMaintenance] = useState(false);
+  // The About us page starts on (backend SiteSettings.show_about_page).
+  const [showAboutPage, setShowAboutPage] = useState(true);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -50,6 +54,8 @@ export default function WebsiteSettings() {
         if (!live) return;
         setShowCalculator(settings.show_calculator);
         setShowPayOnline(Boolean(settings.show_pay_online));
+        setMaintenance(Boolean(settings.maintenance_mode));
+        setShowAboutPage(settings.show_about_page !== false);
         setState('ready');
       })
       .catch(() => {
@@ -97,10 +103,19 @@ export default function WebsiteSettings() {
       const settings = await saveSiteSettings({ [field]: next });
       setShowCalculator(settings.show_calculator);
       setShowPayOnline(Boolean(settings.show_pay_online));
+      setMaintenance(Boolean(settings.maintenance_mode));
+      setShowAboutPage(settings.show_about_page !== false);
       // This tab's header and footer ask again, so they follow the change.
       resetSiteSwitches();
-      const shown = field === 'show_pay_online' ? settings.show_pay_online : settings.show_calculator;
-      const key = field === 'show_pay_online' ? 'payOnline' : 'calculator';
+      // Which switch was flipped decides which sentence confirms it: the
+      // `...Shown` text when it is now on, `...Hidden` when it is now off.
+      const flipped = {
+        show_pay_online: ['payOnline', settings.show_pay_online],
+        maintenance_mode: ['maintenance', settings.maintenance_mode],
+        show_about_page: ['aboutPage', settings.show_about_page],
+        show_calculator: ['calculator', settings.show_calculator],
+      }[field];
+      const [key, shown] = flipped;
       setMessage({
         tone: 'success',
         text: shown ? d(`${key}Shown`) : d(`${key}Hidden`),
@@ -117,8 +132,31 @@ export default function WebsiteSettings() {
       {header}
       <Banner tone={message?.tone}>{message?.text}</Banner>
 
+      {/* On: say plainly that visitors cannot see the website right now. */}
+      {maintenance && <Banner tone="error">{d('maintenanceActive')}</Banner>}
+
       <section className={styles.accessCard}>
         <ul className={styles.accessList}>
+          <li className={styles.accessRow}>
+            <label htmlFor="website-maintenance" className={styles.accessText}>
+              <span className={styles.accessTitle}>{d('maintenance')}</span>
+              <span className={styles.accessDescription}>{d('maintenanceAbout')}</span>
+            </label>
+            <span className={styles.switch}>
+              <input
+                id="website-maintenance"
+                type="checkbox"
+                role="switch"
+                checked={maintenance}
+                disabled={busy}
+                onChange={(event) => toggle('maintenance_mode', event.target.checked)}
+              />
+              <span className={styles.switchTrack} aria-hidden="true" />
+            </span>
+            <span className={maintenance ? styles.accessOn : styles.accessOff}>
+              {busy ? c('saving') : maintenance ? d('on') : d('off')}
+            </span>
+          </li>
           <li className={styles.accessRow}>
             <label htmlFor="website-calculator" className={styles.accessText}>
               <span className={styles.accessTitle}>{d('calculator')}</span>
@@ -140,6 +178,28 @@ export default function WebsiteSettings() {
             </span>
             <span className={showCalculator ? styles.accessOn : styles.accessOff}>
               {busy ? c('saving') : showCalculator ? d('on') : d('off')}
+            </span>
+          </li>
+          <li className={styles.accessRow}>
+            <label htmlFor="website-about-page" className={styles.accessText}>
+              <span className={styles.accessTitle}>{d('aboutPage')}</span>
+              <span className={styles.accessDescription}>
+                {d('aboutPageAbout')} <Link to="/about-us">{d('open')}</Link>
+              </span>
+            </label>
+            <span className={styles.switch}>
+              <input
+                id="website-about-page"
+                type="checkbox"
+                role="switch"
+                checked={showAboutPage}
+                disabled={busy}
+                onChange={(event) => toggle('show_about_page', event.target.checked)}
+              />
+              <span className={styles.switchTrack} aria-hidden="true" />
+            </span>
+            <span className={showAboutPage ? styles.accessOn : styles.accessOff}>
+              {busy ? c('saving') : showAboutPage ? d('on') : d('off')}
             </span>
           </li>
           <li className={styles.accessRow}>
