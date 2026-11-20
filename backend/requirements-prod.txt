@@ -17,7 +17,7 @@ psycopg[binary]==3.2.10
 
 # Backs both the Celery broker and the cache, including the throttle counters
 # that are wrong when each worker keeps its own.
-redis==5.2.1
+redis==8.1.0
 
 # Error reporting. Inert unless SENTRY_DSN is set — see config/settings.py.
 sentry-sdk==2.35.0
