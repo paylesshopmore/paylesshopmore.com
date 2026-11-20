@@ -1388,7 +1388,7 @@ export const translations = {
       steps: {
         title: 'Zo bestelt u',
         account: 'Maak een account aan',
-        shop: 'Shop en betaal minder',
+        shop: 'Shop en betaal geen BTW',
         // ­ is a soft hyphen: the long word breaks there when the bar is
         // too narrow for it, and shows no hyphen when it is not.
         payment: 'Vul de juiste betaal­gegevens in',
