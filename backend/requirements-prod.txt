@@ -9,7 +9,7 @@
 
 # The WSGI server. manage.py runserver is a development tool and says so —
 # single-threaded, auto-reloading, and explicitly not audited for production.
-gunicorn==23.0.0
+gunicorn==26.2.0
 
 # PostgreSQL. The [binary] extra ships a compiled wheel, so no libpq and no
 # compiler are needed on the host.
